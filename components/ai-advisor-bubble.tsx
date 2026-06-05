@@ -187,7 +187,7 @@ export function AiAdvisorBubble() {
             className={`flex flex-col overflow-hidden ${open ? 'panel-enter' : 'panel-exit'}`}
             style={{
               width: "380px",
-              height: "540px",
+              height: "min(540px, calc(100vh - 120px))",
               borderRadius: "28px",
               background: "linear-gradient(180deg, rgba(20, 20, 30, .95) 0%, rgba(10, 10, 16, .98) 100%)",
               border: "1px solid rgba(255, 255, 255, .08)",
