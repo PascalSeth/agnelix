@@ -1,0 +1,489 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── NextAuth required models ──────────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ── Application models ────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+
+  companyName    String?
+  companyDesc    String?
+  title          String?
+  tone           String?  @default("Professional")
+  role           Role     @default(USER)
+  agencyLogo     String?
+  agencyName     String?
+  fromEmail      String?
+  smtpPass       String?
+  smtpHost       String?
+  smtpPort       Int?
+  onboardingDone Boolean  @default(false)
+  calendarLink   String?
+
+  campaigns      Campaign[]
+  leads          Lead[]
+  sequences      Sequence[]
+  autoSearches   AutoSearch[]
+  pendingActions PendingAction[]
+  agentGoal      AgentGoal?
+  agentMemories  AgentMemory[]
+  digestLogs     AgentDigestLog[]
+
+  @@map("users")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model Lead {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  email         String
+  firstName     String?
+  lastName      String?
+  title         String?
+  company       String?
+  companyDesc   String?
+  industry      String?
+  website       String?
+  linkedinUrl   String?
+  recentNews    String?
+  painPoint     String?
+  googlePlaceId String?
+  notes         String? @db.Text
+
+  status     LeadStatus @default(NEW)
+  dealValue  Float?
+  battleCard String?    @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  emails         Email[]
+  campaignLeads  CampaignLead[]
+  replies        Reply[]
+  activities     Activity[]
+  pendingActions PendingAction[]
+  agentMemories  AgentMemory[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("leads")
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  REPLIED
+  INTERESTED
+  MEETING_BOOKED
+  PROPOSAL_SENT
+  WON
+  LOST
+  NOT_INTERESTED
+  BOUNCED
+}
+
+model Campaign {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name       String
+  status     CampaignStatus @default(DRAFT)
+  sequenceId String
+  sequence   Sequence       @relation(fields: [sequenceId], references: [id])
+
+  totalLeads     Int       @default(0)
+  emailsSent     Int       @default(0)
+  emailsOpened   Int       @default(0)
+  emailsClicked  Int       @default(0)
+  replies        Int       @default(0)
+  meetings       Int       @default(0)
+
+  autonomous Boolean @default(false)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  launchedAt DateTime?
+
+  emails        Email[]
+  campaignLeads CampaignLead[]
+  autoSearches  AutoSearch[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("campaigns")
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+model CampaignLead {
+  id         String   @id @default(cuid())
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  leadId     String
+  lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  enrolledAt DateTime @default(now())
+
+  @@unique([campaignId, leadId])
+  @@map("campaign_leads")
+}
+
+model Sequence {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name      String
+  isDefault Boolean @default(false)
+
+  steps        SequenceStep[]
+  campaigns    Campaign[]
+  autoSearches AutoSearch[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("sequences")
+}
+
+model SequenceStep {
+  id         String   @id @default(cuid())
+  sequenceId String
+  sequence   Sequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+
+  stepNumber      Int
+  delayDays       Int
+  subjectTemplate String?
+  bodyTemplate    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sequenceId])
+  @@map("sequence_steps")
+}
+
+model Email {
+  id     String @id @default(cuid())
+  leadId String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  subject   String
+  body      String  @db.Text
+  aiPrompt  String? @db.Text
+
+  status    EmailStatus @default(DRAFT)
+  sentAt    DateTime?
+  messageId String?
+  scheduledAt DateTime?
+
+  openedAt   DateTime?
+  clickedAt  DateTime?
+  openCount  Int       @default(0)
+  clickCount Int       @default(0)
+
+  repliedAt     DateTime?
+  replySnippet  String?   @db.Text
+
+  stepNumber Int
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trackingEvents TrackingEvent[]
+  replies        Reply[]
+
+  @@index([leadId])
+  @@index([status])
+  @@index([messageId])
+  @@index([scheduledAt])
+  @@map("emails")
+}
+
+enum EmailStatus {
+  DRAFT
+  QUEUED
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  REPLIED
+  BOUNCED
+  FAILED
+}
+
+model AutoSearch {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  query        String
+  location     String
+  sequenceId   String
+  sequence     Sequence  @relation(fields: [sequenceId], references: [id])
+  campaignName String
+  campaignId   String?
+  campaign     Campaign? @relation(fields: [campaignId], references: [id])
+
+  enabled       Boolean   @default(true)
+  frequency     String    @default("daily")
+  lastRunAt     DateTime?
+  totalImported Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("auto_searches")
+}
+
+model Reply {
+  id         String   @id @default(cuid())
+  leadId     String
+  lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  emailId    String?
+  email      Email?   @relation(fields: [emailId], references: [id])
+  fromEmail  String
+  subject    String?
+  body       String   @db.Text
+  receivedAt DateTime @default(now())
+
+  pendingActions PendingAction[]
+
+  @@index([leadId])
+  @@map("replies")
+}
+
+model Activity {
+  id        String       @id @default(cuid())
+  leadId    String
+  lead      Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type      ActivityType
+  note      String?      @db.Text
+  metadata  Json?
+  createdAt DateTime     @default(now())
+
+  @@index([leadId])
+  @@map("activities")
+}
+
+enum ActivityType {
+  EMAIL_SENT
+  EMAIL_OPENED
+  EMAIL_CLICKED
+  REPLY_RECEIVED
+  STAGE_CHANGED
+  NOTE_ADDED
+  MEETING_BOOKED
+  DEAL_WON
+  DEAL_LOST
+  BATTLE_CARD_GENERATED
+  PROPOSAL_GENERATED
+}
+
+model TrackingEvent {
+  id        String  @id @default(cuid())
+  eventType String
+  emailId   String
+  email     Email   @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  leadEmail String
+  ipAddress String?
+  userAgent String?
+  timestamp DateTime @default(now())
+
+  @@index([emailId])
+  @@index([leadEmail])
+  @@map("tracking_events")
+}
+
+model PendingAction {
+  id      String @id @default(cuid())
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leadId  String
+  lead    Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  replyId String?
+  reply   Reply?  @relation(fields: [replyId], references: [id])
+
+  type         PendingActionType
+  intent       String
+  draftSubject String?
+  draftBody    String              @db.Text
+  metadata     Json?
+  riskLevel    PendingRiskLevel    @default(HIGH)
+  confidence   PendingConfidence   @default(LOW)
+
+  expiresAt  DateTime
+  status     PendingActionStatus @default(PENDING)
+  executedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("pending_actions")
+}
+
+enum PendingActionType {
+  SEND_REPLY
+  ENROLL_NURTURE
+  UPDATE_STAGE
+  BOOK_MEETING
+  SEND_PROPOSAL
+}
+
+enum PendingActionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  AUTO_EXECUTED
+}
+
+enum PendingRiskLevel {
+  LOW
+  HIGH
+}
+
+enum PendingConfidence {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model AgentGoal {
+  id String @id @default(cuid())
+  userId String @unique
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  meetingsPerMonth Int @default(5)
+  replyRateTarget Float @default(8)
+  dailyLeadCap Int @default(40)
+  autoSendEnabled Boolean @default(true)
+  reviewWindowMins Int @default(60)
+  maxAutoSendsPerDay Int @default(12)
+  minConfidence PendingConfidence @default(MEDIUM)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("agent_goals")
+}
+
+model AgentMemory {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leadId String?
+  lead Lead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  intent String
+  responseStyle String?
+  ctaType String?
+  outcome String
+  won Boolean @default(false)
+  bookedMeeting Boolean @default(false)
+  responseLatencyMins Int?
+  score Float @default(0)
+  notes String? @db.Text
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, intent])
+  @@index([createdAt])
+  @@map("agent_memories")
+}
+
+model AgentDigestLog {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  day DateTime
+  sentCount Int @default(0)
+  approvedCount Int @default(0)
+  meetingsBookedCount Int @default(0)
+  proposalsSentCount Int @default(0)
+  rejectedCount Int @default(0)
+  flaggedCount Int @default(0)
+  anomalies Json?
+  summary String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, day])
+  @@index([day])
+  @@map("agent_digest_logs")
+}
