@@ -17,7 +17,7 @@ export function Pricing() {
                 We win when you win.
               </h2>
               <p className="mt-4 max-w-xl text-lg text-white/25">
-                Traditional SaaS charges per seat regardless of results. We flipped the model: pay only for qualified meetings booked, or share a percentage of revenue from closed deals. Your incentives are finally aligned with your software vendor.
+                Traditional tools charge you every month no matter what. We only get paid when you see results. Pay per meeting booked, share a cut of deals closed, or pick a monthly plan that fits your budget.
               </p>
               <div className="mt-8 flex flex-wrap gap-4">
                 {[

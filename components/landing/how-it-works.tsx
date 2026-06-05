@@ -1,4 +1,4 @@
-import { Search, Target, Bot, TrendingUp, ChevronRight } from "lucide-react"
+import { MapPin, Search, Mail, Bot, ChevronRight } from "lucide-react"
 
 export function HowItWorks() {
   return (
@@ -6,19 +6,19 @@ export function HowItWorks() {
       <div className="mx-auto max-w-7xl px-6">
         <div className="anim-fade-up text-center mb-16">
           <h2 className="text-4xl font-bold tracking-tight text-gradient-w md:text-5xl">
-            From signal to meeting in four steps.
+            From search to meeting in four steps.
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-white/25">
-            No fragmented tools. No manual copy-paste. One platform owns the entire journey from discovery to revenue.
+            No manual work. No copy-paste. One tool takes you from finding leads to booking meetings.
           </p>
         </div>
 
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
           {[
-            { step: "01", icon: Search, title: "Detect Signals", desc: "Our engine monitors 50+ sources — job postings, funding events, tech stack changes, review sentiment, hiring velocity — to spot buying intent before your competitors do.", color: "indigo" },
-            { step: "02", icon: Target, title: "Score & Predict", desc: "ML models forecast buying windows 30–90 days out with 85% confidence. Each lead gets an intent score, fit score, and optimal outreach timing recommendation.", color: "purple" },
-            { step: "03", icon: Bot, title: "Autonomous Outreach", desc: "GPT-4o crafts personalised emails, LinkedIn messages, and SMS sequences. The AI handles objections, answers questions, and schedules meetings via Calendly — 24/7.", color: "primary" },
-            { step: "04", icon: TrendingUp, title: "Prove ROI", desc: "Multi-touch attribution tracks every lead from discovery to closed revenue. Your dashboard shows exact ROI: '$297 invested → $8,500 revenue (28x return)'.", color: "emerald" },
+            { step: "01", icon: MapPin, title: "Discover Leads", desc: "Search by business type and city. Agnelix finds prospects and pulls their name, website, phone, ratings, and reviews.", color: "indigo" },
+            { step: "02", icon: Search, title: "Research & Enrich", desc: "AI visits each prospect's website, finds their email address, and puts together a quick summary of what they do and how you can help.", color: "purple" },
+            { step: "03", icon: Mail, title: "Launch Campaigns", desc: "Build email sequences with multiple steps. AI writes each email based on the prospect's info. Set the timing, preview, and send.", color: "primary" },
+            { step: "04", icon: Bot, title: "Autonomous Follow-Up", desc: "When someone replies, AI reads the message, writes a response, and can book a meeting for you. You stay in control with approve or edit options.", color: "emerald" },
           ].map((item, i) => (
             <div key={i} className="anim-fade-up group relative" style={{ animationDelay: `${0.15 + i * 0.1}s` }}>
               <div className="card-elevated relative overflow-hidden rounded-3xl p-8 h-full">

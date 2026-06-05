@@ -18,7 +18,7 @@ const TITLES = [
 ]
 
 const FEATURES = [
-  { icon: Brain,      label: "AI email personalisation", desc: "GPT-4o writes cold emails using your agency context" },
+  { icon: Brain,      label: "AI email personalisation", desc: "Agnelix AI writes cold emails using your agency context" },
   { icon: Mail,       label: "Gmail integration",        desc: "Sends from your inbox, tracks opens and replies" },
   { icon: Zap,        label: "Battle card generation",   desc: "Instant talking points when a prospect replies" },
   { icon: TrendingUp, label: "Pipeline management",      desc: "Kanban board tracks every deal from cold to won" },

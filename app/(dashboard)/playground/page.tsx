@@ -429,7 +429,7 @@ const scenarios: { id: string; label: string; emoji: string; color: string; tagl
       {
         tag: "Outreach",
         title: "AI Writes & Sends Personalised Email",
-        desc: "DeepSeek uses the audit findings (4.2s load, no analytics) + James's name + the dental context to write a specific, non-generic opener. Email sent from your Gmail.",
+        desc: "Agnelix AI uses the audit findings (4.2s load, no analytics) + James's name + the dental context to write a specific, non-generic opener. Email sent from your Gmail.",
         sender: <EmailComposer />,
         prospect: <GmailInbox />,
       },

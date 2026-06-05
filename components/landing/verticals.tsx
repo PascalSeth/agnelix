@@ -1,4 +1,4 @@
-import { Users, Globe, Phone } from "lucide-react"
+import { Users, Briefcase, User } from "lucide-react"
 
 export function Verticals() {
   return (
@@ -6,10 +6,10 @@ export function Verticals() {
       <div className="mx-auto max-w-7xl px-6">
         <div className="anim-fade-up text-center mb-16">
           <h2 className="text-4xl font-bold tracking-tight text-gradient-b md:text-5xl">
-            Built for agencies. Ready for everyone.
+            Built for anyone who sells to local businesses.
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-neutral-500">
-            Vertical-specific AI playbooks that understand your market&apos;s language, pain points, and seasonality.
+            Whether you run an agency, a service company, or work solo — Agnelix helps you find clients and book meetings.
           </p>
         </div>
 
@@ -18,22 +18,22 @@ export function Verticals() {
             {
               icon: Users,
               title: "Digital Marketing Agencies",
-              desc: "Serving dentists, chiropractors, roofers, and restaurants. White-label ready with multi-tenant client management.",
-              tags: ["Local SEO", "GMB Optimization", "Reputation"],
+              desc: "Find dentists, restaurants, roofers, salons — any local business. Search by niche and city, send personalized emails, and let AI handle the follow-ups.",
+              tags: ["Local Business Search", "Personalized Outreach", "Auto Follow-Up"],
               color: "bg-blue-50 text-blue-600"
             },
             {
-              icon: Globe,
-              title: "B2B SaaS Sales Teams",
-              desc: "Series A–C companies selling to mid-market and enterprise. Identify in-market accounts before they RFP.",
-              tags: ["Intent Data", "Account-Based", "Tech Stack"],
+              icon: Briefcase,
+              title: "B2B Service Providers",
+              desc: "Find businesses by type and location. AI checks their website, writes a tailored pitch, and manages your whole pipeline from first email to booked meeting.",
+              tags: ["Company Research", "AI Email Sequences", "Pipeline CRM"],
               color: "bg-purple-50 text-purple-600"
             },
             {
-              icon: Phone,
-              title: "Real Estate & Insurance",
-              desc: "Agents and brokers who need listing signals and policy renewal triggers. Pay only for qualified appointments.",
-              tags: ["Listing Signals", "Renewals", "Referrals"],
+              icon: User,
+              title: "Consultants & Freelancers",
+              desc: "Working alone? Agnelix is your AI sales team. It finds new businesses every day, sends emails, handles replies, and fills your calendar — while you focus on your current clients.",
+              tags: ["Autopilot Mode", "Battle Cards", "Meeting Booking"],
               color: "bg-emerald-50 text-emerald-600"
             }
           ].map((vert, i) => (

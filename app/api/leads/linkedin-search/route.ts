@@ -357,13 +357,13 @@ export async function POST(req: NextRequest) {
     logs.push(`[${new Date().toLocaleTimeString()}] Search details - Company: "${companyName}", Clean City: "${cleanCity}"`)
 
     // Run site scraping and AI query in parallel
-    logs.push(`[${new Date().toLocaleTimeString()}] Performing parallel domain scan and DeepSeek AI analysis...`)
+    logs.push(`[${new Date().toLocaleTimeString()}] Performing parallel domain scan and AI analysis...`)
     const [siteUrls, aiResults] = await Promise.all([
       websiteUrl ? findLinkedInUrlsFromSite(websiteUrl, logs) : Promise.resolve([]),
       askDeepSeek({ companyName, city: cleanCity, industry: industry ?? "", websiteUrl, websiteText }),
     ])
 
-    logs.push(`[${new Date().toLocaleTimeString()}] Website scrape found ${siteUrls.length} LinkedIn URLs. DeepSeek returned ${aiResults.length} profile hypotheses.`)
+    logs.push(`[${new Date().toLocaleTimeString()}] Website scrape found ${siteUrls.length} LinkedIn URLs. AI returned ${aiResults.length} profile hypotheses.`)
 
     // Fetch LinkedIn profile pages for any site URLs found
     const siteProfiles: LinkedInDecisionMaker[] = []

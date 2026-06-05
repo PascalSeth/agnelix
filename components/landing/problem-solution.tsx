@@ -1,4 +1,4 @@
-import { Timer, BarChart3, CreditCard, CheckCircle2 } from "lucide-react"
+import { Timer, Mail, MessageSquare, CheckCircle2 } from "lucide-react"
 
 export function ProblemSolution() {
   return (
@@ -6,10 +6,10 @@ export function ProblemSolution() {
       <div className="mx-auto max-w-7xl px-6">
         <div className="anim-fade-up text-center mb-16">
           <h2 className="text-4xl font-bold tracking-tight text-gradient-b md:text-5xl">
-            Lead generation is broken.
+            Manual prospecting is broken.
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-neutral-500">
-            68% of businesses say lead gen is their #1 challenge. Here is why the old way fails — and exactly how we fix it.
+            Agencies spend too much time searching for leads, writing emails, and chasing replies. Here's how Agnelix helps.
           </p>
         </div>
 
@@ -17,23 +17,23 @@ export function ProblemSolution() {
           {[
             {
               icon: Timer,
-              title: "You waste 4 hours a day",
-              problem: "SDRs spend 70% of their time researching and only 30% selling. Manual LinkedIn scraping and stale CSV lists kill productivity.",
-              fix: "Our AI finds and engages leads 24/7. Your team focuses on closing deals, not chasing them.",
+              title: "You waste hours finding leads",
+              problem: "You spend hours searching for businesses online, copying info into spreadsheets, and looking for the right person to email.",
+              fix: "Agnelix searches for businesses by type and city, finds their website, and gets you an email address — all in a few clicks.",
               accent: "rose"
             },
             {
-              icon: BarChart3,
-              title: "You cannot prove ROI",
-              problem: "Data lives in disconnected tools: Apollo for contacts, Outreach for sequences, Salesforce for CRM. No attribution.",
-              fix: "Built-in revenue tracking from first touch to closed deal. Show clients exactly where revenue came from.",
+              icon: Mail,
+              title: "Your cold emails get ignored",
+              problem: "If you send the same email to everyone, most people ignore it. Without knowing anything about the prospect, your message feels like spam.",
+              fix: "AI looks up each prospect's website and writes a unique email that speaks to their business. You set the tone — friendly, professional, direct, or consultative.",
               accent: "indigo"
             },
             {
-              icon: CreditCard,
-              title: "You pay regardless of results",
-              problem: "Traditional SaaS charges per seat whether you book zero meetings or fifty. Incentives are misaligned.",
-              fix: "Outcome-based pricing: pay-per-meeting or revenue-share. If we do not deliver, we do not get paid.",
+              icon: MessageSquare,
+              title: "Follow-ups fall through the cracks",
+              problem: "When someone finally replies, it's easy to miss. Interested leads go cold. Objections go unanswered. Meetings never get booked.",
+              fix: "AI reads every reply, figures out what the person needs, writes a smart response, and can book a meeting — all while you sleep.",
               accent: "emerald"
             }
           ].map((card, i) => (
@@ -48,7 +48,7 @@ export function ProblemSolution() {
                 <div className="rounded-2xl bg-neutral-50 border border-neutral-100 p-5">
                   <div className="flex items-center gap-2 mb-2">
                     <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                    <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Our Fix</span>
+                    <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">How Agnelix fixes this</span>
                   </div>
                   <p className="text-sm leading-relaxed text-neutral-700">{card.fix}</p>
                 </div>
