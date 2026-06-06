@@ -182,11 +182,10 @@ export function AiAdvisorBubble() {
 
       {/* ── Chat Panel ── */}
       {isVisible && (
-        <div className="fixed bottom-24 right-6 z-50">
+        <div className="fixed bottom-24 left-4 right-4 sm:left-auto sm:right-6 z-50 w-auto sm:w-[380px]">
           <div
-            className={`flex flex-col overflow-hidden ${open ? 'panel-enter' : 'panel-exit'}`}
+            className={`flex flex-col overflow-hidden w-full ${open ? 'panel-enter' : 'panel-exit'}`}
             style={{
-              width: "380px",
               height: "min(540px, calc(100vh - 120px))",
               borderRadius: "28px",
               background: "linear-gradient(180deg, rgba(20, 20, 30, .95) 0%, rgba(10, 10, 16, .98) 100%)",
@@ -438,7 +437,7 @@ export function AiAdvisorBubble() {
       {/* ── Glowing Orb Trigger ── */}
       <button
         onClick={toggleChat}
-        className="fixed bottom-6 right-6 z-50 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-90"
+        className="fixed bottom-6 right-4 sm:right-6 z-50 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-90"
         aria-label={open ? "Close Agnel" : "Open Agnel"}
       >
         {/* Outer glow layers */}

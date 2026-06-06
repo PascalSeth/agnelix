@@ -72,7 +72,7 @@ export function Navbar() {
   }, [])
 
   return (
-    <nav className="fixed inset-x-0 top-0 z-[100] overflow-hidden">
+    <nav className="fixed inset-x-0 top-0 z-[100]">
 
       {/* Keyframe definitions */}
       <style>{`
@@ -82,62 +82,65 @@ export function Navbar() {
         }
       `}</style>
 
-      {/* ── Gray gradient — only visible after scroll ────────────────── */}
-      <div
-        className="absolute inset-0 transition-all duration-700"
-        style={{
-          background: "rgba(26, 28, 36, 0.85)",
-          opacity: scrolled ? 1 : 0,
-        }}
-      />
+      {/* Header background wrapper (fixed height of top bar, overflow hidden for floating icons) */}
+      <div className="absolute inset-x-0 top-0 h-[68px] overflow-hidden pointer-events-none">
+        {/* ── Gray gradient — only visible after scroll ────────────────── */}
+        <div
+          className="absolute inset-0 transition-all duration-700"
+          style={{
+            background: "rgba(26, 28, 36, 0.85)",
+            opacity: scrolled ? 1 : 0,
+          }}
+        />
 
-      {/* ── Radial depth wash ────────────────────────────────────────── */}
-      <div
-        className="absolute inset-0 transition-opacity duration-700"
-        style={{
-          background:
-            "radial-gradient(ellipse 60% 140% at 50% -20%, rgba(255, 255, 255, 0.04) 0%, transparent 70%)",
-          opacity: scrolled ? 1 : 0,
-        }}
-      />
+        {/* ── Radial depth wash ────────────────────────────────────────── */}
+        <div
+          className="absolute inset-0 transition-opacity duration-700"
+          style={{
+            background:
+              "radial-gradient(ellipse 60% 140% at 50% -20%, rgba(255, 255, 255, 0.04) 0%, transparent 70%)",
+            opacity: scrolled ? 1 : 0,
+          }}
+        />
 
-      {/* ── Top sheen ────────────────────────────────────────────────── */}
-      <div
-        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent transition-opacity duration-500"
-        style={{ opacity: scrolled ? 1 : 0 }}
-      />
+        {/* ── Top sheen ────────────────────────────────────────────────── */}
+        <div
+          className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent transition-opacity duration-500"
+          style={{ opacity: scrolled ? 1 : 0 }}
+        />
 
-      {/* ── Bottom border ────────────────────────────────────────────── */}
-      <div
-        className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent transition-opacity duration-500"
-        style={{ opacity: scrolled ? 1 : 0 }}
-      />
+        {/* ── Bottom border ────────────────────────────────────────────── */}
+        <div
+          className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent transition-opacity duration-500"
+          style={{ opacity: scrolled ? 1 : 0 }}
+        />
 
-      {/* ── Backdrop blur (scroll only) ───────────────────────────────── */}
-      <div
-        className="absolute inset-0 backdrop-blur-xl transition-opacity duration-700"
-        style={{ opacity: scrolled ? 1 : 0 }}
-      />
+        {/* ── Backdrop blur (scroll only) ───────────────────────────────── */}
+        <div
+          className="absolute inset-0 backdrop-blur-xl transition-opacity duration-700"
+          style={{ opacity: scrolled ? 1 : 0 }}
+        />
 
-      {/* ── Spectrum-colored floating icons ──────────────────────────── */}
-      <div className="pointer-events-none absolute inset-0">
-        {BG_ICONS.map(({ Icon, left, top, size, deg, delay, dur }, i) => (
-          <span
-            key={i}
-            className="absolute"
-            style={
-              {
-                left,
-                top,
-                color: SPECTRUM[i % SPECTRUM.length],
-                "--deg": `${deg}deg`,
-                animation: `navIconFloat ${dur}s ease-in-out ${delay}s infinite`,
-              } as React.CSSProperties
-            }
-          >
-            <Icon style={{ width: size, height: size }} strokeWidth={1.25} />
-          </span>
-        ))}
+        {/* ── Spectrum-colored floating icons ──────────────────────────── */}
+        <div className="absolute inset-0">
+          {BG_ICONS.map(({ Icon, left, top, size, deg, delay, dur }, i) => (
+            <span
+              key={i}
+              className="absolute"
+              style={
+                {
+                  left,
+                  top,
+                  color: SPECTRUM[i % SPECTRUM.length],
+                  "--deg": `${deg}deg`,
+                  animation: `navIconFloat ${dur}s ease-in-out ${delay}s infinite`,
+                } as React.CSSProperties
+              }
+            >
+              <Icon style={{ width: size, height: size }} strokeWidth={1.25} />
+            </span>
+          ))}
+        </div>
       </div>
 
       {/* ── Nav content ─────────────────────────────────────────────── */}
@@ -170,7 +173,7 @@ export function Navbar() {
 
           {/* CTA + mobile toggle */}
           <div className="flex items-center gap-3">
-            <div>
+            <div className="hidden md:block">
               <NavbarCTA />
             </div>
             <button
