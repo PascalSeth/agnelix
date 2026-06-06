@@ -21,7 +21,7 @@ export function NavbarCTA() {
     return (
       <Link
         href="/dashboard"
-        className="group flex items-center gap-0 overflow-hidden rounded-xl border border-white/[0.1] transition-all duration-300 hover:border-emerald-400/25 hover:shadow-[0_0_20px_rgba(52,211,153,.12)]"
+        className="group flex items-center gap-0 overflow-hidden rounded-xl border border-white/[0.08] transition-all duration-300 hover:border-emerald-400/25 hover:shadow-[0_0_20px_rgba(52,211,153,.12)]"
         style={{ background: "linear-gradient(135deg,rgba(255,255,255,.06) 0%,rgba(255,255,255,.03) 100%)" }}
       >
         {/* User identity section */}
@@ -83,7 +83,7 @@ export function NavbarCTA() {
         href="/sign-in"
         className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-[13px] font-bold text-black transition-all hover:brightness-110 active:scale-[.98]"
         style={{
-          background: "linear-gradient(135deg,#e2e5ed,#c8cdd8)",
+          background: "linear-gradient(135deg,#ffffff,#cbd5e1)",
           boxShadow: "0 2px 10px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.5)",
         }}
       >

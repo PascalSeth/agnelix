@@ -1,146 +1,153 @@
-import { MapPin, Brain, Bot, BarChart3, Zap, Swords, Mail, Workflow } from "lucide-react"
+import { MapPin, Brain, Bot, BarChart3, Zap, Swords, Mail, Sparkles, User, Crosshair } from "lucide-react"
 
 export function BentoFeatures() {
   return (
-    <section className="relative bg-[#f8f8fb] py-20">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="anim-fade-up text-center mb-16">
-          <h2 className="text-4xl font-bold tracking-tight text-gradient-b md:text-5xl">
+    <section className="relative bg-[#111216] py-24 lg:py-32 overflow-hidden">
+      
+      {/* Background Glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[400px] bg-[#c5a880]/10 blur-[120px] pointer-events-none" />
+
+      <div className="mx-auto max-w-7xl px-6 relative z-10">
+        <div className="anim-fade-up text-center mb-16 lg:mb-24">
+          <h2 className="text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-6xl font-luxury-sans">
             Everything you need to
             <br />
-            <span className="text-gradient-accent">automate outreach.</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#c5a880] to-[#e6d5b8]">automate outreach.</span>
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-lg text-neutral-500">
-            Find leads, send emails, and manage deals — all in one place. No need to juggle multiple tools.
+          <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-400 font-medium">
+            Find leads, send emails, and manage deals — all in one place. Replace your fragmented stack with a single autonomous agent.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4 auto-rows-[minmax(170px,auto)]">
+        {/* BENTO GRID */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4 auto-rows-[220px]">
 
-          {/* Lead Discovery - Large */}
-          <div className="anim-fade-up group relative md:col-span-2 md:row-span-2 overflow-hidden rounded-3xl card-light p-8" style={{ animationDelay: "0.15s" }}>
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-            <div className="relative flex h-full flex-col justify-between">
-              <div className="flex items-start justify-between">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 shadow-lg shadow-indigo-500/15">
-                  <MapPin className="h-7 w-7 text-white" />
+          {/* 1. Lead Discovery - Large (2x2) */}
+          <div className="anim-fade-up group relative col-span-1 md:col-span-2 row-span-2 overflow-hidden rounded-[2rem] bg-[#16181D] border border-white/5 transition-colors hover:bg-[#1A1C23] hover:border-[#c5a880]/30" style={{ animationDelay: "0.15s" }}>
+            
+            {/* Abstract Background Image */}
+            <div className="absolute inset-0 h-[60%] overflow-hidden">
+              <img 
+                src="https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=1000&auto=format&fit=crop" 
+                alt="Dark map" 
+                className="w-full h-full object-cover opacity-20 mix-blend-screen transition-transform duration-700 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#16181D] via-[#16181D]/80 to-transparent transition-colors group-hover:from-[#1A1C23]" />
+              
+              {/* Floating UI Overlay */}
+              <div className="absolute top-8 left-1/2 -translate-x-1/2 w-[80%] rounded-xl bg-white/5 backdrop-blur-md border border-white/10 p-3 shadow-2xl">
+                <div className="flex items-center gap-2 border-b border-white/10 pb-2 mb-2">
+                  <MapPin className="h-3 w-3 text-[#c5a880]" />
+                  <span className="text-xs font-semibold text-white">Targeting: Plumbers in Austin, TX</span>
                 </div>
-                <div className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-600 border border-indigo-100">Core Engine</div>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center bg-[#c5a880]/10 rounded px-2 py-1">
+                    <span className="text-[10px] text-[#c5a880]">Found 245 verified leads</span>
+                    <Sparkles className="h-3 w-3 text-[#c5a880]" />
+                  </div>
+                  <div className="flex justify-between items-center bg-white/5 rounded px-2 py-1">
+                    <span className="text-[10px] text-slate-400">Extracting emails & LinkedIn profiles...</span>
+                  </div>
+                </div>
               </div>
-              <div className="mt-8">
-                <h3 className="text-2xl font-bold text-neutral-900">Lead Discovery</h3>
-                <p className="mt-3 max-w-md text-base leading-relaxed text-neutral-500">
-                  Search for businesses by type and location. Agnelix pulls their name, website, phone, ratings, reviews, and photos — then finds their email address from their website.
+            </div>
+
+            {/* Content */}
+            <div className="absolute bottom-0 inset-x-0 p-8">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#c5a880]/10 border border-[#c5a880]/20">
+                  <MapPin className="h-5 w-5 text-[#c5a880]" />
+                </div>
+                <div className="rounded-full bg-[#c5a880]/10 border border-[#c5a880]/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#c5a880]">Core Engine</div>
+              </div>
+              <h3 className="text-2xl font-bold text-white font-luxury-sans">Lead Discovery</h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-400 font-medium max-w-md">
+                Search for businesses by type and location. Agnelix pulls their name, website, phone, and ratings — then finds their direct email address instantly.
+              </p>
+            </div>
+          </div>
+
+          {/* 2. AI Email Writer (1x1) */}
+          <div className="anim-fade-up group relative overflow-hidden rounded-[2rem] bg-[#16181D] border border-white/5 transition-colors hover:bg-[#1A1C23] hover:border-[#c5a880]/30 p-6 flex flex-col justify-between" style={{ animationDelay: "0.2s" }}>
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Brain className="h-24 w-24 text-[#c5a880]" />
+            </div>
+            <div className="relative z-10">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 border border-white/10 mb-4">
+                <Brain className="h-5 w-5 text-[#c5a880]" />
+              </div>
+              <h3 className="font-bold text-white font-luxury-sans text-lg">AI Email Writer</h3>
+              <p className="mt-2 text-xs leading-relaxed text-slate-400 font-medium">
+                Drafts hyper-personalized emails by reading the prospect&apos;s actual website.
+              </p>
+            </div>
+          </div>
+
+          {/* 3. Autonomous Agent (1x1) */}
+          <div className="anim-fade-up group relative overflow-hidden rounded-[2rem] bg-[#16181D] border border-white/5 transition-colors hover:bg-[#1A1C23] hover:border-[#c5a880]/30 p-6 flex flex-col justify-between" style={{ animationDelay: "0.25s" }}>
+            <div className="absolute inset-0 bg-gradient-to-br from-[#c5a880]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+            <div className="relative z-10">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#c5a880]/10 border border-[#c5a880]/20 mb-4">
+                <Bot className="h-5 w-5 text-[#c5a880]" />
+              </div>
+              <h3 className="font-bold text-white font-luxury-sans text-lg">Autonomous Agent</h3>
+              <p className="mt-2 text-xs leading-relaxed text-slate-400 font-medium">
+                Reads replies, handles objections, and automatically books meetings for you.
+              </p>
+            </div>
+          </div>
+
+          {/* 4. Pipeline & CRM - Wide (2x1) */}
+          <div className="anim-fade-up group relative col-span-1 md:col-span-2 overflow-hidden rounded-[2rem] bg-[#16181D] border border-white/5 transition-colors hover:bg-[#1A1C23] hover:border-[#c5a880]/30 p-6" style={{ animationDelay: "0.3s" }}>
+            <div className="flex h-full flex-col sm:flex-row gap-6 relative z-10">
+              <div className="flex-1 flex flex-col justify-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 border border-white/10 mb-4">
+                  <BarChart3 className="h-5 w-5 text-[#c5a880]" />
+                </div>
+                <h3 className="font-bold text-lg text-white font-luxury-sans">Pipeline &amp; CRM</h3>
+                <p className="mt-2 text-xs leading-relaxed text-slate-400 font-medium">
+                  Track every deal from first contact to closed won. See your revenue pipeline at a glance.
                 </p>
-                <div className="mt-6 flex flex-wrap items-center gap-2">
-                  {["Location Search", "Website Lookup", "Email Finder", "Email Checker", "Contact Info"].map((tag) => (
-                    <span key={tag} className="rounded-lg bg-neutral-100 border border-neutral-200 px-3 py-1 text-xs text-neutral-500">
-                      {tag}
-                    </span>
-                  ))}
+              </div>
+              {/* UI Mockup of Kanban */}
+              <div className="hidden sm:flex flex-1 gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
+                <div className="flex-1 bg-white/5 rounded-lg border border-white/10 p-2 space-y-2">
+                  <div className="h-2 w-1/2 bg-slate-500/30 rounded" />
+                  <div className="h-8 w-full bg-[#c5a880]/20 border border-[#c5a880]/30 rounded-md" />
+                  <div className="h-8 w-full bg-white/5 rounded-md" />
+                </div>
+                <div className="flex-1 bg-white/5 rounded-lg border border-white/10 p-2 space-y-2">
+                  <div className="h-2 w-1/2 bg-[#c5a880]/50 rounded" />
+                  <div className="h-8 w-full bg-white/5 rounded-md" />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* AI Email Writer */}
-          <div className="anim-fade-up group relative overflow-hidden rounded-3xl card-light p-6" style={{ animationDelay: "0.25s" }}>
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-            <div className="relative flex h-full flex-col justify-between">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-50">
-                <Brain className="h-5 w-5 text-purple-500" />
+          {/* 5. Battle Cards - Wide (2x1) */}
+          <div className="anim-fade-up group relative col-span-1 md:col-span-2 overflow-hidden rounded-[2rem] bg-[#16181D] border border-white/5 transition-colors hover:bg-[#1A1C23] hover:border-[#c5a880]/30 p-6" style={{ animationDelay: "0.35s" }}>
+            
+            {/* Abstract Background for wide card */}
+            <div className="absolute top-0 right-0 h-full w-1/2">
+              <img 
+                src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=800&auto=format&fit=crop" 
+                alt="Cyber background" 
+                className="h-full w-full object-cover opacity-10 mix-blend-screen transition-transform duration-700 group-hover:scale-110"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#16181D] via-[#16181D]/80 to-transparent transition-colors group-hover:from-[#1A1C23]" />
+            </div>
+
+            <div className="relative z-10 flex h-full flex-col justify-center max-w-[60%]">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#c5a880]/10 border border-[#c5a880]/20 mb-4">
+                <Swords className="h-5 w-5 text-[#c5a880]" />
               </div>
-              <div className="mt-4">
-                <h3 className="font-semibold text-neutral-900">AI Email Writer</h3>
-                <p className="mt-2 text-sm leading-relaxed text-neutral-500">Looks up each prospect&apos;s website and writes a unique email using your business info and preferred tone.</p>
-              </div>
+              <h3 className="font-bold text-lg text-white font-luxury-sans">Battle Cards</h3>
+              <p className="mt-2 text-xs leading-relaxed text-slate-400 font-medium">
+                AI generates an instant cheat sheet when a prospect replies. Get talking points, objection handling, and clear next steps automatically.
+              </p>
             </div>
           </div>
 
-          {/* Autonomous Agent */}
-          <div className="anim-fade-up group relative overflow-hidden rounded-3xl card-light p-6" style={{ animationDelay: "0.3s" }}>
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-            <div className="relative flex h-full flex-col justify-between">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/5">
-                <Bot className="h-5 w-5 text-primary" />
-              </div>
-              <div className="mt-4">
-                <h3 className="font-semibold text-neutral-900">Autonomous Agent</h3>
-                <p className="mt-2 text-sm leading-relaxed text-neutral-500">Reads replies, understands what the person wants, writes a response, and books meetings. You can review everything before it sends.</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Pipeline & CRM - Wide */}
-          <div className="anim-fade-up group relative md:col-span-2 overflow-hidden rounded-3xl card-light p-6" style={{ animationDelay: "0.35s" }}>
-            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-            <div className="relative flex h-full flex-col justify-between gap-4 sm:flex-row sm:items-center">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-50">
-                <BarChart3 className="h-6 w-6 text-emerald-500" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg text-neutral-900">Pipeline &amp; CRM</h3>
-                <p className="mt-1 text-sm leading-relaxed text-neutral-500">Drag-and-drop board to track every deal — from first contact to closed. Add deal values and see your total pipeline at a glance.</p>
-              </div>
-              <div className="shrink-0 rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-center">
-                <div className="text-lg font-bold text-emerald-600">8</div>
-                <div className="text-[10px] text-emerald-600/60 uppercase tracking-wider">Stages</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Autopilot */}
-          <div className="anim-fade-up group relative overflow-hidden rounded-3xl card-light p-6" style={{ animationDelay: "0.4s" }}>
-            <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-            <div className="relative flex h-full flex-col justify-between">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-rose-50">
-                <Zap className="h-5 w-5 text-rose-500" />
-              </div>
-              <div className="mt-4">
-                <h3 className="font-semibold text-neutral-900">Autopilot Mode</h3>
-                <p className="mt-2 text-sm leading-relaxed text-neutral-500">Set up a search once and let it run on a schedule. New leads get imported, added to campaigns, and emailed automatically.</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Battle Cards & Research - Wide */}
-          <div className="anim-fade-up group relative md:col-span-2 overflow-hidden rounded-3xl card-light p-6" style={{ animationDelay: "0.45s" }}>
-            <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-            <div className="relative flex h-full flex-col justify-between gap-4 sm:flex-row sm:items-center">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-50">
-                <Swords className="h-6 w-6 text-orange-500" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg text-neutral-900">Battle Cards &amp; Research</h3>
-                <p className="mt-1 text-sm leading-relaxed text-neutral-500">When someone replies, AI creates a cheat sheet with talking points, common objections and how to handle them, and a clear next step.</p>
-              </div>
-              <div className="flex gap-3 shrink-0">
-                <div className="text-center">
-                  <div className="text-lg font-bold text-orange-500">Auto</div>
-                  <div className="text-[10px] text-neutral-400">Generated</div>
-                </div>
-                <div className="w-px bg-neutral-200" />
-                <div className="text-center">
-                  <div className="text-lg font-bold text-orange-500">5</div>
-                  <div className="text-[10px] text-neutral-400">Sections</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Email Tracking */}
-          <div className="anim-fade-up group relative overflow-hidden rounded-3xl card-light p-6" style={{ animationDelay: "0.5s" }}>
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-            <div className="relative flex h-full flex-col justify-between">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50">
-                <Mail className="h-5 w-5 text-blue-500" />
-              </div>
-              <div className="mt-4">
-                <h3 className="font-semibold text-neutral-900">Email Tracking</h3>
-                <p className="mt-2 text-sm leading-relaxed text-neutral-500">Know who opened your email, who clicked a link, and who replied. All tracked automatically.</p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </section>

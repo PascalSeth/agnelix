@@ -1,159 +1,166 @@
 export function LandingStyles() {
   return (
     <style>{`
-      @keyframes vortex-spin {
-        0% { transform: rotate(0deg) scale(1); }
-        50% { transform: rotate(180deg) scale(1.1); }
-        100% { transform: rotate(360deg) scale(1); }
+      @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+      .font-luxury-serif {
+        font-family: 'Cormorant Garamond', Georgia, serif;
       }
-      @keyframes vortex-spin-reverse {
-        0% { transform: rotate(360deg) scale(1.2); }
-        50% { transform: rotate(180deg) scale(1); }
-        100% { transform: rotate(0deg) scale(1.2); }
+      .font-luxury-sans {
+        font-family: 'Outfit', sans-serif;
       }
-      @keyframes radial-pulse {
-        0% { transform: scale(0.8) rotate(0deg); opacity: 0.3; }
-        50% { transform: scale(1.2) rotate(180deg); opacity: 0.6; }
-        100% { transform: scale(0.8) rotate(360deg); opacity: 0.3; }
+
+      @keyframes leaf-sway {
+        0%, 100% { transform: rotate(0deg) skewX(0deg); }
+        50% { transform: rotate(1.2deg) skewX(0.4deg); }
       }
-      @keyframes tornado-rise {
-        0% { transform: translateY(100vh) translateX(-50%) scale(0.5) rotate(0deg); opacity: 0; }
-        20% { opacity: 0.8; }
-        80% { opacity: 0.4; }
-        100% { transform: translateY(-100vh) translateX(50%) scale(2) rotate(720deg); opacity: 0; }
+      @keyframes leaf-sway-slow {
+        0%, 100% { transform: rotate(0deg); }
+        50% { transform: rotate(-0.8deg) translateY(1px); }
       }
-      @keyframes arc-sweep {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+      @keyframes luxury-float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-8px); }
       }
-      @keyframes radial-line-grow {
-        0% { transform: scaleX(0) translateY(0); opacity: 0; }
-        50% { transform: scaleX(1) translateY(-20px); opacity: 1; }
-        100% { transform: scaleX(0.5) translateY(-40px); opacity: 0; }
+      @keyframes luxury-float-delayed {
+        0%, 100% { transform: translateY(-4px); }
+        50% { transform: translateY(4px); }
       }
-      @keyframes diffuse-glow {
-        0%, 100% { filter: blur(60px) hue-rotate(0deg); transform: scale(1); }
-        33% { filter: blur(80px) hue-rotate(30deg); transform: scale(1.2); }
-        66% { filter: blur(50px) hue-rotate(-20deg); transform: scale(0.9); }
+      @keyframes wave-flow {
+        0% { stroke-dashoffset: 1000; }
+        100% { stroke-dashoffset: 0; }
       }
-      @keyframes fade-up {
-        from { opacity: 0; transform: translateY(30px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      @keyframes scale-in {
-        from { opacity: 0; transform: scale(0.95) translateY(15px); }
-        to { opacity: 1; transform: scale(1) translateY(0); }
-      }
-      @keyframes shimmer {
-        0% { background-position: -200% center; }
-        100% { background-position: 200% center; }
-      }
-      @keyframes float {
-        0%, 100% { transform: translateY(0px) rotate(0deg); }
-        50% { transform: translateY(-12px) rotate(2deg); }
+      @keyframes soft-pulse {
+        0%, 100% { opacity: 0.8; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.03); }
       }
       @keyframes marquee {
         0% { transform: translateX(0); }
-        100% { transform: translateX(-50%); }
+        100% { transform: translateX(calc(-100% - 24px)); }
       }
-      @keyframes energy-ripple {
-        0% { transform: scale(0.8); opacity: 0.6; }
-        100% { transform: scale(2.5); opacity: 0; }
+
+      .anim-marquee {
+        animation: marquee 30s linear infinite;
       }
-      
-      .anim-vortex-slow { animation: vortex-spin 30s linear infinite; }
-      .anim-vortex-fast { animation: vortex-spin-reverse 20s linear infinite; }
-      .anim-radial-pulse { animation: radial-pulse 15s ease-in-out infinite; }
-      .anim-tornado { animation: tornado-rise 12s ease-in-out infinite; }
-      .anim-arc { animation: arc-sweep 20s linear infinite; }
-      .anim-diffuse { animation: diffuse-glow 10s ease-in-out infinite; }
-      .anim-fade-up { animation: fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-      .anim-scale-in { animation: scale-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-      .anim-shimmer { background-size: 200% auto; animation: shimmer 4s linear infinite; }
-      .anim-float { animation: float 6s ease-in-out infinite; }
-      .anim-marquee { animation: marquee 40s linear infinite; }
-      
-      .glass {
-        background: rgba(255, 255, 255, 0.03);
-        backdrop-filter: blur(24px) saturate(180%);
-        -webkit-backdrop-filter: blur(24px) saturate(180%);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.03);
+      .anim-sway {
+        animation: leaf-sway 8s ease-in-out infinite;
+        transform-origin: bottom center;
       }
-      .glass-light {
-        background: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid rgba(0, 0, 0, 0.06);
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+      .anim-sway-slow {
+        animation: leaf-sway-slow 10s ease-in-out infinite;
+        transform-origin: bottom left;
       }
-      .card-elevated {
-        background: rgba(255, 255, 255, 0.02);
-        border: 1px solid rgba(255, 255, 255, 0.05);
+      .anim-luxury-float {
+        animation: luxury-float 7s ease-in-out infinite;
+      }
+      .anim-luxury-float-delayed {
+        animation: luxury-float-delayed 8s ease-in-out infinite;
+      }
+      .anim-wave-flow {
+        stroke-dasharray: 200 10;
+        animation: wave-flow 60s linear infinite;
+      }
+      .anim-soft-pulse {
+        animation: soft-pulse 4s ease-in-out infinite;
+      }
+
+      .glass-luxury {
+        background: rgba(26, 28, 36, 0.65);
+        backdrop-filter: blur(24px) saturate(140%);
+        -webkit-backdrop-filter: blur(24px) saturate(140%);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.35), 
+                    0 2px 8px rgba(255, 255, 255, 0.01), 
+                    inset 0 1px 0 rgba(255, 255, 255, 0.04);
         transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
       }
-      .card-elevated:hover {
-        background: rgba(255, 255, 255, 0.05);
+      .glass-luxury:hover {
+        background: rgba(26, 28, 36, 0.8);
         border-color: rgba(255, 255, 255, 0.12);
         transform: translateY(-4px);
-        box-shadow: 0 24px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(168, 85, 247, 0.15);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45), 
+                    0 0 0 1px rgba(197, 168, 128, 0.12);
       }
-      .card-light {
-        background: rgba(255, 255, 255, 0.8);
-        border: 1px solid rgba(0, 0, 0, 0.05);
-        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+
+      .glass-luxury-dark {
+        background: rgba(19, 20, 26, 0.85);
+        backdrop-filter: blur(24px) saturate(180%);
+        -webkit-backdrop-filter: blur(24px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 
+                    inset 0 1px 0 rgba(255, 255, 255, 0.03);
         transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
       }
-      .card-light:hover {
-        background: rgba(255, 255, 255, 0.95);
-        border-color: rgba(0, 0, 0, 0.1);
-        transform: translateY(-4px);
-        box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+      .glass-luxury-dark:hover {
+        background: rgba(22, 23, 30, 0.95);
+        border-color: rgba(255, 255, 255, 0.09);
+        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
       }
-      .text-gradient-w {
-        background: linear-gradient(180deg, #ffffff 0%, rgba(255,255,255,0.55) 100%);
+
+      .text-gradient-gold {
+        background: linear-gradient(135deg, #c5a880 0%, #b5966d 50%, #9e7f55 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
       }
-      .text-gradient-b {
-        background: linear-gradient(135deg, #171717 0%, #525252 100%);
+      .text-gradient-silver {
+        background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 55%, #94a3b8 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
       }
-      .text-gradient-accent {
-        background: linear-gradient(135deg, #c4b5fd 0%, #818cf8 50%, #60a5fa 100%);
+      .text-gradient-navy {
+        background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 50%, #cbd5e1 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
       }
-      
-      /* Curved Section Dividers */
-      .curve-divider {
+
+      .border-gold-metal {
+        border-color: rgba(197, 168, 128, 0.25);
+      }
+      .border-chrome-metal {
+        border-color: rgba(255, 255, 255, 0.08);
+      }
+
+      /* Premium slatted wood / fluted wall texture */
+      .fluted-texture {
+        background: repeating-linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0.03),
+          rgba(255, 255, 255, 0.03) 4px,
+          rgba(255, 255, 255, 0.01) 4px,
+          rgba(255, 255, 255, 0.01) 8px
+        );
+      }
+      .fluted-texture-dark {
+        background: repeating-linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0.02),
+          rgba(255, 255, 255, 0.02) 6px,
+          rgba(255, 255, 255, 0.01) 6px,
+          rgba(255, 255, 255, 0.01) 12px
+        );
+      }
+
+      /* Base transition curve for sections */
+      .premium-curve {
         position: relative;
-        height: 120px;
+        height: 140px;
         overflow: hidden;
       }
-      .curve-divider::before {
+      .premium-curve::before {
         content: '';
         position: absolute;
-        width: 200%;
-        height: 200%;
+        width: 150%;
+        height: 300%;
         border-radius: 50%;
         left: 50%;
         transform: translateX(-50%);
-      }
-      .curve-dark-to-light::before {
-        top: 0;
-        background: #f8f8fb;
-        box-shadow: 0 -50px 100px #0a0a0f;
-      }
-      .curve-light-to-dark::before {
-        bottom: 0;
-        background: #0a0a0f;
-        box-shadow: 0 50px 100px #f8f8fb;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
       }
     `}</style>
   )
 }
+
+

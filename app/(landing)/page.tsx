@@ -13,7 +13,7 @@ import { CurveDarkToLight, CurveLightToDark } from "@/components/landing/curve-t
 
 export default async function LandingPage() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#04040a] text-foreground selection:bg-primary/30">
+    <div className="relative min-h-screen overflow-hidden bg-[#111216] text-slate-100 selection:bg-white/10">
       <LandingStyles />
       <GlowBackground />
       

@@ -21,21 +21,18 @@ const NAV_LINKS = [
 
 /* Left-to-right spectrum: violet → indigo → blue → cyan → teal → emerald */
 const SPECTRUM = [
-  "#a78bfa", // violet
-  "#818cf8", // indigo
-  "#60a5fa", // blue
-  "#38bdf8", // sky
-  "#22d3ee", // cyan
-  "#2dd4bf", // teal
-  "#34d399", // emerald
-  "#4ade80", // green
-  "#34d399", // emerald
-  "#2dd4bf", // teal
-  "#22d3ee", // cyan
-  "#38bdf8", // sky
-  "#60a5fa", // blue
-  "#818cf8", // indigo
-  "#a78bfa", // violet
+  "#c5a880", // champagne gold
+  "#a8b9c9", // mist blue
+  "#728972", // sage green
+  "#b5966d", // sand gold
+  "#1d2a44", // deep navy
+  "#4a5d4e", // dark olive
+  "#c5a880",
+  "#a8b9c9",
+  "#728972",
+  "#b5966d",
+  "#1d2a44",
+  "#4a5d4e",
 ]
 
 const BG_ICONS: {
@@ -80,8 +77,8 @@ export function Navbar() {
       {/* Keyframe definitions */}
       <style>{`
         @keyframes navIconFloat {
-          0%, 100% { opacity: 0.05; transform: rotate(var(--deg)) translateY(0px) scale(1);   }
-          50%       { opacity: 0.18; transform: rotate(var(--deg)) translateY(-4px) scale(1.1); }
+          0%, 100% { opacity: 0.04; transform: rotate(var(--deg)) translateY(0px) scale(1);   }
+          50%       { opacity: 0.15; transform: rotate(var(--deg)) translateY(-4px) scale(1.1); }
         }
       `}</style>
 
@@ -89,7 +86,7 @@ export function Navbar() {
       <div
         className="absolute inset-0 transition-all duration-700"
         style={{
-          background: "linear-gradient(90deg, #111115 0%, #1b1c24 28%, #222430 50%, #1b1c24 72%, #111115 100%)",
+          background: "rgba(26, 28, 36, 0.85)",
           opacity: scrolled ? 1 : 0,
         }}
       />
@@ -99,20 +96,20 @@ export function Navbar() {
         className="absolute inset-0 transition-opacity duration-700"
         style={{
           background:
-            "radial-gradient(ellipse 60% 140% at 50% -20%, rgba(120,120,180,0.08) 0%, transparent 70%)",
+            "radial-gradient(ellipse 60% 140% at 50% -20%, rgba(255, 255, 255, 0.04) 0%, transparent 70%)",
           opacity: scrolled ? 1 : 0,
         }}
       />
 
       {/* ── Top sheen ────────────────────────────────────────────────── */}
       <div
-        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.14] to-transparent transition-opacity duration-500"
+        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent transition-opacity duration-500"
         style={{ opacity: scrolled ? 1 : 0 }}
       />
 
       {/* ── Bottom border ────────────────────────────────────────────── */}
       <div
-        className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/[0.09] to-transparent transition-opacity duration-500"
+        className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent transition-opacity duration-500"
         style={{ opacity: scrolled ? 1 : 0 }}
       />
 
@@ -132,7 +129,7 @@ export function Navbar() {
               {
                 left,
                 top,
-                color: SPECTRUM[i],
+                color: SPECTRUM[i % SPECTRUM.length],
                 "--deg": `${deg}deg`,
                 animation: `navIconFloat ${dur}s ease-in-out ${delay}s infinite`,
               } as React.CSSProperties
@@ -154,17 +151,17 @@ export function Navbar() {
               alt="Agnelix"
               width={120}
               height={80}
-              className="rounded-lg object-contain"
+              className="rounded-lg object-contain filter brightness-110 contrast-125"
             />
           </Link>
 
           {/* Center pill */}
-          <div className="hidden md:flex items-center gap-0.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-2 py-1.5 backdrop-blur-sm">
+          <div className="hidden md:flex items-center gap-0.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-2 py-1.5 backdrop-blur-sm shadow-sm">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.label}
                 href={link.href}
-                className="rounded-full px-4 py-1.5 text-[13px] font-medium text-white/55 transition-all hover:bg-white/[0.09] hover:text-white"
+                className="rounded-full px-4 py-1.5 text-[13px] font-semibold text-slate-300 transition-all hover:bg-white/[0.05] hover:text-white"
               >
                 {link.label}
               </Link>
@@ -173,13 +170,13 @@ export function Navbar() {
 
           {/* CTA + mobile toggle */}
           <div className="flex items-center gap-3">
-            <div className="hidden sm:block">
+            <div>
               <NavbarCTA />
             </div>
             <button
               onClick={() => setMobileOpen((v) => !v)}
               aria-label="Toggle menu"
-              className="flex md:hidden size-9 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.05] text-white/60 transition-all hover:bg-white/[0.09] hover:text-white"
+              className="flex md:hidden size-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-slate-300 transition-all hover:bg-white/[0.05] hover:text-white shadow-sm"
             >
               {mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}
             </button>
@@ -191,7 +188,7 @@ export function Navbar() {
       {mobileOpen && (
         <div
           className="relative border-t border-white/[0.06] md:hidden"
-          style={{ background: "linear-gradient(180deg, #1b1c24 0%, #13131a 100%)" }}
+          style={{ background: "rgba(26, 28, 36, 0.96)" }}
         >
           <div className="mx-auto max-w-7xl px-6 py-4 space-y-0.5">
             {NAV_LINKS.map((link) => (
@@ -199,7 +196,7 @@ export function Navbar() {
                 key={link.label}
                 href={link.href}
                 onClick={() => setMobileOpen(false)}
-                className="block rounded-xl px-4 py-2.5 text-sm font-medium text-white/55 transition-all hover:bg-white/[0.05] hover:text-white"
+                className="block rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-300 transition-all hover:bg-white/[0.05] hover:text-white"
               >
                 {link.label}
               </Link>
@@ -213,3 +210,4 @@ export function Navbar() {
     </nav>
   )
 }
+

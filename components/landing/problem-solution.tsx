@@ -1,57 +1,152 @@
-import { Timer, Mail, MessageSquare, CheckCircle2 } from "lucide-react"
+import { X, Sparkles, MapPin, Search, Calendar, ArrowRight } from "lucide-react"
 
 export function ProblemSolution() {
+  const cards = [
+    {
+      id: "prospecting",
+      image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=800&auto=format&fit=crop",
+      uiOverlay: (
+        <div className="absolute inset-0 flex items-center justify-center p-6">
+          <div className="w-full max-w-[200px] rounded-xl border border-white/60 bg-white/75 backdrop-blur-md p-3 shadow-lg">
+            <div className="flex items-center gap-2 border-b border-black/5 pb-2 mb-2">
+              <Search className="h-3 w-3 text-slate-400" />
+              <span className="text-[10px] font-bold text-[#101e35]">Boutique Hotels in Miami</span>
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between rounded bg-[#728972]/10 px-2 py-1 border border-[#728972]/20">
+                <span className="text-[9px] font-bold text-[#3d4d3d]">Found 28 local businesses</span>
+                <MapPin className="h-3 w-3 text-[#728972]" />
+              </div>
+              <div className="h-1.5 w-full bg-black/5 rounded-full overflow-hidden mt-2">
+                <div className="h-full w-3/4 bg-[#728972] animate-pulse rounded-full" />
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
+      problem: "You waste hours scraping Google Maps, buying outdated lists, and guessing email addresses.",
+      solution: "Agnelix finds local businesses by niche and city instantly, extracting verified contact info automatically."
+    },
+    {
+      id: "writing",
+      image: "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=800&auto=format&fit=crop",
+      uiOverlay: (
+        <div className="absolute inset-0 flex items-center justify-center p-6">
+          <div className="w-full max-w-[220px] rounded-xl border border-white/60 bg-white/75 backdrop-blur-md p-3 shadow-lg">
+            <div className="flex items-center gap-1.5 mb-2">
+              <div className="h-4 w-4 rounded-full bg-[#c5a880]/15 flex items-center justify-center">
+                <Sparkles className="h-2.5 w-2.5 text-[#c5a880]" />
+              </div>
+              <span className="text-[10px] font-bold text-[#101e35]">AI Website Analysis</span>
+            </div>
+            <div className="space-y-2 text-[9px] leading-relaxed text-slate-600 font-medium">
+              <p>Hey John,</p>
+              <p>
+                Loved your recent work on the <span className="text-[#b5966d] font-bold bg-[#c5a880]/10 px-1 py-0.5 rounded border border-[#c5a880]/20">Downtown Plaza project</span>. Noticed you don&apos;t have...
+              </p>
+              <div className="w-16 h-4 rounded bg-[#101e35] flex items-center justify-center mt-2 cursor-pointer hover:brightness-115">
+                <span className="text-[8px] text-white font-bold">Send Email</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
+      problem: "Copy-pasted templates land in spam folders. Prospects ignore generic, robotic outreach.",
+      solution: "AI reads their actual website and crafts hyper-personalized emails that sound authentically human."
+    },
+    {
+      id: "closing",
+      image: "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      uiOverlay: (
+        <div className="absolute inset-0 flex items-center justify-center p-6">
+          <div className="w-full max-w-[220px] rounded-xl border border-white/60 bg-white/75 backdrop-blur-md p-3 shadow-lg">
+            <div className="flex flex-col gap-2">
+              <div className="self-start rounded-lg bg-white/90 border border-white shadow-sm px-2.5 py-1.5 text-[9px] font-bold text-slate-700 max-w-[85%]">
+                Sounds interesting. Do you have time tomorrow?
+              </div>
+              <div className="flex items-center justify-center my-1">
+                <ArrowRight className="h-3 w-3 text-[#c5a880]" />
+              </div>
+              <div className="self-end flex items-center gap-1.5 rounded-lg bg-[#728972]/10 border border-[#728972]/20 px-2.5 py-1.5 text-[9px] font-bold text-[#3d4d3d] max-w-[85%] shadow-sm">
+                <Calendar className="h-3 w-3 text-[#728972]" />
+                Meeting Booked
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
+      problem: "When leads finally reply, you take too long to respond and they go cold.",
+      solution: "Agnelix reads inbound replies, handles objections, and automatically books them onto your calendar."
+    }
+  ]
+
   return (
-    <section className="relative bg-[#f8f8fb] py-20">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="anim-fade-up text-center mb-16">
-          <h2 className="text-4xl font-bold tracking-tight text-gradient-b md:text-5xl">
-            Manual prospecting is broken.
+    <section className="relative bg-gradient-to-b from-[#111216] via-[#1a1c24] to-[#111216] py-24 lg:py-32 overflow-hidden">
+      
+      {/* Decorative subtle top glow */}
+      <div className="absolute top-0 inset-x-0 h-75 bg-white/[0.01] blur-3xl pointer-events-none" />
+
+      <div className="mx-auto max-w-7xl px-6 relative z-10">
+        <div className="anim-fade-up text-center mb-16 lg:mb-24">
+          <h2 className="text-3xl font-bold tracking-tight text-white md:text-5xl lg:text-5xl font-luxury-sans">
+            Manual prospecting is <span className="text-slate-500 line-through decoration-rose-400/60 font-medium">dead</span>.
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-lg text-neutral-500">
-            Agencies spend too much time searching for leads, writing emails, and chasing replies. Here's how Agnelix helps.
+          <p className="mx-auto mt-5 max-w-2xl text-lg text-slate-400 font-semibold leading-relaxed">
+            Stop digging for emails and tracking spreadsheets. Agnelix automates the busywork so you can focus entirely on closing deals.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-          {[
-            {
-              icon: Timer,
-              title: "You waste hours finding leads",
-              problem: "You spend hours searching for businesses online, copying info into spreadsheets, and looking for the right person to email.",
-              fix: "Agnelix searches for businesses by type and city, finds their website, and gets you an email address — all in a few clicks.",
-              accent: "rose"
-            },
-            {
-              icon: Mail,
-              title: "Your cold emails get ignored",
-              problem: "If you send the same email to everyone, most people ignore it. Without knowing anything about the prospect, your message feels like spam.",
-              fix: "AI looks up each prospect's website and writes a unique email that speaks to their business. You set the tone — friendly, professional, direct, or consultative.",
-              accent: "indigo"
-            },
-            {
-              icon: MessageSquare,
-              title: "Follow-ups fall through the cracks",
-              problem: "When someone finally replies, it's easy to miss. Interested leads go cold. Objections go unanswered. Meetings never get booked.",
-              fix: "AI reads every reply, figures out what the person needs, writes a smart response, and can book a meeting — all while you sleep.",
-              accent: "emerald"
-            }
-          ].map((card, i) => (
-            <div key={i} className="anim-fade-up group relative overflow-hidden rounded-3xl card-light p-8" style={{ animationDelay: `${0.15 + i * 0.1}s` }}>
-              <div className={`absolute inset-0 bg-gradient-to-br from-${card.accent}-500/5 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100`} />
-              <div className="relative">
-                <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-${card.accent}-50 mb-6`}>
-                  <card.icon className={`h-6 w-6 text-${card.accent}-500`} />
-                </div>
-                <h3 className="text-xl font-semibold text-neutral-900 mb-3">{card.title}</h3>
-                <p className="text-sm leading-relaxed text-neutral-500 mb-5">{card.problem}</p>
-                <div className="rounded-2xl bg-neutral-50 border border-neutral-100 p-5">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+          {cards.map((card, i) => (
+            <div 
+              key={card.id} 
+              className="anim-fade-up group relative flex flex-col overflow-hidden rounded-[2rem] border border-white/[0.05] bg-white/[0.01] backdrop-blur-xl shadow-xl transition-all duration-500 hover:shadow-2xl hover:border-white/10 hover:bg-white/[0.03] hover:-translate-y-1" 
+              style={{ animationDelay: `${0.15 + i * 0.1}s` }}
+            >
+              
+              {/* Top Half: Creative Image with UI Overlay */}
+              <div className="relative h-60 w-full overflow-hidden bg-neutral-900/50">
+                {/* Unsplash Background Image */}
+                <img 
+                  src={card.image} 
+                  alt="Abstract tech background" 
+                  className="absolute inset-0 h-full w-full object-cover opacity-20 mix-blend-overlay transition-transform duration-700 group-hover:scale-105"
+                />
+                {/* Fade into the frosted glass at the bottom */}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#16171e] via-[#16171e]/30 to-transparent" />
+                
+                {/* Floating UI Elements */}
+                {card.uiOverlay}
+              </div>
+
+              {/* Bottom Half: Content (Problem vs Solution) */}
+              <div className="flex flex-col flex-1 p-6 lg:p-8 bg-[#16171e]/90">
+                
+                {/* Problem (The Old Way) */}
+                <div className="mb-6 border-l-2 border-rose-300/40 pl-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                    <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">How Agnelix fixes this</span>
+                    <X className="h-4 w-4 text-rose-400" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500">The old way</span>
                   </div>
-                  <p className="text-sm leading-relaxed text-neutral-700">{card.fix}</p>
+                  <p className="text-sm font-medium leading-relaxed text-slate-400">
+                    {card.problem}
+                  </p>
                 </div>
+
+                {/* Divider */}
+                <div className="my-2 h-px w-full bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+
+                {/* Solution (The Agnelix Way) */}
+                <div className="mt-6 border-l-2 border-[#728972] pl-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="h-4 w-4 text-[#c5a880]" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#728972]">With Agnelix</span>
+                  </div>
+                  <p className="text-sm font-bold leading-relaxed text-slate-200">
+                    {card.solution}
+                  </p>
+                </div>
+
               </div>
             </div>
           ))}
