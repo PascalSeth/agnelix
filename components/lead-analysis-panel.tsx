@@ -28,6 +28,8 @@ export type Place = {
     rating: number
     authorAttribution: { displayName: string }
   }[]
+  cachedContacts?: unknown[]
+  cachedProfiles?: unknown[]
 }
 
 interface LeadAnalysisPanelProps {
@@ -36,6 +38,7 @@ interface LeadAnalysisPanelProps {
   isSelected: boolean
   onToggle: (id: string) => void
   emailFromPlace: (p: Place) => string
+  searchTarget?: "b2b" | "b2c"
 }
 
 type Tab = "overview" | "contact" | "audit" | "ai"
@@ -54,6 +57,7 @@ export function LeadAnalysisPanel({
   onClose,
   isSelected,
   onToggle,
+  searchTarget = "b2b",
 }: LeadAnalysisPanelProps) {
   const [expanded, setExpanded]               = useState(false)
   const [activeTab, setActiveTab]             = useState<Tab>("overview")
@@ -206,7 +210,11 @@ export function LeadAnalysisPanel({
       const res = await fetch("/api/leads/contact-search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ websiteUrl: place.websiteUri, companyName: place.displayName.text }),
+        body: JSON.stringify({
+          websiteUrl: place.websiteUri,
+          companyName: place.displayName.text,
+          localNeighbors: searchTarget === "b2c",
+        }),
       })
       if (!res.ok) throw new Error()
       const data = await res.json()

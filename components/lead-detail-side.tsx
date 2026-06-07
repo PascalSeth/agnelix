@@ -63,6 +63,7 @@ interface LeadDetailSideProps {
   onResearchStart?: () => void
   onLinkedInDone: (profiles: LinkedInDecisionMaker[], logs?: string[]) => void
   onLinkedInStart?: () => void
+  searchTarget?: "b2b" | "b2c"
 }
 
 type Tab = "overview" | "contact" | "audit" | "ai"
@@ -126,6 +127,7 @@ export function LeadDetailSide({
   onResearchStart,
   onLinkedInDone,
   onLinkedInStart,
+  searchTarget = "b2b",
 }: LeadDetailSideProps) {
   const [activeTab, setActiveTab]     = useState<Tab>("overview")
   const [activePhoto, setActivePhoto] = useState(0)
@@ -218,14 +220,19 @@ export function LeadDetailSide({
     }
   }
 
-  async function runContactSearch() {
+  async function runContactSearch(bypassCache = false) {
     if (!place.websiteUri) return
     if (onContactsStart) onContactsStart()
     try {
       const res = await fetch("/api/leads/contact-search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ websiteUrl: place.websiteUri, companyName: place.displayName.text }),
+        body: JSON.stringify({
+          websiteUrl: place.websiteUri,
+          companyName: place.displayName.text,
+          localNeighbors: searchTarget === "b2c",
+          bypassCache,
+        }),
       })
       if (!res.ok) throw new Error()
       const data = await res.json()
@@ -236,7 +243,7 @@ export function LeadDetailSide({
     }
   }
 
-  async function runLinkedInSearch() {
+  async function runLinkedInSearch(bypassCache = false) {
     if (onLinkedInStart) onLinkedInStart()
     try {
       const city = extractCityFromAddress(place.formattedAddress)
@@ -259,6 +266,8 @@ export function LeadDetailSide({
           industry:    place.primaryType?.replace(/_/g, " ") ?? null,
           websiteUrl:  place.websiteUri ?? null,
           websiteText,
+          localNeighbors: searchTarget === "b2c",
+          bypassCache,
         }),
       })
       if (!res.ok) throw new Error()
@@ -415,7 +424,7 @@ export function LeadDetailSide({
             <p className="text-[10px] font-black text-white/30 uppercase tracking-[.18em]">Decision Maker</p>
             {contactsDone && !contactsLoading && (
               <button
-                onClick={runContactSearch}
+                onClick={() => runContactSearch(true)}
                 className="flex items-center gap-1 text-[10px] font-bold text-sky-400 hover:text-sky-300 transition-colors"
               >
                 <RefreshCw className="size-3" /> Refresh
@@ -541,7 +550,7 @@ export function LeadDetailSide({
               </span>
             </div>
             {enrichment.linkedInDone && !enrichment.linkedInLoading && (
-              <button onClick={() => { onLinkedInDone([]); runLinkedInSearch() }}
+              <button onClick={() => { onLinkedInDone([]); runLinkedInSearch(true) }}
                 className="flex items-center gap-1 text-[10px] font-bold text-sky-400 hover:text-sky-300 transition-colors">
                 <RefreshCw className="size-3" /> Refresh
               </button>

@@ -41,7 +41,6 @@ function getNextBestAction(params: {
 }): "SEND_REPLY" | "BOOK_MEETING" | "SEND_PROPOSAL" | "ENROLL_NURTURE" | "UPDATE_STAGE" {
   if (params.proposalRequested) return "SEND_PROPOSAL"
   if (params.meetingRequested || params.intent === "INTERESTED") return "BOOK_MEETING"
-  if (params.intent === "NOT_NOW") return "ENROLL_NURTURE"
   if (params.intent === "OOO") return "UPDATE_STAGE"
   return "SEND_REPLY"
 }
@@ -57,11 +56,19 @@ export async function processReply(replyId: string): Promise<void> {
               id: true, name: true, agencyName: true,
               companyName: true, companyDesc: true, tone: true,
               fromEmail: true, smtpPass: true, smtpHost: true, smtpPort: true,
+              title: true, calendarLink: true,
             },
           },
         },
       },
-      email: { select: { subject: true, body: true } },
+      email: {
+        select: {
+          id: true,
+          subject: true,
+          body: true,
+          campaign: { select: { autonomous: true } },
+        }
+      },
     },
   })
 
@@ -87,7 +94,7 @@ export async function processReply(replyId: string): Promise<void> {
   const { intent } = classification
   const leadName = [lead.firstName, lead.lastName].filter(Boolean).join(" ") || lead.email
 
-  // Immediately handle unsubscribes — no queuing needed
+  // Handle unsubscribes immediately but continue to create a pending opt-out confirmation draft
   if (intent === "UNSUBSCRIBE") {
     await prisma.lead.update({
       where: { id: lead.id },
@@ -107,7 +114,6 @@ export async function processReply(replyId: string): Promise<void> {
         notes: classification.summary,
       },
     })
-    return
   }
 
   const meetingRequested = detectMeetingIntent(reply.body)
@@ -120,7 +126,9 @@ export async function processReply(replyId: string): Promise<void> {
     confidence: classification.confidence,
     replyBody: reply.body,
   })
-  const expiresAt = new Date(Date.now() + policy.reviewWindowMins * 60 * 1000)
+  const isAutonomous = reply.email?.campaign?.autonomous ?? false
+  const reviewMins = isAutonomous ? 5 : policy.reviewWindowMins
+  const expiresAt = new Date(Date.now() + reviewMins * 60 * 1000)
 
   // OOO — pause follow-ups, queue a stage note
   if (intent === "OOO") {
@@ -148,38 +156,69 @@ export async function processReply(replyId: string): Promise<void> {
     return
   }
 
-  // NOT_NOW — queue nurture enrollment
+  // Handle NOT_NOW immediately (safety/nurture state) but continue to generate a timing objection confirmation draft
   if (intent === "NOT_NOW") {
-    await prisma.pendingAction.create({
+    await prisma.lead.update({
+      where: { id: lead.id },
+      data: { status: "NOT_INTERESTED" },
+    })
+    await prisma.email.updateMany({
+      where: { leadId: lead.id, status: "QUEUED" },
+      data: { status: "FAILED" },
+    })
+    await prisma.agentMemory.create({
       data: {
         userId: user.id,
         leadId: lead.id,
-        replyId,
-        type: nextBestAction,
         intent,
-        draftSubject: null,
-        draftBody: `${leadName} said not now. Enrolling in 60-day nurture sequence.`,
-        metadata: {
-          summary: classification.summary,
-          confidence: classification.confidence,
-          policyChecks: policy.policyChecks,
-          nextBestAction,
-        },
-        riskLevel: policy.riskLevel,
-        confidence: classification.confidence,
-        expiresAt,
+        outcome: "NURTURED",
+        score: -0.2,
+        notes: classification.summary,
       },
     })
-    return
   }
 
-  // INTERESTED / QUESTION / OBJECTION — draft a reply
+  // INTERESTED / QUESTION / OBJECTION / UNSUBSCRIBE / NOT_NOW — draft a reply
   const styleMap: Record<string, string> = {
     INTERESTED: "DIRECT",
     QUESTION: "VALUE-FIRST",
     OBJECTION: "SOFT",
+    UNSUBSCRIBE: "SOFT",
+    NOT_NOW: "SOFT",
   }
   const learnedStyle = await chooseResponseStyle(user.id, styleMap[intent] ?? "DIRECT")
+
+  // Fetch full conversation history (all outgoing emails and incoming replies)
+  const [emails, replies] = await Promise.all([
+    prisma.email.findMany({
+      where: { leadId: lead.id },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.reply.findMany({
+      where: { leadId: lead.id },
+      orderBy: { receivedAt: "asc" },
+    }),
+  ])
+
+  // Merge and sort them chronologically
+  const thread = [
+    ...emails.map(e => ({
+      type: "outgoing" as const,
+      body: e.body,
+      timestamp: e.sentAt || e.createdAt,
+    })),
+    ...replies.map(r => ({
+      type: "incoming" as const,
+      body: r.body,
+      timestamp: r.receivedAt,
+    })),
+  ]
+  thread.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+
+  // Format the thread history into a transcript block
+  const conversationHistory = thread
+    .map(msg => `- ${msg.type.toUpperCase()}: ${msg.body}`)
+    .join("\n")
 
   const draft = await generateReplyDraft({
     leadName,
@@ -187,21 +226,34 @@ export async function processReply(replyId: string): Promise<void> {
     replyBody: reply.body,
     originalEmailBody: reply.email?.body ?? "",
     senderName: user.name ?? "Your Name",
+    senderTitle: user.title,
     senderCompany: user.agencyName ?? user.companyName ?? "Your Company",
     senderService: user.companyDesc ?? "our services",
     tone: user.tone ?? "Professional",
     responseStyle: learnedStyle,
+    conversationHistory,
+    calendarLink: user.calendarLink,
   })
 
   let draftSubject = draft.subject
   let draftBody = draft.body
   if (nextBestAction === "BOOK_MEETING") {
     draftSubject = `Re: ${reply.subject ?? "Quick call?"}`
-    draftBody = `${draft.body}\n\nIf it helps, I can do:\n- Tue 11:00\n- Wed 15:00\nReply with what works and I will lock it in.`
+    if (user.calendarLink) {
+      if (!draftBody.includes(user.calendarLink)) {
+        draftBody = `${draft.body}\n\nHere is my calendar link if you want to book a time directly: ${user.calendarLink}`
+      }
+    } else {
+      if (!draftBody.toLowerCase().includes("tue") && !draftBody.toLowerCase().includes("wed") && !draftBody.toLowerCase().includes("calendar")) {
+        draftBody = `${draft.body}\n\nIf it helps, I can do:\n- Tue 11:00\n- Wed 15:00\nReply with what works and I will lock it in.`
+      }
+    }
   }
   if (nextBestAction === "SEND_PROPOSAL") {
     draftSubject = `Re: ${reply.subject ?? "Proposal details"}`
-    draftBody = `${draft.body}\n\nI can also send a tailored one-page proposal today with scope, timeline, and pricing options.`
+    if (!draftBody.toLowerCase().includes("proposal")) {
+      draftBody = `${draft.body}\n\nI can also send a tailored one-page proposal today with scope, timeline, and pricing options.`
+    }
   }
 
   await prisma.pendingAction.create({

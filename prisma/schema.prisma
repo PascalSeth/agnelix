@@ -116,6 +116,11 @@ model Lead {
   dealValue  Float?
   battleCard String?    @db.Text
 
+  auditJson            String? @db.Text
+  contactsJson         String? @db.Text
+  linkedinProfilesJson String? @db.Text
+  recommendedApproach  String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -431,7 +436,7 @@ model AgentGoal {
   replyRateTarget Float @default(8)
   dailyLeadCap Int @default(40)
   autoSendEnabled Boolean @default(true)
-  reviewWindowMins Int @default(60)
+  reviewWindowMins Int @default(5)
   maxAutoSendsPerDay Int @default(12)
   minConfidence PendingConfidence @default(MEDIUM)
 
@@ -486,4 +491,16 @@ model AgentDigestLog {
   @@unique([userId, day])
   @@index([day])
   @@map("agent_digest_logs")
+}
+
+model DomainContactCache {
+  id           String   @id @default(cuid())
+  domain       String   @unique
+  contactsJson String?  @db.Text // stores JSON string of ContactResult[]
+  profilesJson String?  @db.Text // stores JSON string of LinkedInDecisionMaker[]
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+
+  @@index([domain])
+  @@map("domain_contact_caches")
 }

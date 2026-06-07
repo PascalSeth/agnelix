@@ -36,7 +36,7 @@ Rules:
         messages: [{ role: "user", content: prompt }],
         temperature: 0.3,
         max_tokens: 20,
-        // @ts-ignore
+        // @ts-expect-error — disable DeepSeek thinking for fast tasks
         thinking: { type: "disabled" },
       })
       const refined = res.choices[0]?.message?.content?.trim().replace(/^["']|["']$/g, "") ?? ""
@@ -75,7 +75,7 @@ Return ONLY the refined description text. No quotes, no labels, no explanation.`
       messages: [{ role: "user", content: prompt }],
       temperature: 0.7,
       max_tokens: 200,
-      // @ts-ignore — disable DeepSeek thinking for fast tasks
+      // @ts-expect-error — disable DeepSeek thinking for fast tasks
       thinking: { type: "disabled" },
     })
     const refined = res.choices[0]?.message?.content?.trim() ?? ""

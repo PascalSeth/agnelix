@@ -21,8 +21,17 @@ export async function GET() {
       },
     },
     orderBy: { receivedAt: "desc" },
-    take: 50,
+    take: 200,
   })
 
-  return NextResponse.json(replies)
+  // Deduplicate by leadId to keep only the latest reply for each lead
+  const uniqueRepliesMap = new Map<string, typeof replies[number]>()
+  for (const reply of replies) {
+    if (!uniqueRepliesMap.has(reply.leadId)) {
+      uniqueRepliesMap.set(reply.leadId, reply)
+    }
+  }
+  const uniqueReplies = Array.from(uniqueRepliesMap.values()).slice(0, 50)
+
+  return NextResponse.json(uniqueReplies)
 }

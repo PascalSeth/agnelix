@@ -78,7 +78,7 @@ export default function AgencySettingsPage() {
       const payload = {
         ...profile,
         smtpHost: "smtp.gmail.com",
-        smtpPort: 587,
+        smtpPort: 465,
       }
       const res = await fetch("/api/settings", {
         method: "PATCH",
@@ -120,7 +120,7 @@ export default function AgencySettingsPage() {
     await fetch("/api/settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...profile, smtpHost: "smtp.gmail.com", smtpPort: 587 }),
+      body: JSON.stringify({ ...profile, smtpHost: "smtp.gmail.com", smtpPort: 465 }),
     })
     try {
       const res  = await fetch("/api/settings/smtp-test", { method: "POST" })
@@ -391,7 +391,7 @@ export default function AgencySettingsPage() {
                 How this appears in outreach emails
               </p>
               <p className="text-[12px] text-white/55 leading-relaxed italic">
-                "…I work with {profile.agencyName || "our company"} — {profile.companyDesc}"
+                &quot;…I work with {profile.agencyName || "our company"} — {profile.companyDesc}&quot;
               </p>
             </div>
           )}
@@ -461,7 +461,7 @@ export default function AgencySettingsPage() {
               2
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[12px] font-bold text-white/65 mb-0.5">Create an App Password for "Mail"</p>
+              <p className="text-[12px] font-bold text-white/65 mb-0.5">Create an App Password for &quot;Mail&quot;</p>
               <p className="text-[11px] text-white/30 mb-2">
                 Go to App Passwords → Select app: <span className="text-white/50">Mail</span> → Select device: <span className="text-white/50">Windows Computer</span> → Generate
               </p>
@@ -533,7 +533,7 @@ export default function AgencySettingsPage() {
             <div className="mt-3 rounded-xl p-4 space-y-2"
               style={{ background: "rgba(255,255,255,.02)", border: "1px solid rgba(255,255,255,.05)" }}>
               <p className="text-[12px] text-white/50 leading-relaxed">
-                Google doesn't allow third-party apps to use your regular password for security reasons.
+                Google doesn&apos;t allow third-party apps to use your regular password for security reasons.
                 An App Password is a special 16-character code that gives Agnelix permission to send emails
                 through your Gmail account — without ever seeing your actual Google password.
               </p>

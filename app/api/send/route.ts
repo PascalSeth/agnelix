@@ -1,15 +1,28 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse, after } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { generateEmail } from "@/lib/ai"
 import { checkEmailQuota } from "@/lib/cost-guard"
 import { generateAndQueueEmails } from "@/lib/campaign-sender"
+import { generateDraftsForCampaign } from "@/lib/campaign-drafts"
+import { drainDueQueue } from "@/lib/scheduler"
+
+async function runLaunchPipeline(campaignId: string, userId: string, customEmails?: { leadId: string; stepNumber: number; subject: string; body: string }[]) {
+  // Sync pass — handles leads with custom emails or small batches
+  await generateAndQueueEmails(campaignId, userId, undefined, customEmails)
+  // Background pass — catch any leads still missing drafts
+  await generateDraftsForCampaign(campaignId, userId)
+  await drainDueQueue()
+}
 
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { campaignId, leadId, preview } = await req.json()
+  const body = await req.json().catch(() => ({}))
+  const { campaignId, leadId, preview, customEmails } = body
+
+  if (!campaignId) return NextResponse.json({ error: "campaignId required" }, { status: 400 })
 
   // Preview mode: generate emails on-the-fly, do not save to DB
   if (preview) {
@@ -62,8 +75,39 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(emails)
   }
 
-  // Launch mode: generate + queue emails
-  const { customEmails } = await req.json().catch(() => ({}))
-  const result = await generateAndQueueEmails(campaignId, session.user.id, undefined, customEmails)
-  return NextResponse.json({ sent: result.queued })
+  // ── Launch mode — validate, activate immediately, process in background ──
+  const campaign = await prisma.campaign.findFirst({
+    where: { id: campaignId, userId: session.user.id },
+    include: { campaignLeads: true },
+  })
+  if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 })
+  if (campaign.campaignLeads.length === 0)
+    return NextResponse.json({ error: "Add leads to this campaign first" }, { status: 400 })
+
+  const canSend = await checkEmailQuota(session.user.id)
+  if (!canSend) return NextResponse.json({ error: "Daily email quota reached" }, { status: 429 })
+
+  const now = new Date()
+  await prisma.campaign.update({
+    where: { id: campaignId },
+    data: {
+      status: "ACTIVE",
+      launchedAt: campaign.launchedAt ?? now,
+      totalLeads: campaign.campaignLeads.length,
+    },
+  })
+
+  after(async () => {
+    try {
+      await runLaunchPipeline(campaignId, session.user.id, customEmails)
+    } catch (err) {
+      console.error("[Send/Launch] Background pipeline error:", err)
+    }
+  })
+
+  return NextResponse.json({
+    launched: true,
+    autonomous: campaign.autonomous,
+    leadCount: campaign.campaignLeads.length,
+  })
 }

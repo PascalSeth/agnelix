@@ -164,9 +164,13 @@ export default function PreviewPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ campaignId: id, customEmails }),
       })
-      if (!res.ok) throw new Error(await res.text())
-      const { sent } = await res.json()
-      toast.success(`Campaign launched — ${sent} emails queued`)
+      if (!res.ok) {
+        const text = await res.text()
+        let message = text
+        try { message = JSON.parse(text).error || text } catch { /* plain text */ }
+        throw new Error(message || "Launch failed")
+      }
+      toast.success("Campaign launched — emails sending now")
       router.push(`/campaigns/${id}`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Launch failed")

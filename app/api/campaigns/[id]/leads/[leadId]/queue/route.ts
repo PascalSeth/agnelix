@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
+import { sendEmailImmediately } from "@/lib/scheduler"
 
 export async function POST(
   req: NextRequest,
@@ -11,38 +12,34 @@ export async function POST(
 
   const { id: campaignId, leadId } = await params
 
-  // 1. Verify campaign ownership and load sequence steps
+  // 1. Verify campaign ownership
   const campaign = await prisma.campaign.findFirst({
     where: { id: campaignId, userId: session.user.id },
-    include: {
-      sequence: { include: { steps: { orderBy: { stepNumber: "asc" } } } }
-    }
   })
   if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 })
 
   // 2. Find the lowest stepNumber DRAFT email for this lead in this campaign
   const activeDraft = await prisma.email.findFirst({
     where: { leadId, campaignId, status: "DRAFT" },
-    orderBy: { stepNumber: "asc" }
+    orderBy: { stepNumber: "asc" },
   })
 
   if (!activeDraft) {
-    return NextResponse.json({ error: "No drafts found to queue" }, { status: 400 })
+    return NextResponse.json({ error: "No drafts found to send" }, { status: 400 })
   }
 
-  const now = new Date()
+  // 3. Send immediately via SMTP
+  const success = await sendEmailImmediately(activeDraft.id)
 
-  // 3. Promote only the active draft to QUEUED and schedule for now
-  const updated = await prisma.email.update({
-    where: { id: activeDraft.id },
-    data: { status: "QUEUED", scheduledAt: now }
-  })
-
-  // 4. Update lead status if it was NEW
-  const lead = await prisma.lead.findUnique({ where: { id: leadId } })
-  if (lead && lead.status === "NEW") {
-    // Stage update (or keep as CONTACTED since it's queued)
+  if (!success) {
+    return NextResponse.json(
+      { error: "Failed to send email. Check your SMTP settings or email quota." },
+      { status: 500 }
+    )
   }
 
-  return NextResponse.json({ success: true, email: updated })
+  // 4. Refetch the updated email record to return to the UI
+  const updatedEmail = await prisma.email.findUnique({ where: { id: activeDraft.id } })
+
+  return NextResponse.json({ success: true, email: updatedEmail })
 }

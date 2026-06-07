@@ -120,7 +120,16 @@ Instruction: Start the email with a sharp, relevant question about how they hand
 APPROACH STYLE: Social Proof
 Instruction: Reference a realistic, brief result from a similar ${p.industry} business (e.g. adding £4,500/mo or moving from page 2 of Maps to the top pack by fixing search visibility) in a passing, matter-of-fact way.
 `
+  } else if (p.approach === "local-neighbor") {
+    approachInstructions = `
+APPROACH STYLE: Local Proximity Marketing / Neighbor Outreach
+Instruction: You MUST frame the email as a warm, friendly invitation from a neighboring local business (such as a restaurant, cafe, bar, or salon).
+- Mention you are just a short walk or drive away (e.g. "we are just down the street" or "just a couple of blocks from your office at ${p.prospectCompany}").
+- Offer a local neighbor special (e.g., a 15% discount for local employees, a free catering sampler, or a lunch deal).
+- Keep it highly conversational, inviting, and community-focused (B2C / B2B2C). Do NOT use stiff B2B sales jargon or pitch marketing/software services.
+`
   }
+
 
   return `You are an expert B2B cold email copywriter. Write a personalized email that gets a reply.
 ${templateInstructions}
@@ -142,10 +151,10 @@ PERSONALIZATION RESEARCH:
 - Likely pain point in this industry: ${p.painPoint || "Not available"}${approachInstructions}
 
 RULES:
-1. Subject: 4-7 words, curiosity-driven. NO: "Free", "Guarantee", "Act Now", "Limited Time"
+1. Subject: 4-7 words, curiosity-driven. ${p.approach === "local-neighbor" ? "Frame it as a friendly neighbor introduction or invitation (e.g., 'Hello from your neighbor [Sender Company]' or 'Lunch for the [Prospect Company] team')." : "NO: 'Free', 'Guarantee', 'Act Now', 'Limited Time'"}
 2. Opening: ONE sentence only. Mention something specific about THEIR company or role using the research findings.
-3. Body: 2-3 short sentences. Identify their pain point. Hint at your solution. Don't sell hard.
-4. CTA: Soft ask. Use ONE of these: "Worth a brief chat?" / "Open to exploring this?" / "Mind if I send over a quick example?"
+3. Body: 2-3 short sentences. ${p.approach === "local-neighbor" ? "Introduce your local business and the special offer you're extending." : "Identify their pain point. Hint at your solution. Don't sell hard."}
+4. CTA: Soft ask. ${p.approach === "local-neighbor" ? "Use an invitation-focused ask (e.g., 'Hope to see you soon!' / 'Would you like me to drop off a menu?' / 'Feel free to drop by this week!')" : "Use ONE of these: 'Worth a brief chat?' / 'Open to exploring this?' / 'Mind if I send over a quick example?'"}
 5. Tone: ${p.tone}
 6. Total length: Under 120 words.
 7. NO exclamation marks, all caps, multiple questions, or attachments.

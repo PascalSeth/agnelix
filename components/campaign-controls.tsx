@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, Play, Pause, Zap } from "lucide-react"
+import { Loader2, Play, Pause, Zap, Rocket } from "lucide-react"
 import { toast } from "sonner"
 
 interface CampaignControlsProps {
@@ -10,12 +10,19 @@ interface CampaignControlsProps {
   status: "DRAFT" | "ACTIVE" | "PAUSED" | "COMPLETED"
   autonomous: boolean
   hasLeads: boolean
+  isEnriching?: boolean
+  onLaunched?: () => void
+  onAutonomousChange?: (v: boolean) => void
+  onStatusChange?: (s: "DRAFT" | "ACTIVE" | "PAUSED" | "COMPLETED") => void
 }
 
-export function CampaignControls({ id, status, autonomous, hasLeads }: CampaignControlsProps) {
+export function CampaignControls({
+  id, status, autonomous, hasLeads, isEnriching = false,
+  onLaunched, onAutonomousChange, onStatusChange,
+}: CampaignControlsProps) {
   const router = useRouter()
   const [loading, setLoading] = useState<"launch" | "autopilot" | null>(null)
-  const [currentStatus, setCurrentStatus]     = useState(status)
+  const [currentStatus, setCurrentStatus] = useState(status)
   const [currentAutonomous, setCurrentAutopilot] = useState(autonomous)
 
   async function patch(body: Record<string, unknown>) {
@@ -33,15 +40,8 @@ export function CampaignControls({ id, status, autonomous, hasLeads }: CampaignC
       const next = !currentAutonomous
       await patch({ autonomous: next })
       setCurrentAutopilot(next)
-      if (next) {
-        if (currentStatus === "DRAFT") {
-          toast.success("Autopilot enabled — settings will take effect once campaign is launched")
-        } else {
-          toast.success("Autopilot enabled — campaign will send automatically")
-        }
-      } else {
-        toast.success("Manual mode enabled")
-      }
+      onAutonomousChange?.(next)
+      toast.success(next ? "Autopilot on — emails send automatically" : "Manual mode — you approve each send")
       router.refresh()
     } catch {
       toast.error("Failed to update autopilot")
@@ -50,8 +50,10 @@ export function CampaignControls({ id, status, autonomous, hasLeads }: CampaignC
     }
   }
 
-  async function launch(silent = false) {
-    if (!hasLeads && !silent) { toast.error("Add leads to this campaign first"); return }
+  async function launch() {
+    if (!hasLeads) { toast.error("Add leads to this campaign first"); return }
+    if (isEnriching) { toast.error("Wait for lead enrichment to finish"); return }
+
     setLoading("launch")
     try {
       const res = await fetch(`/api/send`, {
@@ -59,9 +61,23 @@ export function CampaignControls({ id, status, autonomous, hasLeads }: CampaignC
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ campaignId: id }),
       })
-      if (!res.ok) throw new Error(await res.text())
+      if (!res.ok) {
+        const text = await res.text()
+        let message = text
+        try { message = JSON.parse(text).error || text } catch { /* plain text */ }
+        throw new Error(message || "Launch failed")
+      }
+
       setCurrentStatus("ACTIVE")
-      if (!silent) toast.success("Campaign launched — first emails sending now")
+      onStatusChange?.("ACTIVE")
+      onLaunched?.()
+
+      const data = await res.json() as { autonomous?: boolean; leadCount?: number }
+      if (data.autonomous) {
+        toast.success(`Campaign live — writing and sending emails for ${data.leadCount ?? ""} lead${data.leadCount !== 1 ? "s" : ""}`)
+      } else {
+        toast.success("Campaign launched — review drafts below, then approve to send")
+      }
       router.refresh()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Launch failed")
@@ -76,6 +92,7 @@ export function CampaignControls({ id, status, autonomous, hasLeads }: CampaignC
       const next = currentStatus === "ACTIVE" ? "PAUSED" : "ACTIVE"
       await patch({ status: next })
       setCurrentStatus(next as typeof currentStatus)
+      onStatusChange?.(next as typeof currentStatus)
       toast.success(next === "PAUSED" ? "Campaign paused" : "Campaign resumed")
       router.refresh()
     } catch {
@@ -85,13 +102,15 @@ export function CampaignControls({ id, status, autonomous, hasLeads }: CampaignC
     }
   }
 
+  const launchLabel = currentAutonomous ? "Launch & Send" : "Launch"
+  const launchDisabled = loading !== null || isEnriching
+
   return (
     <div className="flex items-center gap-2 shrink-0">
-
-      {/* Autopilot toggle */}
       <button
         onClick={toggleAutopilot}
         disabled={loading !== null || currentStatus === "COMPLETED"}
+        title={currentAutonomous ? "Autopilot: emails send automatically" : "Manual: you approve each send"}
         className="flex items-center gap-2 rounded-xl px-3 py-2 transition-all text-[12px] font-bold"
         style={{
           background: currentAutonomous
@@ -107,8 +126,7 @@ export function CampaignControls({ id, status, autonomous, hasLeads }: CampaignC
           ? <Loader2 className="size-3.5 animate-spin" />
           : <Zap className={`size-3.5 ${currentAutonomous ? "fill-current" : ""}`} />
         }
-        <span>{currentAutonomous ? "Autopilot" : "Manual"}</span>
-        {/* Toggle pill */}
+        <span className="hidden sm:inline">{currentAutonomous ? "Autopilot" : "Manual"}</span>
         <div
           className="relative w-7 h-4 rounded-full transition-all"
           style={{ background: currentAutonomous ? "rgba(52,211,153,.6)" : "rgba(255,255,255,.1)" }}
@@ -120,11 +138,11 @@ export function CampaignControls({ id, status, autonomous, hasLeads }: CampaignC
         </div>
       </button>
 
-      {/* Launch / Pause / Resume */}
       {currentStatus === "DRAFT" && (
         <button
-          onClick={() => launch()}
-          disabled={loading !== null}
+          onClick={launch}
+          disabled={launchDisabled}
+          title={isEnriching ? "Waiting for lead enrichment" : undefined}
           className="flex items-center gap-2 rounded-xl px-4 py-2 text-[13px] font-bold transition-all hover:brightness-110 active:scale-[.98] disabled:opacity-50"
           style={{
             background: "linear-gradient(135deg,#10b981,#059669)",
@@ -132,8 +150,11 @@ export function CampaignControls({ id, status, autonomous, hasLeads }: CampaignC
             boxShadow: "0 2px 12px rgba(16,185,129,.3)",
           }}
         >
-          {loading === "launch" ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-4 fill-current" />}
-          Launch
+          {loading === "launch"
+            ? <Loader2 className="size-4 animate-spin" />
+            : currentAutonomous ? <Rocket className="size-4" /> : <Play className="size-4 fill-current" />
+          }
+          {loading === "launch" ? "Launching…" : launchLabel}
         </button>
       )}
 

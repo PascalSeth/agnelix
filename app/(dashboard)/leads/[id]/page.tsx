@@ -5,8 +5,18 @@ import { LeadEditPanel } from "@/components/lead-edit-panel"
 import { LeadPipelinePanel } from "@/components/lead-pipeline-panel"
 import { LeadTabsPanel } from "@/components/lead-tabs-panel"
 import Link from "next/link"
-import { ArrowLeft, Mail, Globe, Building2, Briefcase, MapPin, Inbox } from "lucide-react"
+import { ArrowLeft, Mail, Globe, Building2, Briefcase, MapPin, Inbox, Sparkles } from "lucide-react"
 import { formatDate, initials } from "@/lib/utils"
+
+const APPROACH_LABELS: Record<string, string> = {
+  website: "Website Audit",
+  "local-rank": "Local Rank",
+  competitor: "Competitor Pattern",
+  industry: "Industry Shift",
+  question: "Question Open",
+  "social-proof": "Social Proof",
+  "local-neighbor": "Local Neighbor (B2C)",
+}
 
 const LEAD_STATUS: Record<string, { text: string; bg: string }> = {
   NEW:            { text: "text-white/40",    bg: "rgba(255,255,255,.06)"  },
@@ -185,6 +195,54 @@ export default async function LeadDetailPage({
               </div>
             ))}
 
+            {lead.recommendedApproach && (
+              <div className="pt-2.5 border-t space-y-1" style={{ borderColor: "rgba(255,255,255,.06)" }}>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[9px] font-black text-white/20 uppercase tracking-wide">Recommended AI Approach</p>
+                  <span className="text-[8px] font-bold text-emerald-400 bg-emerald-400/5 border border-emerald-400/10 px-1.5 py-0.25 rounded lowercase shrink-0">saved in db</span>
+                </div>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <Sparkles className="size-3 text-emerald-400 shrink-0" />
+                  <span
+                    className="text-[10px] font-bold text-emerald-400 px-1.5 py-0.5 rounded"
+                    style={{ background: "rgba(52,211,153,.1)" }}
+                  >
+                    {APPROACH_LABELS[lead.recommendedApproach] || lead.recommendedApproach}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {lead.auditJson && (() => {
+              try {
+                const audit = JSON.parse(lead.auditJson)
+                return (
+                  <div className="pt-2.5 border-t space-y-1" style={{ borderColor: "rgba(255,255,255,.06)" }}>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[9px] font-black text-white/20 uppercase tracking-wide">Website Audit</p>
+                      <span className="text-[8px] font-bold text-emerald-400 bg-emerald-400/5 border border-emerald-400/10 px-1.5 py-0.25 rounded lowercase shrink-0">saved in db</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${audit.ssl ? "text-emerald-400 bg-emerald-400/5 border border-emerald-400/10" : "text-red-400 bg-red-400/5 border border-red-400/10"}`}>
+                        {audit.ssl ? "SSL" : "No SSL"}
+                      </span>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${audit.speed < 2000 ? "text-emerald-400 bg-emerald-400/5 border border-emerald-400/10" : "text-amber-400 bg-amber-400/5 border border-amber-400/10"}`}>
+                        {(audit.speed / 1000).toFixed(1)}s load
+                      </span>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${audit.mobile ? "text-emerald-400 bg-emerald-400/5 border border-emerald-400/10" : "text-amber-400 bg-amber-400/5 border border-amber-400/10"}`}>
+                        {audit.mobile ? "Mobile" : "No Mobile"}
+                      </span>
+                      {audit.pixel && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded text-sky-400 bg-sky-400/5 border border-sky-400/10">
+                          Pixel
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )
+              } catch { return null }
+            })()}
+
             {lead.notes && (
               <div className="pt-2 border-t" style={{ borderColor: "rgba(255,255,255,.06)" }}>
                 <p className="text-[9px] font-black text-white/20 uppercase tracking-wide mb-1">Notes</p>
@@ -229,6 +287,11 @@ export default async function LeadDetailPage({
             leadCompany={lead.company ?? null}
             emails={lead.emails}
             replies={replies}
+            leadIndustry={lead.industry}
+            auditJson={lead.auditJson}
+            contactsJson={lead.contactsJson}
+            linkedinProfilesJson={lead.linkedinProfilesJson}
+            recommendedApproach={lead.recommendedApproach}
           />
 
           {/* Mobile: pipeline panel below tabs */}

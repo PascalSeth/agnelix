@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
+import { prisma } from "@/lib/db"
+
+function cleanDomain(url: string): string {
+  try {
+    const u = new URL(url.startsWith("http") ? url : `https://${url}`)
+    return u.hostname.replace(/^www\./, "")
+  } catch {
+    return url.replace(/^www\./, "").split("/")[0] || ""
+  }
+}
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -15,13 +25,13 @@ export async function POST(req: NextRequest) {
     ? `${query.trim()} in ${location.trim()}`
     : query.trim()
 
-  let allPlaces: any[] = []
+  let allPlaces: Record<string, unknown>[] = []
   let pageToken: string | undefined = undefined
   const placesToFetch = Math.min(60, Math.max(1, limit))
 
   while (allPlaces.length < placesToFetch) {
     const pageSize = Math.min(20, placesToFetch - allPlaces.length)
-    const requestBody: any = {
+    const requestBody: Record<string, unknown> = {
       textQuery,
       pageSize,
     }
@@ -70,5 +80,29 @@ export async function POST(req: NextRequest) {
     pageToken = data.nextPageToken
   }
 
-  return NextResponse.json(allPlaces.slice(0, placesToFetch))
+  const slicedPlaces = allPlaces.slice(0, placesToFetch)
+
+  const domains = slicedPlaces
+    .map((p: { websiteUri?: string }) => p.websiteUri ? cleanDomain(p.websiteUri) : null)
+    .filter(Boolean) as string[]
+
+  const cacheRecords = domains.length > 0
+    ? await prisma.domainContactCache.findMany({
+        where: { domain: { in: domains } },
+      })
+    : []
+
+  const cacheMap = new Map(cacheRecords.map(r => [r.domain, r]))
+
+  const enrichedPlaces = slicedPlaces.map((p: { websiteUri?: string; [key: string]: unknown }) => {
+    const domain = p.websiteUri ? cleanDomain(p.websiteUri) : null
+    const cached = domain ? cacheMap.get(domain) : null
+    return {
+      ...p,
+      cachedContacts: cached?.contactsJson ? JSON.parse(cached.contactsJson) : null,
+      cachedProfiles: cached?.profilesJson ? JSON.parse(cached.profilesJson) : null,
+    }
+  })
+
+  return NextResponse.json(enrichedPlaces)
 }

@@ -38,6 +38,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       ...(body.notes !== undefined && { notes: body.notes }),
       ...(body.firstName !== undefined && { firstName: body.firstName }),
       ...(body.lastName !== undefined && { lastName: body.lastName }),
+      ...(body.contactsJson !== undefined && { contactsJson: body.contactsJson }),
+      ...(body.auditJson !== undefined && { auditJson: body.auditJson }),
+      ...(body.linkedinProfilesJson !== undefined && { linkedinProfilesJson: body.linkedinProfilesJson }),
+      ...(body.recommendedApproach !== undefined && { recommendedApproach: body.recommendedApproach }),
     },
   })
 

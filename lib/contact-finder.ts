@@ -2,6 +2,8 @@ import * as cheerio from "cheerio"
 import OpenAI from "openai"
 import dns from "dns/promises"
 import crypto from "crypto"
+import { prisma } from "@/lib/db"
+import { generateEmailPermutations, testEmailsSmtp } from "@/lib/email-verifier"
 
 const openai = new OpenAI({
   apiKey: process.env.NEXT_DEEPSEEKER_API_KEY,
@@ -55,6 +57,7 @@ type EmailSource =
   | "format-mid"
   | "format-low"
   | "format-rare"
+  | "smtp-verified"
 
 const SOURCE_SCORE: Record<EmailSource, number> = {
   "mailto-link":    90,
@@ -68,6 +71,7 @@ const SOURCE_SCORE: Record<EmailSource, number> = {
   "format-mid":     36,  // first / flast
   "format-low":     26,  // f.last / firstlast
   "format-rare":    16,  // last, last.first, etc.
+  "smtp-verified":  92,
 }
 
 // Human-readable label for the UI
@@ -83,6 +87,7 @@ const SOURCE_LABEL: Record<EmailSource, string> = {
   "format-mid":     "Gen",
   "format-low":     "Gen",
   "format-rare":    "Gen",
+  "smtp-verified":  "SMTP",
 }
 
 // Format pattern → source tier (based on real-world email format frequency studies)
@@ -342,6 +347,7 @@ interface ExtractedPerson {
 async function extractDecisionMakers(
   pages: ScrapedPage[],
   companyName: string,
+  localNeighbors?: boolean,
 ): Promise<ExtractedPerson[]> {
   const combined = pages
     .filter(p => p.text)
@@ -353,12 +359,21 @@ async function extractDecisionMakers(
 
   const linkedInHint = pages.flatMap(p => p.linkedInUrls).slice(0, 3).join(", ")
 
-  try {
-    const res = await openai.chat.completions.create({
-      model: "deepseek-v4-flash",
-      messages: [{
-        role: "user",
-        content: `Extract decision makers from this company website. Company: "${companyName}".
+  const prompt = localNeighbors
+    ? `Extract team members, staff, or employees from this company website. Company: "${companyName}".
+${linkedInHint ? `LinkedIn profiles found: ${linkedInHint}` : ""}
+
+Website text:
+${combined}
+
+Return a JSON array of up to 4 people.
+Each object: { "name": string|null, "firstName": string|null, "lastName": string|null, "title": string|null, "email": string|null }
+Rules:
+- Extract any people working at this business (we do not care about seniority or roles, just people)
+- Set email ONLY if it appears verbatim in the text above
+- Return [] if nobody identifiable
+- Strict JSON array only — no markdown`
+    : `Extract decision makers from this company website. Company: "${companyName}".
 ${linkedInHint ? `LinkedIn profiles found: ${linkedInHint}` : ""}
 
 Website text:
@@ -370,7 +385,14 @@ Rules:
 - Only people who clearly run or own this business
 - Set email ONLY if it appears verbatim in the text above
 - Return [] if nobody identifiable
-- Strict JSON array only — no markdown`,
+- Strict JSON array only — no markdown`
+
+  try {
+    const res = await openai.chat.completions.create({
+      model: "deepseek-v4-flash",
+      messages: [{
+        role: "user",
+        content: prompt,
       }],
       temperature: 0.1,
       max_tokens: 400,
@@ -431,8 +453,27 @@ function calcConfidence(params: {
 export async function findContacts(
   websiteUrl: string,
   companyName: string,
+  localNeighbors?: boolean,
+  bypassCache?: boolean,
 ): Promise<ContactResult[]> {
   const domain  = cleanDomain(websiteUrl)
+  
+  if (!bypassCache) {
+    try {
+      const cached = await prisma.domainContactCache.findUnique({
+        where: { domain }
+      })
+      if (cached?.contactsJson) {
+        const ageInMs = Date.now() - cached.updatedAt.getTime()
+        if (ageInMs < 14 * 24 * 60 * 60 * 1000) {
+          return JSON.parse(cached.contactsJson) as ContactResult[]
+        }
+      }
+    } catch (err) {
+      console.error("Cache read error:", err)
+    }
+  }
+
   const baseUrl = `https://${domain}`
 
   // MX check runs in parallel with first page batch
@@ -467,10 +508,8 @@ export async function findContacts(
 
   const domainEmails = Array.from(sourceMap.keys()).filter(e => e.endsWith(`@${domain}`))
 
-  // AI: extract up to 2 decision makers
-  const people   = await extractDecisionMakers(allPages, companyName)
-  const primary   = people[0] ?? null
-  const secondary = people[1] ?? null
+  // AI: extract decision makers / team members
+  const people = await extractDecisionMakers(allPages, companyName, localNeighbors)
 
   // ── Build candidate pool ──────────────────────────────────────
   type Candidate = {
@@ -493,7 +532,7 @@ export async function findContacts(
   }
 
   // B. AI-confirmed person emails + generated candidates
-  for (const person of [primary, secondary].filter(Boolean) as ExtractedPerson[]) {
+  for (const person of people) {
     // Direct email stated verbatim on site
     if (person.email) {
       const ex = candidates.get(person.email)
@@ -536,6 +575,49 @@ export async function findContacts(
           })
         }
       }
+    }
+  }
+
+  // C. SMTP Validation on Name Permutations
+  const permutationsToTest: string[] = []
+  const permToPersonMap = new Map<string, ExtractedPerson>()
+
+  for (const person of people) {
+    if (person.firstName && person.lastName) {
+      const perms = generateEmailPermutations(person.firstName, person.lastName, domain)
+      for (const email of perms) {
+        if (!candidates.has(email)) {
+          permutationsToTest.push(email)
+          permToPersonMap.set(email, person)
+        }
+      }
+    }
+  }
+
+  if (permutationsToTest.length > 0) {
+    try {
+      const smtpRes = await testEmailsSmtp(domain, permutationsToTest.slice(0, 16))
+      if (!smtpRes.isCatchAll) {
+        for (const [email, status] of Object.entries(smtpRes.results)) {
+          if (status === "valid") {
+            const person = permToPersonMap.get(email)
+            if (person) {
+              candidates.set(email, {
+                email,
+                source: "smtp-verified",
+                isDecisionMaker: true,
+                name: person.name,
+                firstName: person.firstName,
+                lastName: person.lastName,
+                title: person.title,
+              })
+              sourceCount.set(email, (sourceCount.get(email) ?? 0) + 1)
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error("SMTP verify error during contact crawl:", err)
     }
   }
 
@@ -584,10 +666,26 @@ export async function findContacts(
     })
   )
 
-  return results
+  const finalResults = results
     .filter(r => r.confidence > 0)
     .sort((a, b) => {
+      if (localNeighbors) {
+        return b.confidence - a.confidence
+      }
       if (a.isDecisionMaker !== b.isDecisionMaker) return a.isDecisionMaker ? -1 : 1
       return b.confidence - a.confidence
     })
+
+  // Save to database cache
+  try {
+    await prisma.domainContactCache.upsert({
+      where: { domain },
+      update: { contactsJson: JSON.stringify(finalResults) },
+      create: { domain, contactsJson: JSON.stringify(finalResults) },
+    })
+  } catch (err) {
+    console.error("Cache write error:", err)
+  }
+
+  return finalResults
 }

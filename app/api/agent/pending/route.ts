@@ -21,6 +21,17 @@ export async function GET() {
           select: {
             id: true, body: true, subject: true,
             receivedAt: true, fromEmail: true,
+            email: {
+              select: {
+                campaign: {
+                  select: {
+                    id: true,
+                    name: true,
+                    autonomous: true,
+                  },
+                },
+              },
+            },
           },
         },
       },

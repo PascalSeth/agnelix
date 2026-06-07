@@ -202,8 +202,10 @@ export default function FindLeadsPage() {
   const [places, setPlaces]             = useState<Place[]>([])
   const [selected, setSelected]         = useState<Set<string>>(new Set())
   const [importPhase, setImportPhase]   = useState<null | "fetching" | "saving">(null)
+  const [importProgress, setImportProgress] = useState("")
   const [searched, setSearched]         = useState(false)
   const [limit, setLimit]               = useState(20)
+  const [searchTarget, setSearchTarget] = useState<"b2b" | "b2c">("b2b")
 
   // Filter state
   const [showFilters, setShowFilters]     = useState(false)
@@ -331,7 +333,12 @@ export default function FindLeadsPage() {
   // ── Search ────────────────────────────────────────────────────────────────
   async function handleSearch(e?: React.FormEvent) {
     e?.preventDefault()
-    if (!query.trim()) { toast.error("Enter a business type to search"); return }
+    let activeQuery = query.trim()
+    if (searchTarget === "b2c" && !activeQuery) {
+      activeQuery = "offices"
+      setQuery("offices")
+    }
+    if (!activeQuery) { toast.error("Enter a business type to search"); return }
     setSearching(true)
     setSearched(false)
     setSelected(new Set())
@@ -342,14 +349,32 @@ export default function FindLeadsPage() {
       const res = await fetch("/api/leads/find", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: query.trim(), location: location.trim(), limit }),
+        body: JSON.stringify({ query: activeQuery, location: location.trim(), limit }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setPlaces(data)
       setSearched(true)
-      if (data.length === 0) toast("No results found — try a different search")
-      else autoAudit(data)
+      if (data.length === 0) {
+        toast("No results found — try a different search")
+      } else {
+        const initialCache: Record<string, PlaceEnrichment> = {}
+        data.forEach((p: { id: string; cachedContacts?: unknown; cachedProfiles?: unknown }) => {
+          if (p.cachedContacts || p.cachedProfiles) {
+            initialCache[p.id] = {
+              ...defaultEnrichment(),
+              contacts: p.cachedContacts || [],
+              contactsDone: !!p.cachedContacts,
+              linkedInProfiles: p.cachedProfiles || [],
+              linkedInDone: !!p.cachedProfiles,
+            }
+          }
+        })
+        if (Object.keys(initialCache).length > 0) {
+          setEnrichmentCache(initialCache)
+        }
+        autoAudit(data)
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Search failed")
     } finally {
@@ -399,43 +424,14 @@ export default function FindLeadsPage() {
       toast.error("Enter a campaign name and choose a sequence"); return
     }
 
-    setImportPhase("fetching")
+    setImportPhase("saving")
+    setImportProgress("Importing leads...")
     try {
-      // Pre-fetch contacts for any lead that hasn't been inspected yet
-      const contactMap: Record<string, import("@/lib/contact-finder").ContactResult[]> = {}
-      await Promise.all(toImport.map(async (place) => {
-        const cached = enrichmentCache[place.id]
-        if (cached?.contactsDone) {
-          contactMap[place.id] = cached.contacts
-          return
-        }
-        if (!place.websiteUri) {
-          contactMap[place.id] = []
-          return
-        }
-        try {
-          const res = await fetch("/api/leads/contact-search", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ websiteUrl: place.websiteUri, companyName: place.displayName.text }),
-          })
-          const data = res.ok ? await res.json() : {}
-          const contacts = data.contacts ?? []
-          contactMap[place.id] = contacts
-          updateEnrichment(place.id, { contacts, contactsDone: true, contactsLoading: false })
-        } catch {
-          contactMap[place.id] = []
-        }
-      }))
-
-      setImportPhase("saving")
-
       const leads = toImport.map(p => {
-        const e        = enrichmentCache[p.id]
-        const contacts = contactMap[p.id] ?? e?.contacts ?? []
-        const dm       = contacts.find(c => c.isDecisionMaker)
-        const best     = dm ?? contacts[0]
-        const audit    = e?.auditData
+        const cached = enrichmentCache[p.id] || {}
+        const contacts = cached.contacts || []
+        const bestContact = contacts.find((c: { isDecisionMaker?: boolean; name?: string }) => c.isDecisionMaker) ?? contacts[0]
+        const audit = cached.auditData || null
 
         const painPoints: string[] = []
         if (audit) {
@@ -446,30 +442,53 @@ export default function FindLeadsPage() {
           if (!audit.googleAnalytics) painPoints.push("No Google Analytics")
         }
 
+        const linkedInUrl = cached.linkedInProfiles?.find((lp: { name?: string; linkedinUrl?: string }) => lp.name?.toLowerCase() === (bestContact as { name?: string } | undefined)?.name?.toLowerCase())?.linkedinUrl
+          || cached.linkedInProfiles?.[0]?.linkedinUrl
+          || null
+
+        const recentNews = cached.research?.outreachAngles?.join(". ") 
+          || (cached.research?.positioning ? `Positioning: ${cached.research.positioning}` : null)
+          || null
+
+        const companyDesc = cached.research?.whatTheyDo 
+          || p.editorialSummary?.text 
+          || p.formattedAddress
+
+        const recommendedApproachText = cached.research?.recommendedApproach
+          ? `Recommended AI Approach: ${cached.research.recommendedApproach.label} (${cached.research.recommendedApproach.reason})`
+          : null
+
         return {
-          email:        best?.email ?? emailFromPlace(p),
-          firstName:    best?.firstName ?? null,
-          lastName:     best?.lastName  ?? null,
-          title:        best?.title     ?? null,
+          email:        bestContact?.email ?? emailFromPlace(p),
+          firstName:    bestContact?.firstName ?? null,
+          lastName:     bestContact?.lastName  ?? null,
+          title:        bestContact?.title     ?? null,
           company:      p.displayName.text,
           website:      p.websiteUri ?? null,
           industry:     p.primaryType?.replace(/_/g, " ") ?? null,
-          companyDesc:  p.editorialSummary?.text ?? p.formattedAddress,
+          companyDesc:  companyDesc,
+          linkedinUrl:  linkedInUrl,
+          recentNews:   recentNews,
           googlePlaceId: p.id,
           painPoint:    painPoints.slice(0, 3).join(". ") || null,
           notes: [
             p.formattedAddress,
             p.nationalPhoneNumber ?? null,
             p.rating ? `Rating: ${p.rating}/5 (${p.userRatingCount} reviews)` : null,
-            best?.name ? `Contact: ${best.name}${best.title ? ` (${best.title})` : ""}` : null,
+            bestContact?.name ? `Contact: ${bestContact.name}${bestContact.title ? ` (${bestContact.title})` : ""}` : null,
+            recommendedApproachText,
           ].filter(Boolean).join("\n"),
+          auditJson:    audit ? JSON.stringify(audit) : null,
+          contactsJson: contacts.length > 0 ? JSON.stringify(contacts) : null,
+          linkedinProfilesJson: cached.linkedInProfiles ? JSON.stringify(cached.linkedInProfiles) : null,
+          recommendedApproach: cached.research?.recommendedApproach?.id || null,
         }
       })
 
       const payload =
         campaignMode === "existing"
-          ? { leads, campaignId }
-          : { leads, newCampaign: { name: newCampName.trim(), sequenceId: newSeqId } }
+          ? { leads, campaignId, enrichInBackground: true, localNeighbors: searchTarget === "b2c" }
+          : { leads, newCampaign: { name: newCampName.trim(), sequenceId: newSeqId }, enrichInBackground: true, localNeighbors: searchTarget === "b2c" }
 
       const res = await fetch("/api/leads", {
         method: "POST",
@@ -484,6 +503,7 @@ export default function FindLeadsPage() {
       toast.error(err instanceof Error ? err.message : "Import failed")
     } finally {
       setImportPhase(null)
+      setImportProgress("")
     }
   }
 
@@ -499,7 +519,7 @@ export default function FindLeadsPage() {
         style={{ borderBottom: "1px solid rgba(255,255,255,.05)" }}
       >
         {/* ── Slim header ── */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
             <Link
               href="/leads"
@@ -510,11 +530,44 @@ export default function FindLeadsPage() {
             </Link>
             <div>
               <div className="flex items-center gap-1.5 mb-0.5">
-                <MapPin className="size-3 text-emerald-400" style={{ filter: "drop-shadow(0 0 4px rgba(52,211,153,.8))" }} />
+                <MapPin className={`size-3 transition-colors ${searchTarget === "b2c" ? "text-emerald-400" : "text-sky-400"}`} style={{ filter: `drop-shadow(0 0 4px ${searchTarget === "b2c" ? "rgba(52,211,153,.8)" : "rgba(56,189,248,.8)"})` }} />
                 <span className="text-[10px] font-bold uppercase tracking-[.18em] text-white/25">Google Maps</span>
               </div>
-              <h1 className="text-[22px] font-black tracking-tight leading-none text-white/90">Find Leads</h1>
+              <h1 className="text-[22px] font-black tracking-tight leading-none text-white/90">
+                {searchTarget === "b2c" ? "Find Office Neighbors" : "Find Leads"}
+              </h1>
             </div>
+          </div>
+
+          {/* B2B vs B2C Local Neighbors toggle */}
+          <div className="flex items-center gap-0.5 p-0.5 rounded-xl shrink-0" style={{ background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.05)" }}>
+            <button
+              type="button"
+              onClick={() => {
+                setSearchTarget("b2b")
+                setQuery("")
+              }}
+              className="rounded-lg px-3.5 py-1.5 text-[11px] font-bold transition-all"
+              style={searchTarget === "b2b"
+                ? { background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.15)", color: "white" }
+                : { color: "rgba(255,255,255,.3)" }}
+            >
+              B2B Industries
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSearchTarget("b2c")
+                setQuery("offices")
+              }}
+              className="rounded-lg px-3.5 py-1.5 text-[11px] font-bold transition-all flex items-center gap-1"
+              style={searchTarget === "b2c"
+                ? { background: "rgba(16,185,129,.15)", border: "1px solid rgba(16,185,129,.25)", color: "#34d399" }
+                : { color: "rgba(255,255,255,.3)" }}
+            >
+              <Sparkles className="size-3" />
+              Local Office Neighbors (B2C)
+            </button>
           </div>
         </div>
 
@@ -618,7 +671,7 @@ export default function FindLeadsPage() {
                 }}
               >
                 {importPhase ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
-                {importPhase === "fetching" ? "Finding emails…" : importPhase === "saving" ? "Importing…" : `Import ${selected.size}`}
+                {importPhase ? importProgress || "Processing…" : `Import ${selected.size}`}
               </button>
             </div>
           ) : (
@@ -634,29 +687,39 @@ export default function FindLeadsPage() {
         <form onSubmit={handleSearch} className="space-y-3">
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="relative flex-1">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5 text-white/25 pointer-events-none" />
+              <Search className={`absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5 pointer-events-none transition-colors ${searchTarget === "b2c" ? "text-emerald-400/50" : "text-white/25"}`} />
               <input
                 type="text"
-                placeholder="Business type — e.g. Dental practices"
+                placeholder={searchTarget === "b2c" ? "Neighbor type — e.g. offices, coworking (default: offices)" : "Business type — e.g. Dental practices"}
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                className="w-full rounded-xl pl-10 pr-4 py-2.5 text-[13px] text-white/75 outline-none placeholder:text-white/20"
-                style={{ background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)" }}
+                className="w-full rounded-xl pl-10 pr-4 py-2.5 text-[13px] text-white/75 outline-none placeholder:text-white/20 transition-all duration-300"
+                style={{
+                  background: "rgba(255,255,255,.04)",
+                  border: searchTarget === "b2c" ? "1px solid rgba(16,185,129,.25)" : "1px solid rgba(255,255,255,.08)",
+                  boxShadow: searchTarget === "b2c" ? "0 0 12px rgba(16,185,129,.05)" : "none"
+                }}
               />
             </div>
 
-            <div className="relative sm:w-52">
+            <div className="relative sm:w-64">
               {locationLoading
                 ? <Loader2 className="absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5 text-white/25 pointer-events-none animate-spin" />
-                : <MapPin className={`absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5 pointer-events-none transition-colors ${location ? "text-emerald-400/60" : "text-white/25"}`} />
+                : <MapPin className={`absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5 pointer-events-none transition-colors ${location ? (searchTarget === "b2c" ? "text-emerald-400" : "text-sky-400/60") : "text-white/25"}`} />
               }
               <input
                 type="text"
-                placeholder={locationLoading ? "Detecting…" : "City"}
+                placeholder={locationLoading ? "Detecting…" : searchTarget === "b2c" ? "Your Restaurant/Store address" : "City"}
                 value={location}
                 onChange={e => setLocation(e.target.value)}
-                className="w-full rounded-xl pl-10 pr-4 py-2.5 text-[13px] text-white/75 outline-none placeholder:text-white/20"
-                style={{ background: "rgba(255,255,255,.04)", border: `1px solid ${location && !locationLoading ? "rgba(52,211,153,.18)" : "rgba(255,255,255,.08)"}` }}
+                className="w-full rounded-xl pl-10 pr-4 py-2.5 text-[13px] text-white/75 outline-none placeholder:text-white/20 transition-all duration-300"
+                style={{
+                  background: "rgba(255,255,255,.04)",
+                  border: searchTarget === "b2c"
+                    ? "1px solid rgba(16,185,129,.25)"
+                    : `1px solid ${location && !locationLoading ? "rgba(56,189,248,.2)" : "rgba(255,255,255,.08)"}`,
+                  boxShadow: searchTarget === "b2c" ? "0 0 12px rgba(16,185,129,.05)" : "none"
+                }}
               />
             </div>
 
@@ -664,10 +727,10 @@ export default function FindLeadsPage() {
               <select
                 value={limit}
                 onChange={e => setLimit(parseInt(e.target.value))}
-                className="w-full rounded-xl pl-3 pr-8 py-2.5 text-[13px] text-white/75 outline-none appearance-none cursor-pointer"
+                className="w-full rounded-xl pl-3 pr-8 py-2.5 text-[13px] text-white/75 outline-none appearance-none cursor-pointer transition-all duration-300"
                 style={{
                   background: "rgba(255,255,255,.04)",
-                  border: "1px solid rgba(255,255,255,.08)",
+                  border: searchTarget === "b2c" ? "1px solid rgba(16,185,129,.2)" : "1px solid rgba(255,255,255,.08)",
                 }}
               >
                 <option value="10" className="bg-[#13151c]">10 leads</option>
@@ -683,8 +746,19 @@ export default function FindLeadsPage() {
             <button
               type="submit"
               disabled={searching}
-              className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-bold text-black transition-all hover:brightness-110 active:scale-[.98] disabled:opacity-50"
-              style={{ background: "linear-gradient(135deg,#e2e5ed,#c8cdd8)", boxShadow: "0 2px 12px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.5)" }}
+              className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-bold transition-all hover:brightness-110 active:scale-[.98] disabled:opacity-50"
+              style={searchTarget === "b2c"
+                ? {
+                    background: "linear-gradient(135deg,#10b981,#059669)",
+                    color: "white",
+                    boxShadow: "0 2px 12px rgba(16,185,129,.25), inset 0 1px 0 rgba(255,255,255,.2)"
+                  }
+                : {
+                    background: "linear-gradient(135deg,#e2e5ed,#c8cdd8)",
+                    color: "black",
+                    boxShadow: "0 2px 12px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.5)"
+                  }
+              }
             >
               {searching ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
               {searching ? "Searching…" : "Search"}
@@ -707,6 +781,22 @@ export default function FindLeadsPage() {
               )}
             </button>
           </div>
+
+          {/* Local Neighbor Info Banner */}
+          {searchTarget === "b2c" && (
+            <div
+              className="rounded-xl px-4 py-3 flex items-start gap-2.5"
+              style={{ background: "rgba(16,185,129,.04)", border: "1px solid rgba(16,185,129,.1)" }}
+            >
+              <Sparkles className="size-4 text-emerald-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-[12px] font-semibold text-emerald-400">Local Office Neighbor Search Active</p>
+                <p className="text-[10px] text-white/45 mt-0.5 leading-relaxed">
+                  Enter your business address and search for nearby <strong>offices</strong> or <strong>workplaces</strong>. This finds businesses whose employees can be targeted with localized B2C neighbor discounts, lunch offers, or happy hours.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Filters */}
           {showFilters && (
@@ -894,6 +984,7 @@ export default function FindLeadsPage() {
                   <LeadDetailSide
                     place={inspecting}
                     enrichment={enrichmentCache[inspecting.id] ?? defaultEnrichment()}
+                    searchTarget={searchTarget}
                     onAuditDone={data => updateEnrichment(inspecting.id, { auditData: data, auditLoading: false })}
                     onAuditStart={() => updateEnrichment(inspecting.id, { auditLoading: true })}
                     onContactsDone={contacts => updateEnrichment(inspecting.id, { contacts, contactsLoading: false, contactsDone: true })}
@@ -999,6 +1090,7 @@ export default function FindLeadsPage() {
         isSelected={mobileInspecting ? selected.has(mobileInspecting.id) : false}
         onToggle={toggle}
         emailFromPlace={emailFromPlace}
+        searchTarget={searchTarget}
       />
     </div>
   )

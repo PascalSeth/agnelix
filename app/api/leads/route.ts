@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse, after } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
+import { enrichLeadsInBackground } from "@/lib/lead-enricher"
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -48,6 +49,8 @@ export async function POST(req: NextRequest) {
     : Array.isArray(body) ? body : [body]
   const campaignId: string | undefined = isWrapped ? body.campaignId : undefined
   const newCampaign: { name: string; sequenceId: string } | undefined = isWrapped ? body.newCampaign : undefined
+  const enrichInBackground: boolean = isWrapped ? !!body.enrichInBackground : false
+  const localNeighbors: boolean = isWrapped ? !!body.localNeighbors : false
 
   const created = await prisma.$transaction(
     leadsData.map((lead) =>
@@ -62,8 +65,14 @@ export async function POST(req: NextRequest) {
           companyDesc: lead.companyDesc || null,
           industry: lead.industry || null,
           website: lead.website || null,
+          linkedinUrl: lead.linkedinUrl || null,
+          recentNews: lead.recentNews || null,
           googlePlaceId: lead.googlePlaceId || null,
           notes: lead.notes || null,
+          auditJson: lead.auditJson || null,
+          contactsJson: lead.contactsJson || null,
+          linkedinProfilesJson: lead.linkedinProfilesJson || null,
+          recommendedApproach: lead.recommendedApproach || null,
         },
       })
     )
@@ -102,6 +111,17 @@ export async function POST(req: NextRequest) {
         data: { totalLeads: { increment: created.length } },
       })
     }
+  }
+
+  if (enrichInBackground && created.length > 0) {
+    after(async () => {
+      try {
+        const leadIds = created.map((l) => l.id)
+        await enrichLeadsInBackground(leadIds, localNeighbors)
+      } catch (err) {
+        console.error("Error in background enrichment:", err)
+      }
+    })
   }
 
   return NextResponse.json({ count: created.length, ids: created.map((l) => l.id), campaignId: finalCampaignId })

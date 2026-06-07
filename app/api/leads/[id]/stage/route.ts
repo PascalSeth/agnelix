@@ -3,7 +3,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { generateProposal } from "@/lib/ai"
 
-const PIPELINE_STAGES = ["NEW", "CONTACTED", "REPLIED", "INTERESTED", "MEETING_BOOKED", "PROPOSAL_SENT", "WON", "LOST"]
+const PIPELINE_STAGES = ["NEW", "CONTACTED", "REPLIED", "INTERESTED", "MEETING_BOOKED", "PROPOSAL_SENT", "WON", "LOST", "NOT_INTERESTED", "BOUNCED"]
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -87,6 +87,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     // Cancel all remaining queued emails
     ops.push(prisma.email.updateMany({ where: { leadId: id, status: "QUEUED" }, data: { status: "FAILED" } }))
     ops.push(prisma.activity.create({ data: { leadId: id, type: "DEAL_LOST", note: "Deal marked as Lost" } }))
+  }
+
+  if (stage === "NOT_INTERESTED") {
+    // Cancel all remaining queued emails
+    ops.push(prisma.email.updateMany({ where: { leadId: id, status: "QUEUED" }, data: { status: "FAILED" } }))
+    ops.push(prisma.activity.create({ data: { leadId: id, type: "DEAL_LOST", note: "Lead marked as Not Interested" } }))
+  }
+
+  if (stage === "BOUNCED") {
+    // Cancel all remaining queued emails
+    ops.push(prisma.email.updateMany({ where: { leadId: id, status: "QUEUED" }, data: { status: "FAILED" } }))
+    ops.push(prisma.activity.create({ data: { leadId: id, type: "DEAL_LOST", note: "Lead email Bounced" } }))
   }
 
   // Sync campaign reply/meeting counters for status transitions

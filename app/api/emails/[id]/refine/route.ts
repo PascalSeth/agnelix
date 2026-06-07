@@ -57,7 +57,7 @@ Return a JSON object with exactly this format:
       temperature: 0.75,
       max_tokens: 300,
       thinking: { type: "disabled" },
-    } as any)
+    } as Parameters<typeof openai.chat.completions.create>[0])
 
     const content = res.choices[0]?.message?.content ?? "{}"
     const cleanJson = content.replace(/```json|```/g, "").trim()
@@ -76,7 +76,7 @@ Return a JSON object with exactly this format:
     })
 
     return NextResponse.json({ success: true, email: updated })
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("AI refinement failed:", err)
     return NextResponse.json({ error: "Refinement failed. Please try again." }, { status: 500 })
   }

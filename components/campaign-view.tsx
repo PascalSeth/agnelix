@@ -1,13 +1,16 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import {
   ChevronDown, ChevronRight, Mail, Eye, MousePointerClick,
   MessageSquare, Clock, CheckCircle2, XCircle, Loader2,
-  MapPin, Upload, Users, FileText, Sparkles, Play, Zap
+  MapPin, Upload, Users, FileText, Sparkles, Zap,
+  Activity as ActivityIcon, Star, Calendar, Send
 } from "lucide-react"
 import Link from "next/link"
 import { initials } from "@/lib/utils"
+import { CampaignWorkflowBar } from "@/components/campaign-workflow-bar"
+import { computeWorkflowPhase } from "@/lib/campaign-workflow"
 import { toast } from "sonner"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -23,17 +26,31 @@ type EmailRecord = {
   openCount: number; clickCount: number
 }
 
+type ActivityRecord = {
+  id: string
+  type: string
+  note: string | null
+  createdAt: string
+  metadata: Record<string, unknown> | null
+  lead?: { firstName?: string | null; lastName?: string | null; email?: string; company?: string | null } | null
+}
+
 type Lead = {
   id: string; firstName: string | null; lastName: string | null
   email: string; company: string | null; status: string
   emails: EmailRecord[]
+  activities?: ActivityRecord[]
+  recommendedApproach?: string | null
+  contactsJson?: string | null
 }
 
 interface CampaignViewProps {
   campaignId: string
   status: string
+  autonomous: boolean
   leads: Lead[]
   sequenceSteps: SequenceStep[]
+  onLeadsChange?: (leads: Lead[]) => void
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -41,15 +58,26 @@ interface CampaignViewProps {
 const STEP_DAY: Record<number, string> = { 1: "Day 1", 2: "Day 3", 3: "Day 7", 4: "Day 14" }
 
 const EMAIL_STATUS: Record<string, { icon: typeof CheckCircle2; color: string; label: string }> = {
-  SENT:      { icon: Mail,          color: "text-white/40",    label: "Sent"     },
-  DELIVERED: { icon: Mail,          color: "text-white/40",    label: "Delivered"},
-  OPENED:    { icon: Eye,           color: "text-emerald-400", label: "Opened"   },
-  CLICKED:   { icon: MousePointerClick, color: "text-sky-400", label: "Clicked"  },
-  REPLIED:   { icon: MessageSquare, color: "text-violet-400",  label: "Replied"  },
-  QUEUED:    { icon: Clock,         color: "text-sky-400/60",  label: "Queued"   },
-  BOUNCED:   { icon: XCircle,       color: "text-red-400",     label: "Bounced"  },
-  FAILED:    { icon: XCircle,       color: "text-red-400",     label: "Failed"   },
-  DRAFT:     { icon: FileText,      color: "text-amber-400/80", label: "Draft"    },
+  SENT:      { icon: Mail,             color: "text-emerald-400",  label: "Sent"     },
+  DELIVERED: { icon: Mail,             color: "text-emerald-400",  label: "Delivered"},
+  OPENED:    { icon: Eye,              color: "text-emerald-400",  label: "Opened"   },
+  CLICKED:   { icon: MousePointerClick,color: "text-sky-400",      label: "Clicked"  },
+  REPLIED:   { icon: MessageSquare,    color: "text-violet-400",   label: "Replied"  },
+  QUEUED:    { icon: Clock,            color: "text-sky-400/60",   label: "Queued"   },
+  BOUNCED:   { icon: XCircle,          color: "text-red-400",      label: "Bounced"  },
+  FAILED:    { icon: XCircle,          color: "text-red-400",      label: "Failed"   },
+  DRAFT:     { icon: FileText,         color: "text-amber-400/80", label: "Draft"    },
+}
+
+const ACTIVITY_META: Record<string, { icon: typeof Mail; color: string; label: string }> = {
+  EMAIL_SENT:            { icon: Send,          color: "text-sky-400",     label: "Email Sent"     },
+  EMAIL_OPENED:          { icon: Star,          color: "text-amber-400",   label: "Opened"         },
+  EMAIL_CLICKED:         { icon: ChevronRight,  color: "text-emerald-400", label: "Clicked"        },
+  REPLY_RECEIVED:        { icon: MessageSquare, color: "text-violet-400",  label: "Reply"          },
+  STAGE_CHANGED:         { icon: Zap,           color: "text-white/40",    label: "Stage Changed"  },
+  NOTE_ADDED:            { icon: FileText,      color: "text-white/55",    label: "Note"           },
+  MEETING_BOOKED:        { icon: Calendar,      color: "text-emerald-400", label: "Meeting Booked" },
+  BATTLE_CARD_GENERATED: { icon: Sparkles,      color: "text-amber-400",   label: "AI Drafted"     },
 }
 
 const LEAD_STATUS: Record<string, string> = {
@@ -71,6 +99,7 @@ const APPROACHES = [
   { id: "industry", label: "Industry Shift" },
   { id: "question", label: "Question Open" },
   { id: "social-proof", label: "Social Proof" },
+  { id: "local-neighbor", label: "Local Neighbor (B2C)" },
 ]
 
 // ── Lead row with step timeline ───────────────────────────────────────────────
@@ -86,7 +115,7 @@ function LeadRow({
   const [activeStep, setActiveStep] = useState(1)
 
   const [emails, setEmails] = useState<EmailRecord[]>(lead.emails)
-  const [approach, setApproach] = useState("website")
+  const [approach, setApproach] = useState(lead.recommendedApproach || "website")
   const [generating, setGenerating] = useState(false)
 
   const [isEditing, setIsEditing] = useState(false)
@@ -99,7 +128,7 @@ function LeadRow({
 
   // Sync state if lead prop changes
   useEffect(() => {
-    setEmails(lead.emails)
+    Promise.resolve().then(() => setEmails(lead.emails))
   }, [lead.emails])
 
   const name        = [lead.firstName, lead.lastName].filter(Boolean).join(" ") || lead.email
@@ -108,7 +137,7 @@ function LeadRow({
 
   // Get the furthest email status for the header badge
   const priority = ["REPLIED", "CLICKED", "OPENED", "DELIVERED", "SENT", "QUEUED", "DRAFT", "BOUNCED", "FAILED"]
-  const topStatus = priority.find(s => sentEmails.some(e => e.status === s)) ?? (sentEmails.length === 0 ? "NEW" : "SENT")
+  const _topStatus = priority.find(s => sentEmails.some(e => e.status === s)) ?? (sentEmails.length === 0 ? "NEW" : "SENT")
 
   async function loadPreview(force = false) {
     if (preview && !force) return
@@ -197,19 +226,23 @@ function LeadRow({
       })
       if (res.ok) {
         const data = await res.json()
-        toast.success("Lead outreach approved and queued!")
-        const updatedEmails = emails.map(e => e.id === data.email.id ? { ...e, status: "QUEUED", scheduledAt: data.email.scheduledAt } : e)
+        toast.success("✅ Email sent successfully!")
+        const updatedEmails = emails.map(e =>
+          e.id === data.email?.id ? { ...e, status: data.email.status ?? "SENT", sentAt: data.email.sentAt } : e
+        )
         setEmails(updatedEmails)
         onUpdateLead({ ...lead, emails: updatedEmails })
       } else {
-        toast.error("Failed to queue emails")
+        const err = await res.json().catch(() => ({}))
+        toast.error((err as { error?: string }).error || "Failed to send email")
       }
     } catch {
-      toast.error("Failed to queue emails")
+      toast.error("Failed to send email")
     } finally {
       setQueuingLead(false)
     }
   }
+
 
   async function handleGenerateDrafts(selectedApproach: string) {
     setGenerating(true)
@@ -288,12 +321,22 @@ function LeadRow({
         </div>
 
         {/* Status badge */}
-        <span
-          className="text-[10px] font-bold uppercase tracking-wide truncate"
-          style={{ color: leadColor }}
-        >
-          {lead.status.replace(/_/g, " ")}
-        </span>
+        {lead.status === "NEW" && !lead.contactsJson ? (
+          <span
+            className="text-[10px] font-bold uppercase tracking-wide truncate flex items-center gap-1.5 text-emerald-400"
+            title="Enriching contacts, LinkedIn profiles, and website audit details in the background..."
+          >
+            <Loader2 className="size-3 animate-spin text-emerald-400 shrink-0" />
+            Enriching...
+          </span>
+        ) : (
+          <span
+            className="text-[10px] font-bold uppercase tracking-wide truncate"
+            style={{ color: leadColor }}
+          >
+            {lead.status.replace(/_/g, " ")}
+          </span>
+        )}
 
         {/* Expand */}
         <div className="flex justify-end text-white/20">
@@ -342,7 +385,7 @@ function LeadRow({
             {emails.length === 0 ? (
               <div className="px-5 py-8 text-center space-y-2">
                 <p className="text-[12px] font-semibold text-white/30">No drafts generated for this lead yet.</p>
-                <p className="text-[11px] text-white/20">Select an outreach approach above and click "Generate Drafts" to build personalized email cadences.</p>
+                <p className="text-[11px] text-white/20">Select an outreach approach above and click &quot;Generate Drafts&quot; to build personalized email cadences.</p>
               </div>
             ) : (
               <>
@@ -352,8 +395,8 @@ function LeadRow({
                     const email    = sentEmails.find(e => e.stepNumber === step.stepNumber)
                     const previewE = (preview ?? []).find(e => e.stepNumber === step.stepNumber)
                     const isActive = activeStep === step.stepNumber
-                    const isOpened = email && ["OPENED", "CLICKED", "REPLIED"].includes(email.status)
-                    const isSent   = email && email.status !== "FAILED"
+                    const _isOpened = email && ["OPENED", "CLICKED", "REPLIED"].includes(email.status)
+                    const _isSent   = email && email.status !== "FAILED"
 
                     return (
                       <button
@@ -428,9 +471,10 @@ function LeadRow({
                             <button
                               onClick={handleQueueLead}
                               disabled={queuingLead}
-                              className="px-3 py-1 rounded bg-emerald-400 hover:brightness-110 disabled:opacity-40 text-black font-black uppercase tracking-wider text-[9px] transition-all font-sans"
+                              className="flex items-center gap-1 px-3 py-1 rounded bg-emerald-400 hover:brightness-110 disabled:opacity-40 text-black font-black uppercase tracking-wider text-[9px] transition-all font-sans"
                             >
-                              {queuingLead ? "Queueing..." : "Approve & Send"}
+                              {queuingLead ? <Loader2 className="size-3 animate-spin text-black" /> : <Send className="size-3 text-black" />}
+                              {queuingLead ? "Sending..." : "Send Now"}
                             </button>
                           </div>
                         )}
@@ -519,6 +563,30 @@ function LeadRow({
               </>
             )}
           </div>
+
+          {/* ── Activity Log ─────────────────────────────────────────────── */}
+          {lead.activities && lead.activities.length > 0 && (
+            <div className="mt-3 pt-3" style={{ borderTop: "1px solid rgba(255,255,255,.04)" }}>
+              <p className="text-[9px] font-black uppercase tracking-widest text-white/20 mb-2">Activity</p>
+              <div className="space-y-1.5">
+                {lead.activities.map(act => {
+                  const meta = ACTIVITY_META[act.type] ?? { icon: ActivityIcon, color: "text-white/30", label: act.type }
+                  const Icon = meta.icon
+                  return (
+                    <div key={act.id} className="flex items-start gap-2">
+                      <Icon className={`size-3 shrink-0 mt-0.5 ${meta.color}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] text-white/55 leading-snug">{act.note || meta.label}</p>
+                        <p className="text-[9px] text-white/20 mt-0.5">
+                          {new Date(act.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -645,43 +713,91 @@ function SequenceTab({ steps, leads }: { steps: SequenceStep[]; leads: Lead[] })
 
 // ── Main view with tabs ───────────────────────────────────────────────────────
 
-export function CampaignView({ campaignId, status, leads, sequenceSteps }: CampaignViewProps) {
-  const [tab, setTab] = useState<"leads" | "sequence">("leads")
+export function CampaignView({ campaignId, status, autonomous, leads, sequenceSteps, onLeadsChange }: CampaignViewProps) {
+  const [tab, setTab] = useState<"leads" | "sequence" | "activity">("leads")
   const [localLeads, setLocalLeads] = useState<Lead[]>(leads)
   const [queuingAll, setQueuingAll] = useState(false)
+  const [generatingAllDrafts, setGeneratingAllDrafts] = useState(false)
+  const [processingQueue, setProcessingQueue] = useState(false)
+  const [campaignActivities, setCampaignActivities] = useState<ActivityRecord[]>([])
+
+  function updateLeads(next: Lead[]) {
+    setLocalLeads(next)
+    onLeadsChange?.(next)
+  }
 
   // Keep local state in sync if prop changes
   useEffect(() => {
-    setLocalLeads(leads)
+    Promise.resolve().then(() => setLocalLeads(leads))
   }, [leads])
+
+  const fetchActivities = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/campaigns/${campaignId}/activities`)
+      if (res.ok) setCampaignActivities(await res.json())
+    } catch { /* silent */ }
+  }, [campaignId])
+
+  // Fetch activities when activity tab open
+  useEffect(() => {
+    if (tab !== "activity") return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchActivities()
+    const iv = setInterval(fetchActivities, 8000)
+    return () => clearInterval(iv)
+  }, [tab, fetchActivities])
+
+  const hasEnriching = localLeads.some(l => l.status === "NEW" && !l.contactsJson)
+  const draftCount = localLeads.reduce((n, l) => n + l.emails.filter(e => e.status === "DRAFT").length, 0)
+  const pendingSendCount = localLeads.reduce((n, l) => n + l.emails.filter(e => ["QUEUED", "SENDING"].includes(e.status)).length, 0)
+  const failedCount = localLeads.reduce((n, l) => n + l.emails.filter(e => e.status === "FAILED").length, 0)
+  const workflowPhase = computeWorkflowPhase(status, autonomous, localLeads, generatingAllDrafts)
+
+  async function refreshLeads() {
+    const res = await fetch(`/api/campaigns/${campaignId}`)
+    if (!res.ok) return
+    const campaign = await res.json()
+    const updatedLeads = campaign?.campaignLeads?.map((cl: { lead: Lead }) => cl.lead)
+    if (Array.isArray(updatedLeads)) updateLeads(updatedLeads)
+  }
+
+  const leadsWithoutDrafts = localLeads.filter(l =>
+    l.emails.length === 0 && !(["REPLIED","MEETING_BOOKED","NOT_INTERESTED","BOUNCED"].includes(l.status))
+  )
 
   const TABS = [
     { id: "leads"    as const, label: `Leads (${localLeads.length})` },
     { id: "sequence" as const, label: `Sequence (${sequenceSteps.length} steps)` },
+    { id: "activity" as const, label: "Activity Log" },
   ]
 
-  // Detect if any lead in the campaign has DRAFT emails
-  const hasDrafts = localLeads.some(l => l.emails.some(e => e.status === "DRAFT"))
+  async function handleGenerateAllDrafts() {
+    setGeneratingAllDrafts(true)
+    try {
+      const res = await fetch(`/api/campaigns/${campaignId}/generate-drafts-all`, { method: "POST" })
+      if (res.ok) {
+        const data = await res.json()
+        toast.success((data as { message?: string }).message || "Generating drafts in the background…")
+      } else {
+        const err = await res.json().catch(() => ({}))
+        toast.error((err as { error?: string }).error || "Failed to start draft generation")
+      }
+    } catch {
+      toast.error("An error occurred")
+    } finally {
+      setGeneratingAllDrafts(false)
+    }
+  }
 
   async function handleQueueAll() {
     setQueuingAll(true)
     try {
-      const res = await fetch(`/api/campaigns/${campaignId}/queue-all`, {
-        method: "POST",
-      })
+      const res = await fetch(`/api/campaigns/${campaignId}/queue-all`, { method: "POST" })
       if (res.ok) {
-        const data = await res.json()
-        toast.success("Active drafts approved and queued!")
-        
-        const updatedIds = new Set((data.emails || []).map((e: any) => e.id))
-        
-        const updatedLeads = localLeads.map(l => ({
-          ...l,
-          emails: l.emails.map(e => updatedIds.has(e.id) ? { ...e, status: "QUEUED" } : e)
-        }))
-        setLocalLeads(updatedLeads)
+        toast.success("Sending approved drafts…")
+        await refreshLeads()
       } else {
-        toast.error("Failed to queue drafts")
+        toast.error("Failed to send drafts")
       }
     } catch {
       toast.error("An error occurred")
@@ -690,8 +806,24 @@ export function CampaignView({ campaignId, status, leads, sequenceSteps }: Campa
     }
   }
 
+  async function handleProcessQueue() {
+    setProcessingQueue(true)
+    try {
+      const res = await fetch("/api/process-queue", { method: "POST" })
+      if (res.ok) {
+        await refreshLeads()
+      } else {
+        toast.error("Failed to retry sends")
+      }
+    } catch {
+      toast.error("An error occurred")
+    } finally {
+      setProcessingQueue(false)
+    }
+  }
+
   function handleUpdateLead(updated: Lead) {
-    setLocalLeads(prev => prev.map(l => l.id === updated.id ? updated : l))
+    updateLeads(localLeads.map(l => l.id === updated.id ? updated : l))
   }
 
   return (
@@ -766,37 +898,18 @@ export function CampaignView({ campaignId, status, leads, sequenceSteps }: Campa
             </div>
           ) : (
             <div>
-              {/* Premium review banner for manual mode */}
-              {hasDrafts && (
-                <div
-                  className="mx-5 my-4 p-4 rounded-2xl flex items-center justify-between gap-4 flex-wrap"
-                  style={{
-                    background: "linear-gradient(135deg, rgba(251,191,36,.06), rgba(251,191,36,.02))",
-                    border: "1px solid rgba(251,191,36,.12)",
-                  }}
-                >
-                  <div className="flex items-start gap-2.5">
-                    <div className="size-8 rounded-xl bg-amber-400/10 flex items-center justify-center border border-amber-400/15 shrink-0 mt-0.5">
-                      <FileText className="size-4 text-amber-400" />
-                    </div>
-                    <div>
-                      <h3 className="text-[13px] font-bold text-amber-300">Review Draft Outreach</h3>
-                      <p className="text-[11px] text-white/40 mt-0.5 leading-snug">
-                        Manual launch generates drafts. Review individual active steps below or approve active drafts in bulk to continue outreach.
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleQueueAll}
-                    disabled={queuingAll}
-                    className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-[12px] font-bold text-black bg-amber-400 hover:brightness-110 disabled:opacity-40 transition-all select-none font-sans"
-                    style={{ boxShadow: "0 2px 10px rgba(251,191,36,.15)" }}
-                  >
-                    {queuingAll ? <Loader2 className="size-3.5 animate-spin text-black" /> : <Play className="size-3.5 fill-current" />}
-                    Approve & Send All
-                  </button>
-                </div>
-              )}
+              <CampaignWorkflowBar
+                phase={workflowPhase}
+                autonomous={autonomous}
+                leadsWithoutDrafts={leadsWithoutDrafts.length}
+                draftCount={draftCount}
+                pendingSendCount={pendingSendCount}
+                failedCount={failedCount}
+                isGenerating={generatingAllDrafts}
+                isSending={queuingAll || processingQueue || pendingSendCount > 0}
+                onApproveAll={handleQueueAll}
+                onRetryFailed={handleProcessQueue}
+              />
 
               {/* Column headers */}
               <div
@@ -823,8 +936,46 @@ export function CampaignView({ campaignId, status, leads, sequenceSteps }: Campa
               ))}
             </div>
           )
-        ) : (
+        ) : tab === "sequence" ? (
           <SequenceTab steps={sequenceSteps} leads={localLeads} />
+        ) : (
+          /* Activity Log tab */
+          campaignActivities.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
+              <div className="size-12 rounded-2xl flex items-center justify-center"
+                style={{ background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.07)" }}>
+                <ActivityIcon className="size-5 text-white/20" />
+              </div>
+              <p className="text-[13px] font-bold text-white/25">No activity yet</p>
+              <p className="text-[11px] text-white/15">Events will appear here as emails are sent</p>
+            </div>
+          ) : (
+            <div className="px-5 py-4 space-y-0">
+              {campaignActivities.map((act) => {
+                const meta = ACTIVITY_META[act.type] ?? { icon: ActivityIcon, color: "text-white/30", label: act.type }
+                const Icon = meta.icon
+                const lead = act.lead
+                const leadName = lead?.firstName
+                  ? `${lead.firstName}${lead.lastName ? " " + lead.lastName : ""}`
+                  : (lead?.email ?? "Unknown")
+                return (
+                  <div key={act.id} className="flex items-start gap-3 py-2.5" style={{ borderBottom: "1px solid rgba(255,255,255,.03)" }}>
+                    <div className="size-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5 bg-white/[.04] border border-white/[.06]">
+                      <Icon className={`size-3.5 ${meta.color}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className="text-[12px] font-semibold text-white/70 truncate">{leadName}</span>
+                        {lead?.company && <span className="text-[10px] text-white/25">{lead.company}</span>}
+                      </div>
+                      <p className="text-[11px] text-white/45 mt-0.5 leading-snug">{act.note || meta.label}</p>
+                    </div>
+                    <span className="text-[9px] text-white/20 shrink-0 mt-1">{new Date(act.createdAt).toLocaleString()}</span>
+                  </div>
+                )
+              })}
+            </div>
+          )
         )}
       </div>
     </div>

@@ -167,6 +167,9 @@ export async function executePendingAction(action: PendingActionWithLead, mode: 
         }),
       ])
 
+      const { rescheduleNextCampaignStep } = await import("./scheduler")
+      await rescheduleNextCampaignStep(action.leadId)
+
       if (action.type === "BOOK_MEETING") {
         await prisma.lead.update({
           where: { id: action.leadId },

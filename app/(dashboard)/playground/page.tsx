@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react"
 import {
-  MapPin, Shield, Gauge, Zap, CheckCircle2, XCircle,
-  Mail, Eye, MessageSquare, Calendar, ChevronRight,
+  MapPin, Shield, Gauge, Zap, XCircle,
+  Mail, Eye, MessageSquare, ChevronRight,
   ChevronLeft, Star, Globe2, Phone, AlertTriangle,
   Play, RotateCcw, TrendingUp, Sparkles, Users,
 } from "lucide-react"
@@ -191,7 +191,7 @@ function EmailComposer({ subject = MOCK_SUBJECT, body = MOCK_EMAIL }) {
   )
 }
 
-function GmailInbox({ subject = MOCK_SUBJECT, preview = "I had a look at Apex Dental Practice ahead of sending this…", from = `${SENDER.name} <${SENDER.email}>`, isNew = true }) {
+function GmailInbox({ subject = MOCK_SUBJECT, preview = "I had a look at Apex Dental Practice ahead of sending this…", from: _from = `${SENDER.name} <${SENDER.email}>`, isNew = true }) {
   return (
     <div className="rounded-xl overflow-hidden" style={{ background: "#f6f8fc", border: "1px solid rgba(0,0,0,.08)" }}>
       {/* Gmail header mock */}
@@ -628,7 +628,7 @@ const scenarios: { id: string; label: string; emoji: string; color: string; tagl
                 <p className="text-white/45 leading-snug">Site loads in 4.2s, no analytics, 4.1★ on Google. Estimated 40–60 missed bookings/month based on traffic benchmarks for Leeds dental practices.</p>
               </div>
               <div>
-                <p className="font-bold text-white/50 uppercase tracking-wide text-[9px] mb-1">What We'll Do</p>
+                <p className="font-bold text-white/50 uppercase tracking-wide text-[9px] mb-1">What We&apos;ll Do</p>
                 <p className="text-white/45 leading-snug">Speed optimisation, Google Analytics setup, review generation system, 3-month SEO foundation. Delivered in 4 weeks.</p>
               </div>
               <div>
@@ -646,7 +646,7 @@ const scenarios: { id: string; label: string; emoji: string; color: string; tagl
               <p className="text-[11px] text-gray-400">{SENDER.name} to me</p>
             </div>
             <div className="p-4 space-y-2 text-[12px] text-gray-700">
-              <p>James — thanks for coming back. I've put together a short brief on exactly what I'd recommend for Apex Dental.</p>
+              <p>James — thanks for coming back. I&apos;ve put together a short brief on exactly what I&apos;d recommend for Apex Dental.</p>
               <p className="text-blue-600 underline cursor-pointer">📄 Apex Dental — Proposal.pdf</p>
               <p>Happy to walk through it on a call. Could do Thu 2pm or Fri 10am.</p>
               <p>Pascal</p>
@@ -690,7 +690,7 @@ export default function PlaygroundPage() {
   // Auto-play
   useEffect(() => {
     if (!autoPlay) return
-    if (isLast) { setAutoPlay(false); return }
+    if (isLast) { Promise.resolve().then(() => setAutoPlay(false)); return }
     const t = setTimeout(() => setStepIdx(i => i + 1), 3000)
     return () => clearTimeout(t)
   }, [autoPlay, stepIdx, isLast])
@@ -713,7 +713,7 @@ export default function PlaygroundPage() {
               <span className="text-[10px] font-bold uppercase tracking-[.18em] text-white/25">Interactive Demo</span>
             </div>
             <h1 className="text-[22px] font-black tracking-tight text-white/90">Playground</h1>
-            <p className="text-[12px] text-white/25 mt-0.5">See the full outreach loop from both sides — your view and the prospect's inbox</p>
+            <p className="text-[12px] text-white/25 mt-0.5">See the full outreach loop from both sides — your view and the prospect&apos;s inbox</p>
           </div>
 
           {/* Auto-play control */}
@@ -807,7 +807,7 @@ export default function PlaygroundPage() {
                 <div className="size-5 rounded-full flex items-center justify-center text-[10px]" style={{ background: "rgba(52,211,153,.1)", border: "1px solid rgba(52,211,153,.2)" }}>
                   🎯
                 </div>
-                <p className="text-[11px] font-black text-white/40 uppercase tracking-wide">Prospect's View — Their Inbox</p>
+                <p className="text-[11px] font-black text-white/40 uppercase tracking-wide">Prospect&apos;s View — Their Inbox</p>
               </div>
               <div className="rounded-xl p-4" style={{ background: "rgba(255,255,255,.02)", border: "1px solid rgba(255,255,255,.06)", minHeight: "240px" }}>
                 {step.prospect}

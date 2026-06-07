@@ -38,8 +38,8 @@ Do NOT output any intro, explanations, or enclosing quotes. Output only the inst
 
     const resultText = res.choices[0]?.message?.content?.trim() || ""
     return NextResponse.json({ text: resultText })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("AI Assist error:", error)
-    return NextResponse.json({ error: error?.message || "AI Assist failed" }, { status: 500 })
+    return NextResponse.json({ error: error instanceof Error ? error.message : "AI Assist failed" }, { status: 500 })
   }
 }

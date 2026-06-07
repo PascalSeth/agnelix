@@ -69,7 +69,7 @@ export default function SequencesPage() {
   }
 
   // Update specific step attributes
-  function updateStep(idx: number, key: keyof StepInput, val: any) {
+  function updateStep(idx: number, key: keyof StepInput, val: string | number | boolean) {
     setNewSteps(prev => prev.map((s, i) => i === idx ? { ...s, [key]: val } : s))
   }
 

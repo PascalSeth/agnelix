@@ -89,7 +89,7 @@ export async function POST(
   let finalApproach = approach ?? "competitor"
   let rating: number | null = null
   let reviewCount: number | null = null
-  let auditData: any = null
+  let auditData: Record<string, unknown> | null = null
 
   // 3. Fetch Place details if local-rank approach is requested
   if (finalApproach === "local-rank" && lead.googlePlaceId && apiKey) {
@@ -106,16 +106,24 @@ export async function POST(
   }
 
   // 4. Run website audit if website approach is requested
-  if (finalApproach === "website" && lead.website) {
-    const audit = await runWebsiteAudit(lead.website)
-    if (audit) {
-      auditData = audit
-    } else {
-      // Fallback if audit fails
+  if (finalApproach === "website") {
+    if (lead.auditJson) {
+      try {
+        auditData = JSON.parse(lead.auditJson)
+      } catch {
+        auditData = null
+      }
+    }
+    if (!auditData && lead.website) {
+      const audit = await runWebsiteAudit(lead.website)
+      if (audit) {
+        auditData = audit
+      }
+    }
+    if (!auditData) {
+      // Fallback if audit fails / not found
       finalApproach = "competitor"
     }
-  } else if (finalApproach === "website") {
-    finalApproach = "competitor"
   }
 
   // 4.5. Run extensive company research

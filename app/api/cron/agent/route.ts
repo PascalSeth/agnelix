@@ -22,6 +22,15 @@ export async function GET(req: Request) {
     },
     include: {
       lead: { include: { user: true } },
+      reply: {
+        include: {
+          email: {
+            include: {
+              campaign: true,
+            },
+          },
+        },
+      },
     },
     take: 50,
   })
@@ -32,7 +41,8 @@ export async function GET(req: Request) {
 
   for (const action of expired) {
     try {
-      if (action.type === "SEND_REPLY" && action.riskLevel === "HIGH") {
+      const isAutonomous = action.reply?.email?.campaign?.autonomous ?? false
+      if (action.type === "SEND_REPLY" && action.riskLevel === "HIGH" && !isAutonomous) {
         skipped++
         continue
       }

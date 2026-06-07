@@ -11,13 +11,7 @@ const EMPTY_AUDIT = {
   hasStructuredData: false, title: "",
 }
 
-export async function POST(req: NextRequest) {
-  const session = await auth()
-  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
-  const { url } = await req.json()
-  if (!url) return NextResponse.json({ error: "URL is required" }, { status: 400 })
-
+export async function performAudit(url: string) {
   const targetUrl = url.startsWith("http") ? url : `https://${url}`
 
   try {
@@ -51,7 +45,7 @@ export async function POST(req: NextRequest) {
     const noMetaDesc = !metaDesc.trim()
     const hasStructuredData = html.includes('"@context"') && html.includes('"@type"')
 
-    return NextResponse.json({
+    return {
       ssl:              res.url.startsWith("https"),
       speed,
       pixel,
@@ -66,14 +60,30 @@ export async function POST(req: NextRequest) {
       noMetaDesc,
       hasStructuredData,
       title:            $("title").text().trim(),
-    })
+    }
   } catch {
     // If https fails, try http (confirms no SSL redirect)
     try {
       const httpUrl = targetUrl.replace(/^https:\/\//, "http://")
       const r = await fetch(httpUrl, { method: "HEAD", signal: AbortSignal.timeout(5000) })
-      if (r.ok) return NextResponse.json({ ...EMPTY_AUDIT })
+      if (r.ok) return { ...EMPTY_AUDIT }
     } catch {}
-    return NextResponse.json({ error: "Could not reach website" }, { status: 500 })
+    throw new Error("Could not reach website")
+  }
+}
+
+export async function POST(req: NextRequest) {
+  const session = await auth()
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const { url } = await req.json()
+  if (!url) return NextResponse.json({ error: "URL is required" }, { status: 400 })
+
+  try {
+    const data = await performAudit(url)
+    return NextResponse.json(data)
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

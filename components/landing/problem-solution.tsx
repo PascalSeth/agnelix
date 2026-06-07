@@ -6,7 +6,7 @@ export function ProblemSolution() {
       id: "prospecting",
       image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=800&auto=format&fit=crop",
       uiOverlay: (
-        <div className="absolute inset-0 flex items-center justify-center p-6">
+        <div className="absolute inset-0 flex items-center justifyng-center p-6">
           <div className="w-full max-w-[200px] rounded-xl border border-white/60 bg-white/75 backdrop-blur-md p-3 shadow-lg">
             <div className="flex items-center gap-2 border-b border-black/5 pb-2 mb-2">
               <Search className="h-3 w-3 text-slate-400" />

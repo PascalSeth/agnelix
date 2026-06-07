@@ -23,6 +23,7 @@ export type Approach =
   | "industry"
   | "question"
   | "social-proof"
+  | "local-neighbor"
 
 interface AuditData {
   ssl: boolean; speed: number; pixel: boolean; mobile: boolean
@@ -253,6 +254,23 @@ Strong examples of the QUALITY and TONE you're aiming for (don't copy these — 
 Write the opening now:`
   }
 
+  // ── Local Neighbor ───────────────────────────────────────────────────────────
+  if (approach === "local-neighbor") {
+    return `${persona}
+
+${ctx}${prof}${senderLine}
+
+Local Neighbor/Proximity context: The sender is a neighboring business (e.g., restaurant, cafe, bar, or salon) located near the recipient's office at ${businessName}.
+
+Write the opening of a cold email. Reference the physical proximity (e.g., "we're just down the road" or "a couple of blocks away from your office"). Frame it as a warm, neighborly welcome and invite their team to visit or order (e.g., for a lunch discount, team happy hour, or corporate catering trial). Keep the tone extremely warm, friendly, and community-focused.
+
+Strong examples of the QUALITY and TONE you're aiming for (don't copy these — write something original):
+- "I had a look at where you're located — we're actually just down the street from the ${businessName} office here in ${city}. Since we're neighbors, I wanted to invite your team over for a coffee or lunch on us this week."
+- "Looking at the map, your team at ${businessName} is just a short walk from our front door on High Street. We're launching a local office lunch special this month and wanted to welcome you guys over."
+
+Write the opening now:`
+  }
+
   return null
 }
 
@@ -296,6 +314,7 @@ export async function POST(req: NextRequest) {
       "industry":     "Generation failed.",
       "question":     "Generation failed.",
       "social-proof": "Generation failed.",
+      "local-neighbor": "Generation failed.",
     }
     return NextResponse.json({ error: hints[approach] }, { status: 422 })
   }

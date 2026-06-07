@@ -31,9 +31,9 @@ ${params.replyBody.slice(0, 800)}
 Classify the reply into exactly one of these intents:
 - INTERESTED: Positive, wants to learn more, asking about pricing/next steps, open to a call
 - QUESTION: Has a specific question about the service, not clearly positive or negative yet
-- OBJECTION: Has a clear objection (price, timing, current vendor, not relevant)
-- NOT_NOW: Interested but not right now (mentions future quarter, busy period, etc.)
-- UNSUBSCRIBE: Wants to be removed, stop emailing, not interested at all
+- OBJECTION: Has a clear objection, soft refusal, or general resistance (e.g. "not interested", "we do this in-house", "we already have a vendor", "too expensive", "no budget"). These are standard sales hurdles that a skilled salesperson can negotiate or handle.
+- NOT_NOW: Timing objection or request to delay (e.g. "not interested at this time", "busy right now", "try me next quarter", "contact me in 3 months").
+- UNSUBSCRIBE: Explicit request to stop contacting, opt-out requests (e.g. "unsubscribe", "remove me", "do not email me again", "stop", "take me off your list"). Do NOT classify general objections or timing requests here unless they specifically request removal.
 - OOO: Out of office auto-reply
 
 Return JSON only:
@@ -191,10 +191,13 @@ export async function generateReplyDraft(params: {
   replyBody: string
   originalEmailBody: string
   senderName: string
+  senderTitle?: string | null
   senderCompany: string
   senderService: string
   tone: string
   responseStyle?: string
+  conversationHistory?: string
+  calendarLink?: string | null
 }): Promise<ReplyDraft> {
   const stylePrompt = params.responseStyle === "SOFT" 
     ? "Be conversational, warm, and low-pressure. Answer their questions but don't push hard for a meeting immediately."
@@ -204,21 +207,45 @@ export async function generateReplyDraft(params: {
     ? "Lead with immense value. Offer to send a free resource, audit, or case study before asking for a meeting or discussing pricing."
     : `TONE: ${params.tone}`;
 
-  const prompt = `You are a senior sales rep writing a reply to a prospect who responded to a cold email.
+  const historySection = params.conversationHistory
+    ? `\nCONVERSATION TRANSCRIPT (CHRONOLOGICAL):\n${params.conversationHistory}\n`
+    : `\nORIGINAL EMAIL YOU SENT:\n${params.originalEmailBody}\n\nTHEIR REPLY:\n${params.replyBody}\n`;
 
-YOUR DETAILS: ${params.senderName} from ${params.senderCompany}, offering ${params.senderService}
-PROSPECT: ${params.leadName} at ${params.company}
+  const calendarSection = params.calendarLink
+    ? `You can offer your calendar link for booking: ${params.calendarLink}`
+    : `Suggest a 15-minute call and ask which times work.`;
+
+  const titleString = params.senderTitle ? `, ${params.senderTitle}` : "";
+
+  const prompt = `You are a senior sales representative writing a reply to a prospect who responded to a cold email.
+
+YOUR PROFILE:
+- Name: ${params.senderName}${titleString}
+- Company: ${params.senderCompany}
+- Business Bio / Description of Services: ${params.senderService}
+- Preferred Tone: ${params.tone}
+
+PROSPECT DETAILS:
+- Name: ${params.leadName}
+- Company: ${params.company}
+
 STYLE INSTRUCTION: ${stylePrompt}
+${calendarSection}
 
-ORIGINAL EMAIL YOU SENT:
-${params.originalEmailBody}
+${historySection}
+Write a concise, highly natural follow-up response. Keep it under 120 words.
+Be human, authentic, and empathetic. Do NOT sound like an AI, do NOT use boilerplate sales jargon, and do NOT use opening cliches like "Hope you're having a good week" or "I wanted to follow up". Start directly.
 
-THEIR REPLY:
-${params.replyBody}
+Directly address the prospect's latest message, concerns, objections, or questions based on the full conversation history.
 
-Write a concise, natural follow-up reply. Keep it under 120 words. Be human, not salesy.
-Do not use phrases like "I hope this finds you well" or "I wanted to reach out".
-End with a single clear call-to-action (e.g. propose a 15-min call with 2 specific time options).
+GUIDELINES FOR COMMON SCENARIOS:
+1. REFERRALS / DEPARTMENT FORWARDING: If the prospect refers you to someone else (e.g., "talk to X at x@email.com"), thank them politely, state you will reach out to X and mention their introduction, and ask if they would mind CC'ing/introducing you to make it a warm transition.
+2. PRICING / BUDGET INQUIRIES: If they ask for pricing, do NOT invent arbitrary details. Reference general rates or pricing ranges from your Bio/Description if any are provided. Otherwise, explain that pricing depends on their specific needs and offer a quick 5-minute call or a custom proposal to give them an accurate quote.
+3. OBJECTIONS / NOT RIGHT NOW (Sales Negotiation & Re-engagement): Do not just roll over or say goodbye. Acknowledge and validate their current situation (e.g., "Totally understand—most people we reach out to say they aren't interested initially, or already have an agency/in-house team handling this."). Pivot to a low-friction value hook: offer to send a quick, free resource (e.g., a 2-page checklist, a case study relevant to their space, or a quick video audit of their site) to demonstrate expertise without asking for a meeting yet. End with a light, non-pushy question to probe further (e.g., "Would you be open to seeing a quick 3-line case study of how we did this for another local agency, or is the timing just completely off right now?").
+   - ALIGNMENT: When offering a case study or resource, always align it with your business description/services (e.g., if you help marketing agencies, offer a case study of helping a marketing agency, not a software firm). Do not invent credentials or case studies that do not match your service profile.
+4. SERVICE / TECHNICAL QUESTIONS: Answer their questions accurately using details from your Bio/Description. If the answer is not in the Bio, state that you can verify this on a brief call or offer to find out and get back to them.
+5. POSITIVE INTEREST: Propose next steps immediately (offer calendar link or check their availability for a call).
+6. UNSUBSCRIBES / OPT-OUTS (Strict Opt-Outs): ONLY use this if they explicitly say "remove me", "unsubscribe", "stop", "don't email", "spam", etc. Write a very brief, polite opt-out confirmation confirming you have updated your list to ensure they won't receive future emails, and thank them (e.g., "Understood. I've updated our list so we won't email you again. Thanks for letting me know."). Do NOT use this for standard objections like "not interested" or "not interested at this time" — handle those as objections/timing hurdles instead.
 
 Format:
 Subject: Re: [subject]

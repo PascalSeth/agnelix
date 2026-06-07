@@ -75,12 +75,18 @@ async function scrapeSiteContent(url: string): Promise<string> {
 
 // ── Route handler ─────────────────────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  const session = await auth()
-  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
-  const { websiteUrl, businessName, industry, address, reviews } = await req.json()
-  if (!businessName) return NextResponse.json({ error: "businessName required" }, { status: 400 })
+export async function performAiResearch(params: {
+  websiteUrl?: string
+  businessName: string
+  industry?: string
+  address?: string
+  reviews?: Array<{
+    text?: { text?: string }
+    rating?: number
+    authorAttribution?: { displayName?: string }
+  }>
+}): Promise<BusinessProfile> {
+  const { websiteUrl, businessName, industry, address, reviews } = params
 
   // 1. Scrape site in parallel with building review text
   const [siteContent] = await Promise.all([
@@ -88,11 +94,7 @@ export async function POST(req: NextRequest) {
   ])
 
   // 2. Format reviews
-  const reviewLines = ((reviews ?? []) as Array<{
-    text?: { text?: string }
-    rating?: number
-    authorAttribution?: { displayName?: string }
-  }>)
+  const reviewLines = (reviews ?? [])
     .slice(0, 5)
     .map(r => `${r.rating ?? "?"}★ — "${(r.text?.text ?? "").slice(0, 220)}"`)
     .join("\n")
@@ -144,21 +146,32 @@ Rules:
 - If a field has no data use null or []
 - JSON only`
 
+  const aiRes = await openai.chat.completions.create({
+    model: "deepseek-v4-flash",
+    messages: [{ role: "user", content: hasContent ? prompt : `${prompt}\n\nNote: Very limited data available — generate reasonable inferences based on industry and location only.` }],
+    temperature: 0.3,
+    max_tokens: 700,
+    // @ts-expect-error — disable DeepSeek thinking for fast tasks
+    thinking: { type: "disabled" },
+  })
+
+  const raw = aiRes.choices[0]?.message?.content ?? "{}"
+  const profile: BusinessProfile = JSON.parse(
+    raw.replace(/```(?:json)?\n?/g, "").replace(/```\n?/g, "").trim()
+  )
+
+  return profile
+}
+
+export async function POST(req: NextRequest) {
+  const session = await auth()
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
   try {
-    const aiRes = await openai.chat.completions.create({
-      model: "deepseek-v4-flash",
-      messages: [{ role: "user", content: hasContent ? prompt : `${prompt}\n\nNote: Very limited data available — generate reasonable inferences based on industry and location only.` }],
-      temperature: 0.3,
-      max_tokens: 700,
-      // @ts-expect-error — disable DeepSeek thinking for fast tasks
-      thinking: { type: "disabled" },
-    })
+    const params = await req.json()
+    if (!params.businessName) return NextResponse.json({ error: "businessName required" }, { status: 400 })
 
-    const raw = aiRes.choices[0]?.message?.content ?? "{}"
-    const profile: BusinessProfile = JSON.parse(
-      raw.replace(/```(?:json)?\n?/g, "").replace(/```\n?/g, "").trim()
-    )
-
+    const profile = await performAiResearch(params)
     return NextResponse.json({ profile })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Unknown"

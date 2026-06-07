@@ -66,6 +66,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ rep
       },
     })
 
+    const { rescheduleNextCampaignStep } = await import("@/lib/scheduler")
+    await rescheduleNextCampaignStep(lead.id)
+
     return NextResponse.json({ ok: true })
   } catch (err) {
     await prisma.email.update({ where: { id: emailRecord.id }, data: { status: "FAILED" } })

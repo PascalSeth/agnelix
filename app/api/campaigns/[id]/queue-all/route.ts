@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
+import { after } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
+import { drainDueQueue } from "@/lib/scheduler"
 
 export async function POST(
   req: NextRequest,
@@ -15,19 +17,22 @@ export async function POST(
   const campaign = await prisma.campaign.findFirst({
     where: { id: campaignId, userId: session.user.id },
     include: {
-      sequence: { include: { steps: { orderBy: { stepNumber: "asc" } } } }
-    }
+      sequence: { include: { steps: { orderBy: { stepNumber: "asc" } } } },
+    },
   })
   if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 })
 
-  // 2. Find all DRAFT emails in this campaign
+  // 2. Find all DRAFT and FAILED emails in this campaign
   const drafts = await prisma.email.findMany({
-    where: { campaignId, status: "DRAFT" },
-    orderBy: { stepNumber: "asc" }
+    where: {
+      campaignId,
+      status: { in: ["DRAFT", "FAILED"] },
+    },
+    orderBy: { stepNumber: "asc" },
   })
 
   if (drafts.length === 0) {
-    return NextResponse.json({ error: "No drafts found to queue" }, { status: 400 })
+    return NextResponse.json({ error: "No drafts or failed emails found to queue" }, { status: 400 })
   }
 
   const now = new Date()
@@ -40,22 +45,32 @@ export async function POST(
     }
   }
 
+  // 4. Promote active drafts to QUEUED and schedule for now
   const updatedEmails = []
   for (const email of activeDraftsByLead.values()) {
     const updated = await prisma.email.update({
       where: { id: email.id },
-      data: { status: "QUEUED", scheduledAt: now }
+      data: { status: "QUEUED", scheduledAt: now },
     })
     updatedEmails.push(updated)
   }
 
-  // 4. Ensure campaign is set to ACTIVE status if it wasn't already
+  // 5. Ensure campaign is ACTIVE
   if (campaign.status !== "ACTIVE") {
     await prisma.campaign.update({
       where: { id: campaignId },
-      data: { status: "ACTIVE", launchedAt: campaign.launchedAt ?? now }
+      data: { status: "ACTIVE", launchedAt: campaign.launchedAt ?? now },
     })
   }
+
+  // 6. Trigger SMTP sends in the background immediately — no cron needed
+  after(async () => {
+    try {
+      await drainDueQueue()
+    } catch (err) {
+      console.error("[Queue All] Background send error:", err)
+    }
+  })
 
   return NextResponse.json({ success: true, count: updatedEmails.length, emails: updatedEmails })
 }

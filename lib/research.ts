@@ -78,7 +78,7 @@ TEXT CONTENT: ${paras.slice(0, 5).join("\n")}
       if (searchRes.ok) {
         const data = await searchRes.json()
         const items = data.items || []
-        const snippets = items.slice(0, 4).map((item: any) => `- ${item.title}: ${item.snippet}`).join("\n")
+        const snippets = items.slice(0, 4).map((item: { title: string; snippet: string }) => `- ${item.title}: ${item.snippet}`).join("\n")
         searchSnippets = `GOOGLE SEARCH RESULTS:\n${snippets}`
       }
     } catch (err) {

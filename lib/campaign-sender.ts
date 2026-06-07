@@ -13,7 +13,7 @@ export async function generateAndQueueEmails(
   userId: string,
   leadIds?: string[],
   customEmails?: { leadId: string; stepNumber: number; subject: string; body: string }[]
-): Promise<{ queued: number }> {
+): Promise<{ queued: number; error?: string }> {
   const campaign = await prisma.campaign.findFirst({
     where: { id: campaignId, userId },
     include: {
@@ -26,10 +26,12 @@ export async function generateAndQueueEmails(
     },
   })
 
-  if (!campaign || campaign.campaignLeads.length === 0) return { queued: 0 }
+  if (!campaign || campaign.campaignLeads.length === 0) {
+    return { queued: 0, error: "No leads in campaign" }
+  }
 
   const canSend = await checkEmailQuota(userId)
-  if (!canSend) return { queued: 0 }
+  if (!canSend) return { queued: 0, error: "Daily email quota reached" }
 
   const user = campaign.user
   const steps = campaign.sequence.steps
@@ -50,6 +52,7 @@ export async function generateAndQueueEmails(
 
     if (drafts.length > 0) {
       if (campaign.autonomous) {
+        // Promote all drafts to QUEUED with proper step delays
         for (const email of drafts) {
           const scheduledAt = new Date(now)
           if (email.stepNumber > 1) {
@@ -62,7 +65,8 @@ export async function generateAndQueueEmails(
             data: { status: "QUEUED", scheduledAt },
           })
         }
-        queued += drafts.length
+        // Count only step-1 emails as immediately due
+        queued += drafts.filter(d => d.stepNumber === 1).length
       }
       continue
     }
@@ -157,7 +161,7 @@ export async function generateAndQueueEmails(
       })
 
       if (campaign.autonomous) {
-        queued++
+        if (step.stepNumber === 1) queued++
       }
     }
   }

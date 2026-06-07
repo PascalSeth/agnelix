@@ -21,7 +21,7 @@ export default function NewCampaignPage() {
 
   const [name, setName]             = useState("")
   const [sequenceId, setSequenceId] = useState("")
-  const [autonomous, setAutonomous] = useState(false)
+  const [autonomous, setAutonomous] = useState(true)
   const [sequences, setSequences]   = useState<Sequence[]>([])
   const [loading, setLoading]       = useState(false)
   const [fetching, setFetching]     = useState(true)

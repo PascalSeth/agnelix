@@ -10,6 +10,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { formatDate } from "@/lib/utils"
+import type { LinkedInDecisionMaker } from "@/app/api/leads/linkedin-search/route"
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -290,12 +291,16 @@ interface ContactTabProps {
   website: string | null | undefined
   onRefreshContacts: () => void
   onLoadSocials: () => void
+  linkedinProfiles: LinkedInDecisionMaker[]
+  linkedinLoading: boolean
+  onRefreshLinkedIn: () => void
 }
 
 function ContactTab({
   leadEmail, place, contacts, contactsLoading, contactsDone,
   socials, socialsLoading, socialsDone, website,
-  onRefreshContacts, onLoadSocials,
+  onRefreshContacts, onLoadSocials, linkedinProfiles,
+  linkedinLoading, onRefreshLinkedIn,
 }: ContactTabProps) {
   return (
     <div className="space-y-5">
@@ -324,22 +329,25 @@ function ContactTab({
       {/* Contacts from website */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-[10px] font-black text-white/30 uppercase tracking-widest flex items-center gap-1.5">
+          <p className="text-[10px] font-black text-white/30 uppercase tracking-widest flex items-center gap-1.5 flex-wrap">
             <Users className="size-3" /> Website Contacts
+            {contactsDone && !contactsLoading && contacts.length > 0 && (
+              <span className="text-[8px] font-bold text-emerald-400 bg-emerald-400/5 border border-emerald-400/10 px-1.5 py-0.25 rounded lowercase">saved in db</span>
+            )}
           </p>
-          {contactsDone && (
-            <button
-              onClick={onRefreshContacts}
-              className="flex items-center gap-1 text-[10px] font-bold text-sky-400/60 hover:text-sky-400 transition-colors"
-            >
-              <RefreshCw className="size-3" /> Refresh
-            </button>
-          )}
+          <button
+            onClick={onRefreshContacts}
+            disabled={contactsLoading}
+            className="flex items-center gap-1 text-[10px] font-bold text-sky-400/60 hover:text-sky-400 transition-colors"
+          >
+            {contactsLoading ? <Loader2 className="size-3 animate-spin" /> : <RefreshCw className="size-3" />}
+            {contactsLoading ? "Scanning…" : contactsDone ? "Refresh" : "Scan"}
+          </button>
         </div>
 
         {!website ? (
           <div className="rounded-xl p-5 text-center" style={{ background: "rgba(255,255,255,.02)", border: "1px solid rgba(255,255,255,.05)" }}>
-            <p className="text-[11px] text-white/25">No website — can't scan for contacts</p>
+            <p className="text-[11px] text-white/25">No website — can&apos;t scan for contacts</p>
           </div>
         ) : contactsLoading ? (
           <div className="space-y-2.5">
@@ -356,11 +364,13 @@ function ContactTab({
               Scanning domain footprints…
             </p>
           </div>
-        ) : contactsDone && contacts.length === 0 ? (
+        ) : contacts.length === 0 ? (
           <div className="rounded-xl p-5 text-center" style={{ background: "rgba(255,255,255,.02)", border: "1px solid rgba(255,255,255,.05)" }}>
-            <p className="text-[11px] text-white/25">No contacts found on website</p>
+            <p className="text-[11px] text-white/25">
+              {contactsDone ? "No contacts found on website" : "No contacts in database"}
+            </p>
           </div>
-        ) : contacts.length > 0 ? (
+        ) : (
           <div className="space-y-2">
             {contacts.map((c, i) => (
               <div
@@ -397,7 +407,102 @@ function ContactTab({
               </div>
             ))}
           </div>
-        ) : null}
+        )}
+      </div>
+
+      {/* LinkedIn Decision Makers */}
+      <div className="space-y-3 pt-4 border-t" style={{ borderColor: "rgba(255,255,255,.05)" }}>
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-black text-white/30 uppercase tracking-widest flex items-center gap-1.5 flex-wrap">
+            <svg className="size-3 text-sky-400 fill-current" viewBox="0 0 24 24">
+              <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+            </svg>
+            LinkedIn Decision Makers
+            {!linkedinLoading && linkedinProfiles.length > 0 && (
+              <span className="text-[8px] font-bold text-emerald-400 bg-emerald-400/5 border border-emerald-400/10 px-1.5 py-0.25 rounded lowercase">saved in db</span>
+            )}
+          </p>
+          <button
+            onClick={onRefreshLinkedIn}
+            disabled={linkedinLoading}
+            className="flex items-center gap-1 text-[10px] font-bold text-sky-400/60 hover:text-sky-400 transition-colors"
+          >
+            {linkedinLoading ? <Loader2 className="size-3 animate-spin" /> : <RefreshCw className="size-3" />}
+            {linkedinLoading ? "Searching…" : linkedinProfiles.length > 0 ? "Refresh" : "Search"}
+          </button>
+        </div>
+
+        {linkedinLoading ? (
+          <div className="space-y-2.5">
+            {[1, 2].map(i => (
+              <div key={i} className="flex items-center gap-3 rounded-xl p-3 animate-pulse" style={{ background: "rgba(255,255,255,.03)" }}>
+                <div className="size-8 rounded-full bg-white/5 shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-2.5 w-28 bg-white/5 rounded" />
+                  <div className="h-2 w-44 bg-white/5 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : linkedinProfiles.length === 0 ? (
+          <div className="rounded-xl p-5 text-center" style={{ background: "rgba(255,255,255,.02)", border: "1px solid rgba(255,255,255,.05)" }}>
+            <p className="text-[11px] text-white/25">No LinkedIn profiles found in database</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {linkedinProfiles.map((p, i) => {
+              const sourceLabel = p.source === "profile-page" ? "LinkedIn" : p.source === "ai-knowledge" ? "AI" : "Inferred"
+              return (
+                <div
+                  key={i}
+                  className="flex items-center justify-between rounded-xl p-3"
+                  style={{
+                    background: p.isDecisionMaker ? "rgba(52,211,153,.04)" : "rgba(255,255,255,.02)",
+                    border: p.isDecisionMaker ? "1px solid rgba(52,211,153,.12)" : "1px solid rgba(255,255,255,.05)",
+                  }}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="flex size-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white/50"
+                      style={{ background: "rgba(255,255,255,.06)" }}
+                    >
+                      {(p.name?.[0] ?? "L").toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="text-[12px] font-semibold text-white/75 truncate">{p.name || "LinkedIn Member"}</p>
+                        <span className="text-[8px] px-1 py-0.25 rounded bg-white/5 text-white/40 border border-white/10 uppercase tracking-wider">{sourceLabel}</span>
+                      </div>
+                      <p className="text-[10px] text-white/25 truncate">{p.title || "No title available"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {p.isDecisionMaker && (
+                      <span
+                        className="text-[8px] font-black uppercase tracking-wide text-emerald-400 px-1.5 py-0.5 rounded"
+                        style={{ background: "rgba(52,211,153,.1)" }}
+                      >
+                        DM
+                      </span>
+                    )}
+                    <span className="text-[9px] font-bold text-white/20">{p.confidence}%</span>
+                    {p.linkedinUrl && (
+                      <a
+                        href={p.linkedinUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex size-7 items-center justify-center rounded-lg text-white/30 hover:text-white/60 transition-colors"
+                        style={{ background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.07)" }}
+                      >
+                        <ExternalLink className="size-3" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Socials */}
@@ -457,9 +562,10 @@ interface AuditTabProps {
   auditDone: boolean
   website: string | null | undefined
   onRunAudit: () => void
+  fromDb?: boolean
 }
 
-function AuditTab({ audit, auditLoading, auditDone, website, onRunAudit }: AuditTabProps) {
+function AuditTab({ audit, auditLoading, auditDone, website, onRunAudit, fromDb }: AuditTabProps) {
   if (!website) return (
     <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
       <Globe className="size-8 text-white/10" />
@@ -485,7 +591,12 @@ function AuditTab({ audit, auditLoading, auditDone, website, onRunAudit }: Audit
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <p className="text-[11px] text-white/35 font-mono truncate">{hostname}</p>
+        <div className="flex items-center gap-2 min-w-0">
+          <p className="text-[11px] text-white/35 font-mono truncate">{hostname}</p>
+          {fromDb && auditDone && !auditLoading && audit && (
+            <span className="text-[8px] font-bold text-emerald-400 bg-emerald-400/5 border border-emerald-400/10 px-1.5 py-0.25 rounded lowercase shrink-0">saved in db</span>
+          )}
+        </div>
         <button
           onClick={onRunAudit}
           disabled={auditLoading}
@@ -510,14 +621,14 @@ function AuditTab({ audit, auditLoading, auditDone, website, onRunAudit }: Audit
       ) : audit ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {CHECKS.map((item) => {
-            const itemAny = item as any
-            const speedGood = itemAny.speed
+            const itemTyped = item as { speed?: boolean; neutral?: boolean; good?: boolean; label: string; val: string; icon: React.ElementType }
+            const speedGood = itemTyped.speed
               ? audit.speed < 2000 ? true : audit.speed < 4000 ? null : false
               : null
-            const isGood = itemAny.speed ? speedGood
-              : itemAny.neutral ? null
-              : itemAny.good === true ? true
-              : itemAny.good === false ? false
+            const isGood = itemTyped.speed ? speedGood
+              : itemTyped.neutral ? null
+              : itemTyped.good === true ? true
+              : itemTyped.good === false ? false
               : null
 
             return (
@@ -541,7 +652,7 @@ function AuditTab({ audit, auditLoading, auditDone, website, onRunAudit }: Audit
       ) : (
         <div className="flex flex-col items-center justify-center py-14 text-center gap-3">
           <Zap className="size-8 text-white/10" />
-          <p className="text-[12px] text-white/30">Run the audit to check this website's health</p>
+          <p className="text-[12px] text-white/30">Run the audit to check this website&apos;s health</p>
           <p className="text-[11px] text-white/15">Checks SSL, speed, mobile, pixels, analytics and more</p>
         </div>
       )}
@@ -647,25 +758,48 @@ interface Props {
   leadCompany: string | null
   emails: EmailRecord[]
   replies: ReplyRecord[]
+  leadIndustry?: string | null
+  auditJson?: string | null
+  contactsJson?: string | null
+  linkedinProfilesJson?: string | null
+  recommendedApproach?: string | null
 }
 
-export function LeadTabsPanel({ leadId, leadEmail, leadWebsite, leadCompany, emails, replies }: Props) {
+export function LeadTabsPanel({
+  leadId, leadEmail, leadWebsite, leadCompany, emails, replies, leadIndustry,
+  auditJson, contactsJson, linkedinProfilesJson, recommendedApproach
+}: Props) {
   const [tab, setTab] = useState<Tab>("overview")
 
   const [place, setPlace]             = useState<PlaceData | null>(null)
   const [placeLoading, setPlaceLoading] = useState(true)
 
-  const [contacts, setContacts]             = useState<Contact[]>([])
+  const [contacts, setContacts]             = useState<Contact[]>(() => {
+    try {
+      return contactsJson ? JSON.parse(contactsJson) : []
+    } catch { return [] }
+  })
   const [contactsLoading, setContactsLoading] = useState(false)
-  const [contactsDone, setContactsDone]       = useState(false)
+  const [contactsDone, setContactsDone]       = useState(() => !!contactsJson)
 
   const [socials, setSocials]               = useState<string[]>([])
   const [socialsLoading, setSocialsLoading] = useState(false)
   const [socialsDone, setSocialsDone]       = useState(false)
 
-  const [audit, setAudit]               = useState<AuditResult | null>(null)
+  const [audit, setAudit]               = useState<AuditResult | null>(() => {
+    try {
+      return auditJson ? JSON.parse(auditJson) : null
+    } catch { return null }
+  })
   const [auditLoading, setAuditLoading] = useState(false)
-  const [auditDone, setAuditDone]       = useState(false)
+  const [auditDone, setAuditDone]       = useState(() => !!auditJson)
+
+  const [linkedinProfiles, setLinkedinProfiles] = useState<LinkedInDecisionMaker[]>(() => {
+    try {
+      return linkedinProfilesJson ? JSON.parse(linkedinProfilesJson) : []
+    } catch { return [] }
+  })
+  const [linkedinLoading, setLinkedinLoading] = useState(false)
 
   useEffect(() => {
     fetch(`/api/leads/${leadId}/place`)
@@ -677,27 +811,82 @@ export function LeadTabsPanel({ leadId, leadEmail, leadWebsite, leadCompany, ema
 
   const website = place?.websiteUri || leadWebsite
 
-  useEffect(() => {
-    if (tab !== "contact" || contactsDone || contactsLoading || !website) return
-    doContactSearch()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, website])
+  // Auto-scans on tab hover/select are disabled to load database values directly.
+  // The user can manually scan or refresh the data using the action buttons.
 
-  useEffect(() => {
-    if (tab !== "audit" || auditDone || auditLoading || !website) return
-    doAudit()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, website])
+  async function doLinkedInSearch() {
+    setLinkedinLoading(true)
+    const isLocalOffice = !!(
+      leadIndustry?.toLowerCase().includes("office") ||
+      leadIndustry?.toLowerCase().includes("establishment") ||
+      leadCompany?.toLowerCase().includes("office") ||
+      leadCompany?.toLowerCase().includes("coworking")
+    )
+    try {
+      const res = await fetch("/api/leads/linkedin-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyName: leadCompany || place?.displayName?.text || "",
+          city: place?.formattedAddress || "",
+          industry: leadIndustry || place?.primaryType || "",
+          websiteUrl: website || "",
+          localNeighbors: isLocalOffice,
+        }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        const profiles = data.profiles ?? []
+        setLinkedinProfiles(profiles)
+        
+        // Save to individual lead DB record
+        await fetch(`/api/leads/${leadId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ linkedinProfilesJson: JSON.stringify(profiles) }),
+        })
+        toast.success("LinkedIn decision makers updated")
+      } else {
+        toast.error("LinkedIn search failed")
+      }
+    } catch {
+      toast.error("LinkedIn search failed")
+    } finally {
+      setLinkedinLoading(false)
+    }
+  }
 
-  async function doContactSearch() {
+  async function doContactSearch(bypassCache = false) {
     if (!website) return
     setContactsLoading(true)
+    const isLocalOffice = !!(
+      leadIndustry?.toLowerCase().includes("office") ||
+      leadIndustry?.toLowerCase().includes("establishment") ||
+      leadCompany?.toLowerCase().includes("office") ||
+      leadCompany?.toLowerCase().includes("coworking")
+    )
     try {
       const res = await fetch("/api/leads/contact-search", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ websiteUrl: website, companyName: leadCompany ?? "" }),
+        body: JSON.stringify({
+          websiteUrl: website,
+          companyName: leadCompany ?? "",
+          localNeighbors: isLocalOffice,
+          bypassCache,
+        }),
       })
-      if (res.ok) setContacts((await res.json()).contacts ?? [])
+      if (res.ok) {
+        const data = await res.json()
+        const foundContacts = data.contacts ?? []
+        setContacts(foundContacts)
+
+        // Save to individual lead DB record
+        await fetch(`/api/leads/${leadId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contactsJson: JSON.stringify(foundContacts) }),
+        })
+      }
     } catch { /* silent */ }
     finally { setContactsLoading(false); setContactsDone(true) }
   }
@@ -724,7 +913,17 @@ export function LeadTabsPanel({ leadId, leadEmail, leadWebsite, leadCompany, ema
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: website }),
       })
-      if (res.ok) setAudit(await res.json())
+      if (res.ok) {
+        const auditData = await res.json()
+        setAudit(auditData)
+
+        // Save to individual lead DB record
+        await fetch(`/api/leads/${leadId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ auditJson: JSON.stringify(auditData) }),
+        })
+      }
       else toast.error("Audit failed")
     } catch { toast.error("Could not reach website") }
     finally { setAuditLoading(false); setAuditDone(true) }
@@ -785,8 +984,11 @@ export function LeadTabsPanel({ leadId, leadEmail, leadWebsite, leadCompany, ema
             socialsLoading={socialsLoading}
             socialsDone={socialsDone}
             website={website}
-            onRefreshContacts={() => { setContactsDone(false); doContactSearch() }}
+            onRefreshContacts={() => { setContactsDone(false); doContactSearch(true) }}
             onLoadSocials={doEnrich}
+            linkedinProfiles={linkedinProfiles}
+            linkedinLoading={linkedinLoading}
+            onRefreshLinkedIn={doLinkedInSearch}
           />
         )}
         {tab === "audit" && (
@@ -796,6 +998,7 @@ export function LeadTabsPanel({ leadId, leadEmail, leadWebsite, leadCompany, ema
             auditDone={auditDone}
             website={website}
             onRunAudit={doAudit}
+            fromDb={!!auditJson}
           />
         )}
         {tab === "emails"  && <EmailsTab emails={emails} />}
