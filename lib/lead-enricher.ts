@@ -96,7 +96,7 @@ async function autoDraftForLead(leadId: string) {
             painPoint:           lead.painPoint || "",
             tone:                user.tone || "Professional",
             approach,
-            auditData,
+            auditData:           auditData as any,
             companyResearch,
             subjectTemplate:     step.subjectTemplate,
             bodyTemplate:        step.bodyTemplate,

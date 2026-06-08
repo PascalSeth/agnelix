@@ -177,7 +177,7 @@ export async function POST(
         approach:          finalApproach,
         rating,
         reviewCount,
-        auditData,
+        auditData:         auditData as any,
         companyResearch,
         subjectTemplate:   step.subjectTemplate,
         bodyTemplate:      step.bodyTemplate,

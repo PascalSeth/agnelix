@@ -13,6 +13,8 @@ import { toast } from "sonner"
 import { CustomSelect } from "@/components/ui/custom-select"
 import { LeadAnalysisPanel, type Place } from "@/components/lead-analysis-panel"
 import { LeadDetailSide, type AuditData, type PlaceEnrichment } from "@/components/lead-detail-side"
+import type { ContactResult } from "@/lib/contact-finder"
+import type { LinkedInDecisionMaker } from "@/app/api/leads/linkedin-search/route"
 import { emailFromPlace } from "@/lib/utils"
 
 type Campaign = { id: string; name: string; status: string }
@@ -359,7 +361,7 @@ export default function FindLeadsPage() {
         toast("No results found — try a different search")
       } else {
         const initialCache: Record<string, PlaceEnrichment> = {}
-        data.forEach((p: { id: string; cachedContacts?: unknown; cachedProfiles?: unknown }) => {
+        data.forEach((p: { id: string; cachedContacts?: ContactResult[]; cachedProfiles?: LinkedInDecisionMaker[] }) => {
           if (p.cachedContacts || p.cachedProfiles) {
             initialCache[p.id] = {
               ...defaultEnrichment(),
@@ -430,7 +432,7 @@ export default function FindLeadsPage() {
       const leads = toImport.map(p => {
         const cached = enrichmentCache[p.id] || {}
         const contacts = cached.contacts || []
-        const bestContact = contacts.find((c: { isDecisionMaker?: boolean; name?: string }) => c.isDecisionMaker) ?? contacts[0]
+        const bestContact = contacts.find(c => c.isDecisionMaker) ?? contacts[0]
         const audit = cached.auditData || null
 
         const painPoints: string[] = []
@@ -442,7 +444,7 @@ export default function FindLeadsPage() {
           if (!audit.googleAnalytics) painPoints.push("No Google Analytics")
         }
 
-        const linkedInUrl = cached.linkedInProfiles?.find((lp: { name?: string; linkedinUrl?: string }) => lp.name?.toLowerCase() === (bestContact as { name?: string } | undefined)?.name?.toLowerCase())?.linkedinUrl
+        const linkedInUrl = cached.linkedInProfiles?.find(lp => lp.name?.toLowerCase() === bestContact?.name?.toLowerCase())?.linkedinUrl
           || cached.linkedInProfiles?.[0]?.linkedinUrl
           || null
 

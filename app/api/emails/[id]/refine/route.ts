@@ -56,8 +56,9 @@ Return a JSON object with exactly this format:
       messages: [{ role: "user", content: prompt }],
       temperature: 0.75,
       max_tokens: 300,
+      // @ts-expect-error — disable DeepSeek thinking for fast tasks
       thinking: { type: "disabled" },
-    } as Parameters<typeof openai.chat.completions.create>[0])
+    })
 
     const content = res.choices[0]?.message?.content ?? "{}"
     const cleanJson = content.replace(/```json|```/g, "").trim()
