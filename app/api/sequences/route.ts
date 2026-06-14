@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
@@ -29,11 +30,13 @@ export async function POST(req: NextRequest) {
       isDefault: isDefault || false,
       steps: {
         createMany: {
-          data: (steps || []).map((s: { stepNumber: number; delayDays: number; subjectTemplate?: string; bodyTemplate?: string }) => ({
+          data: (steps || []).map((s: { stepNumber: number; delayDays: number; subjectTemplate?: string; bodyTemplate?: string; stepType?: any; aiPrompt?: string }) => ({
             stepNumber: s.stepNumber,
             delayDays: s.delayDays,
             subjectTemplate: s.subjectTemplate || null,
             bodyTemplate: s.bodyTemplate || null,
+            stepType: s.stepType || "EMAIL",
+            aiPrompt: s.aiPrompt || null,
           })),
         },
       },

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
@@ -6,9 +7,16 @@ export async function GET() {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const goal =
-    (await prisma.agentGoal.findUnique({ where: { userId: session.user.id } })) ||
-    (await prisma.agentGoal.create({ data: { userId: session.user.id } }))
+  let goal = await prisma.agentGoal.findUnique({
+    where: { userId: session.user.id },
+    include: { user: { select: { agencyName: true, companyDesc: true, title: true, tone: true, name: true, fromEmail: true } } }
+  })
+  if (!goal) {
+    goal = await prisma.agentGoal.create({
+      data: { userId: session.user.id },
+      include: { user: { select: { agencyName: true, companyDesc: true, title: true, tone: true, name: true, fromEmail: true } } }
+    })
+  }
 
   const last30 = new Date()
   last30.setDate(last30.getDate() - 30)
@@ -46,9 +54,13 @@ export async function PATCH(req: NextRequest) {
     replyRateTarget: number
     dailyLeadCap: number
     autoSendEnabled: boolean
+    autoProspectingEnabled: boolean
     reviewWindowMins: number
     maxAutoSendsPerDay: number
     minConfidence: "LOW" | "MEDIUM" | "HIGH"
+    personaConfig: any
+    lowPriorityDelayMins: number
+    highPriorityDelayMins: number
   }>
 
   const data = {
@@ -56,9 +68,13 @@ export async function PATCH(req: NextRequest) {
     ...(typeof body.replyRateTarget === "number" ? { replyRateTarget: Math.max(1, body.replyRateTarget) } : {}),
     ...(typeof body.dailyLeadCap === "number" ? { dailyLeadCap: Math.max(5, body.dailyLeadCap) } : {}),
     ...(typeof body.autoSendEnabled === "boolean" ? { autoSendEnabled: body.autoSendEnabled } : {}),
+    ...(typeof body.autoProspectingEnabled === "boolean" ? { autoProspectingEnabled: body.autoProspectingEnabled } : {}),
     ...(typeof body.reviewWindowMins === "number" ? { reviewWindowMins: Math.max(5, body.reviewWindowMins) } : {}),
     ...(typeof body.maxAutoSendsPerDay === "number" ? { maxAutoSendsPerDay: Math.max(1, body.maxAutoSendsPerDay) } : {}),
     ...(body.minConfidence ? { minConfidence: body.minConfidence } : {}),
+    ...(body.personaConfig !== undefined ? { personaConfig: body.personaConfig } : {}),
+    ...(typeof body.lowPriorityDelayMins === "number" ? { lowPriorityDelayMins: Math.max(0, body.lowPriorityDelayMins) } : {}),
+    ...(typeof body.highPriorityDelayMins === "number" ? { highPriorityDelayMins: Math.max(0, body.highPriorityDelayMins) } : {}),
   }
 
   const updated = await prisma.agentGoal.upsert({

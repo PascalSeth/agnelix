@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element, react/no-unescaped-entities, react-hooks/set-state-in-effect */
 "use client"
 
 import { useState, useEffect } from "react"
@@ -7,10 +8,14 @@ import {
   Loader2, Copy, RefreshCw, ExternalLink, FileText,
   Smartphone, TrendingUp, ShoppingBag, Zap, BarChart3,
   ChevronLeft, ChevronRight, Sparkles, Users, Check,
+  Lightbulb, Target, Swords, NotebookPen, Trash2, Send,
+  Newspaper, Flame, UserPlus, Briefcase, Rocket, Cpu,
 } from "lucide-react"
 import { toast } from "sonner"
 import { formatDate } from "@/lib/utils"
 import type { LinkedInDecisionMaker } from "@/app/api/leads/linkedin-search/route"
+import type { BusinessProfile } from "@/app/api/leads/research/route"
+import type { BuyingSignals } from "@/lib/buying-signals"
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -54,7 +59,7 @@ export type ReplyRecord = {
   body: string; receivedAt: string
 }
 
-type Tab = "overview" | "contact" | "audit" | "emails" | "replies"
+type Tab = "overview" | "contact" | "audit" | "intel" | "emails" | "replies"
 
 // ── Email status map ───────────────────────────────────────────────────────────
 
@@ -749,6 +754,269 @@ function RepliesTab({ replies }: { replies: ReplyRecord[] }) {
   )
 }
 
+// ── Intel tab (research, icebreaker, pain points, competitor, notes) ──────────
+
+type NoteRecord = { id: string; content: string; createdBy: string; createdAt: string }
+
+const SIGNAL_ICONS: Record<string, typeof Newspaper> = {
+  leadership_change: UserPlus,
+  hiring: Briefcase,
+  funding: Rocket,
+  expansion: TrendingUp,
+  tech_change: Cpu,
+  news: Newspaper,
+}
+
+const URGENCY_STYLE: Record<string, { text: string; bg: string; border: string }> = {
+  high:   { text: "text-rose-300",   bg: "rgba(244,63,94,.1)",   border: "rgba(244,63,94,.2)" },
+  medium: { text: "text-amber-300",  bg: "rgba(251,191,36,.1)",  border: "rgba(251,191,36,.2)" },
+  low:    { text: "text-white/30",   bg: "rgba(255,255,255,.04)", border: "rgba(255,255,255,.07)" },
+}
+
+interface IntelTabProps {
+  leadId: string
+  icebreaker: string | null
+  profile: BusinessProfile | null
+  profileLoading: boolean
+  painPoints: string[]
+  competitorAnalysis: string | null
+  buyingSignals: BuyingSignals | null
+  signalsCheckedAt: string | null
+  notes: NoteRecord[]
+  notesLoading: boolean
+  onRunResearch: () => void
+  onGenerateIcebreaker: () => void
+  icebreakerLoading: boolean
+  onAddNote: (content: string) => Promise<void>
+  onDeleteNote: (id: string) => void
+}
+
+function IntelTab({
+  icebreaker, profile, profileLoading, painPoints, competitorAnalysis,
+  buyingSignals, signalsCheckedAt,
+  notes, notesLoading, onRunResearch, onGenerateIcebreaker, icebreakerLoading,
+  onAddNote, onDeleteNote,
+}: IntelTabProps) {
+  const [noteText, setNoteText] = useState("")
+  const [savingNote, setSavingNote] = useState(false)
+
+  async function submitNote() {
+    if (!noteText.trim()) return
+    setSavingNote(true)
+    try {
+      await onAddNote(noteText.trim())
+      setNoteText("")
+    } finally {
+      setSavingNote(false)
+    }
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Buying Signals */}
+      <div className="rounded-xl p-4 space-y-3" style={card}>
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-black text-white/30 uppercase tracking-widest flex items-center gap-1.5">
+            <Flame className="size-3" /> Buying Signals — Why Now
+          </p>
+          {buyingSignals && (
+            <span
+              className={`text-[9px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full ${URGENCY_STYLE[buyingSignals.urgency].text}`}
+              style={{ background: URGENCY_STYLE[buyingSignals.urgency].bg, border: `1px solid ${URGENCY_STYLE[buyingSignals.urgency].border}` }}
+            >
+              {buyingSignals.urgency} urgency
+            </span>
+          )}
+        </div>
+
+        {buyingSignals ? (
+          <div className="space-y-3">
+            <p className="text-[12px] text-white/60 leading-relaxed italic">{buyingSignals.summary}</p>
+
+            {buyingSignals.signals.length > 0 && (
+              <ul className="space-y-2">
+                {buyingSignals.signals.map((s, i) => {
+                  const Icon = SIGNAL_ICONS[s.type] || Newspaper
+                  return (
+                    <li key={i} className="flex items-start gap-2.5 rounded-lg p-2.5" style={{ background: "rgba(255,255,255,.02)", border: "1px solid rgba(255,255,255,.05)" }}>
+                      <Icon className="size-3.5 text-violet-300/70 shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <p className="text-[11.5px] font-bold text-white/70">{s.headline}{s.date ? <span className="text-white/25 font-normal"> · {s.date}</span> : null}</p>
+                        <p className="text-[11px] text-white/40 leading-relaxed mt-0.5">{s.detail}</p>
+                        {s.source && (
+                          <a href={s.source} target="_blank" rel="noopener noreferrer" className="text-[10px] text-sky-400/50 hover:text-sky-400 inline-flex items-center gap-1 mt-1">
+                            <ExternalLink className="size-2.5" /> Source
+                          </a>
+                        )}
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+
+            {signalsCheckedAt && (
+              <p className="text-[9px] text-white/15">Last checked {formatDate(signalsCheckedAt)}</p>
+            )}
+          </div>
+        ) : (
+          <p className="text-[11px] text-white/25">No buying signals checked yet — this is populated automatically when the lead is enriched (recent news, leadership changes, hiring, funding, etc.).</p>
+        )}
+      </div>
+
+      {/* AI Research */}
+      <div className="rounded-xl p-4 space-y-3" style={card}>
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-black text-white/30 uppercase tracking-widest flex items-center gap-1.5">
+            <Sparkles className="size-3" /> AI Research
+          </p>
+          <button
+            onClick={onRunResearch}
+            disabled={profileLoading}
+            className="flex items-center gap-1 text-[10px] font-bold text-sky-400/60 hover:text-sky-400 transition-colors"
+          >
+            {profileLoading ? <Loader2 className="size-3 animate-spin" /> : <RefreshCw className="size-3" />}
+            {profileLoading ? "Researching…" : profile ? "Refresh" : "Run Research"}
+          </button>
+        </div>
+
+        {profile ? (
+          <div className="space-y-3">
+            <p className="text-[12px] text-white/60 leading-relaxed">{profile.whatTheyDo}</p>
+            {profile.specializations?.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {profile.specializations.map((s, i) => (
+                  <span key={i} className="text-[10px] font-bold px-2 py-0.5 rounded text-sky-300 bg-sky-400/5 border border-sky-400/10">{s}</span>
+                ))}
+              </div>
+            )}
+            {profile.positioning && (
+              <p className="text-[11px] text-white/40 italic leading-relaxed">{profile.positioning}</p>
+            )}
+            {profile.outreachAngles?.length > 0 && (
+              <div>
+                <p className="text-[9px] font-black text-white/20 uppercase tracking-wide mb-1.5">Outreach Angles</p>
+                <ul className="space-y-1">
+                  {profile.outreachAngles.map((a, i) => (
+                    <li key={i} className="text-[11px] text-white/45 leading-relaxed flex gap-1.5">
+                      <span className="text-emerald-400/60 shrink-0">→</span> {a}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="text-[11px] text-white/25">Run AI research to generate insights about this business — what they do, positioning, and outreach angles.</p>
+        )}
+      </div>
+
+      {/* Icebreaker */}
+      <div className="rounded-xl p-4 space-y-3" style={card}>
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-black text-white/30 uppercase tracking-widest flex items-center gap-1.5">
+            <Zap className="size-3" /> Icebreaker
+          </p>
+          <button
+            onClick={onGenerateIcebreaker}
+            disabled={icebreakerLoading}
+            className="flex items-center gap-1 text-[10px] font-bold text-sky-400/60 hover:text-sky-400 transition-colors"
+          >
+            {icebreakerLoading ? <Loader2 className="size-3 animate-spin" /> : <RefreshCw className="size-3" />}
+            {icebreakerLoading ? "Generating…" : icebreaker ? "Regenerate" : "Generate"}
+          </button>
+        </div>
+        {icebreaker ? (
+          <div className="flex items-start justify-between gap-3 rounded-lg p-3" style={{ background: "rgba(255,255,255,.02)", border: "1px solid rgba(255,255,255,.05)" }}>
+            <p className="text-[12px] text-white/65 leading-relaxed italic">&ldquo;{icebreaker}&rdquo;</p>
+            <CopyBtn text={icebreaker} />
+          </div>
+        ) : (
+          <p className="text-[11px] text-white/25">Generate a personalized opening line for the first outreach email.</p>
+        )}
+      </div>
+
+      {/* Pain points */}
+      <div className="rounded-xl p-4 space-y-3" style={card}>
+        <p className="text-[10px] font-black text-white/30 uppercase tracking-widest flex items-center gap-1.5">
+          <Target className="size-3" /> Pain Points
+        </p>
+        {painPoints.length === 0 ? (
+          <p className="text-[11px] text-white/25">No pain points identified yet — run AI research to surface content gaps and opportunities.</p>
+        ) : (
+          <ul className="space-y-1.5">
+            {painPoints.map((p, i) => (
+              <li key={i} className="text-[11px] text-white/50 leading-relaxed flex gap-1.5">
+                <Lightbulb className="size-3 text-amber-400/60 shrink-0 mt-0.5" /> {p}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Competitor analysis */}
+      <div className="rounded-xl p-4 space-y-3" style={card}>
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-black text-white/30 uppercase tracking-widest flex items-center gap-1.5">
+            <Swords className="size-3" /> Competitor Intel
+          </p>
+          <a href="/competitor-intel" className="flex items-center gap-1 text-[10px] font-bold text-sky-400/60 hover:text-sky-400 transition-colors">
+            <ExternalLink className="size-3" /> {competitorAnalysis ? "Update" : "Generate"}
+          </a>
+        </div>
+        {competitorAnalysis ? (
+          <pre className="text-[11px] text-white/45 leading-relaxed whitespace-pre-wrap font-sans">{competitorAnalysis}</pre>
+        ) : (
+          <p className="text-[11px] text-white/25">No competitor analysis yet. Generate one from the Competitor Intel tool.</p>
+        )}
+      </div>
+
+      {/* Notes */}
+      <div className="rounded-xl p-4 space-y-3" style={card}>
+        <p className="text-[10px] font-black text-white/30 uppercase tracking-widest flex items-center gap-1.5">
+          <NotebookPen className="size-3" /> Notes
+        </p>
+        <div className="flex items-center gap-2">
+          <input
+            value={noteText}
+            onChange={e => setNoteText(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") submitNote() }}
+            placeholder="Add a note…"
+            className="flex-1 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2 text-[12px] text-white outline-none"
+          />
+          <button
+            onClick={submitNote}
+            disabled={savingNote || !noteText.trim()}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-bold text-white/60 disabled:opacity-40 transition-colors"
+            style={{ background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.07)" }}
+          >
+            {savingNote ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
+          </button>
+        </div>
+        {notesLoading ? (
+          <p className="text-[11px] text-white/20">Loading…</p>
+        ) : notes.length === 0 ? (
+          <p className="text-[11px] text-white/25">No notes yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {notes.map(n => (
+              <div key={n.id} className="rounded-lg p-3 flex items-start justify-between gap-3" style={{ background: "rgba(255,255,255,.02)", border: "1px solid rgba(255,255,255,.05)" }}>
+                <div>
+                  <p className="text-[12px] text-white/55 leading-relaxed whitespace-pre-wrap">{n.content}</p>
+                  <p className="text-[10px] text-white/20 mt-1">{n.createdBy} · {formatDate(n.createdAt)}</p>
+                </div>
+                <button onClick={() => onDeleteNote(n.id)} className="text-white/15 hover:text-rose-400 transition-colors shrink-0">
+                  <Trash2 className="size-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Main export ────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -763,11 +1031,19 @@ interface Props {
   contactsJson?: string | null
   linkedinProfilesJson?: string | null
   recommendedApproach?: string | null
+  icebreaker?: string | null
+  researchNotes?: string | null
+  painPoints?: unknown
+  competitorAnalysis?: string | null
+  buyingSignalsJson?: string | null
+  signalsCheckedAt?: string | Date | null
 }
 
 export function LeadTabsPanel({
   leadId, leadEmail, leadWebsite, leadCompany, emails, replies, leadIndustry,
-  auditJson, contactsJson, linkedinProfilesJson, recommendedApproach
+  auditJson, contactsJson, linkedinProfilesJson, recommendedApproach,
+  icebreaker: initialIcebreaker, researchNotes, painPoints: initialPainPoints, competitorAnalysis,
+  buyingSignalsJson, signalsCheckedAt,
 }: Props) {
   const [tab, setTab] = useState<Tab>("overview")
 
@@ -801,6 +1077,26 @@ export function LeadTabsPanel({
   })
   const [linkedinLoading, setLinkedinLoading] = useState(false)
 
+  const [icebreaker, setIcebreaker] = useState<string | null>(initialIcebreaker ?? null)
+  const [icebreakerLoading, setIcebreakerLoading] = useState(false)
+  const [profile, setProfile] = useState<BusinessProfile | null>(() => {
+    try {
+      return researchNotes ? JSON.parse(researchNotes) : null
+    } catch { return null }
+  })
+  const [profileLoading, setProfileLoading] = useState(false)
+  const [painPoints, setPainPoints] = useState<string[]>(() =>
+    Array.isArray(initialPainPoints) ? (initialPainPoints as unknown[]).map(String) : []
+  )
+  const [notes, setNotes] = useState<NoteRecord[]>([])
+  const [notesLoading, setNotesLoading] = useState(false)
+
+  const buyingSignals = (() => {
+    try {
+      return buyingSignalsJson ? (JSON.parse(buyingSignalsJson) as BuyingSignals) : null
+    } catch { return null }
+  })()
+
   useEffect(() => {
     fetch(`/api/leads/${leadId}/place`)
       .then(r => r.ok ? r.json() : null)
@@ -808,6 +1104,16 @@ export function LeadTabsPanel({
       .catch(() => {})
       .finally(() => setPlaceLoading(false))
   }, [leadId])
+
+  useEffect(() => {
+    if (tab !== "intel") return
+    setNotesLoading(true)
+    fetch(`/api/leads/${leadId}/notes`)
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setNotes(Array.isArray(d) ? d : []))
+      .catch(() => {})
+      .finally(() => setNotesLoading(false))
+  }, [tab, leadId])
 
   const website = place?.websiteUri || leadWebsite
 
@@ -929,10 +1235,107 @@ export function LeadTabsPanel({
     finally { setAuditLoading(false); setAuditDone(true) }
   }
 
+  async function doRunResearch() {
+    setProfileLoading(true)
+    try {
+      const res = await fetch("/api/leads/research", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          websiteUrl: website || undefined,
+          businessName: leadCompany || place?.displayName?.text || leadEmail,
+          industry: leadIndustry || place?.primaryType || undefined,
+          address: place?.formattedAddress || undefined,
+          reviews: place?.reviews,
+        }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        const newProfile = data.profile as BusinessProfile
+        setProfile(newProfile)
+        const gaps = [...(newProfile.contentGaps || []), ...(newProfile.outreachAngles || [])]
+        setPainPoints(gaps)
+        await fetch(`/api/leads/${leadId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            researchNotes: JSON.stringify(newProfile),
+            painPoints: gaps,
+            recommendedApproach: newProfile.recommendedApproach?.id,
+          }),
+        })
+        toast.success("Research updated")
+      } else {
+        toast.error("Research failed")
+      }
+    } catch {
+      toast.error("Research failed")
+    } finally {
+      setProfileLoading(false)
+    }
+  }
+
+  async function doGenerateIcebreaker() {
+    setIcebreakerLoading(true)
+    const decisionMaker = linkedinProfiles.find(p => p.isDecisionMaker) || contacts.find(c => c.isDecisionMaker)
+    try {
+      const res = await fetch("/api/leads/icebreaker", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          approach: (recommendedApproach || profile?.recommendedApproach?.id || "website"),
+          businessName: leadCompany || place?.displayName?.text || leadEmail,
+          address: place?.formattedAddress,
+          industry: leadIndustry || place?.primaryType,
+          rating: place?.rating,
+          reviewCount: place?.userRatingCount,
+          auditData: audit,
+          decisionMakerFirstName: decisionMaker?.name?.split(" ")[0] || null,
+          businessProfile: profile,
+          includeSenderCompany: true,
+        }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setIcebreaker(data.icebreaker)
+        await fetch(`/api/leads/${leadId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ icebreaker: data.icebreaker }),
+        })
+        toast.success("Icebreaker generated")
+      } else {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error || "Generation failed")
+      }
+    } catch {
+      toast.error("Generation failed")
+    } finally {
+      setIcebreakerLoading(false)
+    }
+  }
+
+  async function addNote(content: string) {
+    const res = await fetch(`/api/leads/${leadId}/notes`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content }),
+    })
+    if (res.ok) {
+      const note = await res.json()
+      setNotes(prev => [note, ...prev])
+    } else {
+      toast.error("Could not save note")
+    }
+  }
+
+  async function deleteNote(id: string) {
+    setNotes(prev => prev.filter(n => n.id !== id))
+    await fetch(`/api/leads/${leadId}/notes/${id}`, { method: "DELETE" }).catch(() => {})
+  }
+
   const TABS: { id: Tab; label: string; count?: number }[] = [
     { id: "overview", label: "Overview" },
     { id: "contact",  label: "Contact"  },
     { id: "audit",    label: "Audit"    },
+    { id: "intel",    label: "Intel"    },
     { id: "emails",   label: "Emails",  count: emails.length  },
     ...(replies.length > 0 ? [{ id: "replies" as Tab, label: "Replies", count: replies.length }] : []),
   ]
@@ -999,6 +1402,25 @@ export function LeadTabsPanel({
             website={website}
             onRunAudit={doAudit}
             fromDb={!!auditJson}
+          />
+        )}
+        {tab === "intel" && (
+          <IntelTab
+            leadId={leadId}
+            icebreaker={icebreaker}
+            profile={profile}
+            profileLoading={profileLoading}
+            painPoints={painPoints}
+            competitorAnalysis={competitorAnalysis ?? null}
+            buyingSignals={buyingSignals}
+            signalsCheckedAt={signalsCheckedAt ? new Date(signalsCheckedAt).toISOString() : null}
+            notes={notes}
+            notesLoading={notesLoading}
+            onRunResearch={doRunResearch}
+            onGenerateIcebreaker={doGenerateIcebreaker}
+            icebreakerLoading={icebreakerLoading}
+            onAddNote={addNote}
+            onDeleteNote={deleteNote}
           />
         )}
         {tab === "emails"  && <EmailsTab emails={emails} />}

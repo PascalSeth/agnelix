@@ -29,6 +29,12 @@ export async function POST(
   }
 
   // 3. Send immediately via SMTP
+  // Update status to QUEUED first so sendEmailImmediately accepts it
+  await prisma.email.update({
+    where: { id: activeDraft.id },
+    data: { status: "QUEUED", scheduledAt: new Date() },
+  })
+
   const success = await sendEmailImmediately(activeDraft.id)
 
   if (!success) {

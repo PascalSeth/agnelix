@@ -41,11 +41,23 @@ export async function PATCH(
   }
 
   if (action === "edit") {
+    // Refresh the timer to give the user more time based on their configured delay times
+    const goal = await prisma.agentGoal.findUnique({
+      where: { userId: session.user.id }
+    })
+    const lowPriorityDelayMins = goal?.lowPriorityDelayMins ?? 2
+    const highPriorityDelayMins = goal?.highPriorityDelayMins ?? 15
+
+    const bumpMins = pendingAction.riskLevel === "HIGH" ? highPriorityDelayMins : lowPriorityDelayMins
+    const bumpMs = bumpMins * 60 * 1000
+    const newExpiresAt = new Date(Date.now() + bumpMs)
+
     await prisma.pendingAction.update({
       where: { id },
       data: {
         ...(subject !== undefined ? { draftSubject: subject } : {}),
         ...(draftBody !== undefined ? { draftBody } : {}),
+        expiresAt: newExpiresAt,
       },
     })
     return NextResponse.json({ ok: true })

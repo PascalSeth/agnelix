@@ -1,0 +1,64 @@
+<USER_REQUEST>
+read and see if will work with my project
+Agnelix Technical Delta — Existing Schema Integration
+For Claude Code — Build on Top of Current Database
+Version: 1.1
+Date: June 2026
+Status: Testing Phase (No Payments)
+Scope: Database deltas + full UI/feature spec mapped to existing schema
+1. Existing Schema Assessment
+Your current Prisma schema is solid and production-ready. It already handles:
+NextAuth authentication (Account, Session, VerificationToken, User)
+Lead management with pipeline stages (Lead, LeadStatus)
+Campaign orchestration (Campaign, CampaignLead, Sequence, SequenceStep)
+Email sending & tracking (Email, TrackingEvent, Reply)
+AI queue & autonomy (PendingAction, AgentGoal, AgentMemory, AgentDigestLog)
+Activity logging (Activity)
+Auto-discovery (AutoSearch, DomainContactCache)
+Key insight: Your User model IS the agency profile. No separate Agency model needed. Your Email + Reply pattern works well — we enhance rather than replace.
+2. What to Add (Database Deltas Only)
+2.1 New Models (Add These)
+prisma
+// ── Playbook Engine ──────────────────────────────────────────────────────────
+
+model Playbook {
+  id                String   @id @default(cuid())
+  type              String   @unique  // "social_media", "seo", "ppc", "sales", "finance", "web_design"
+  name              String
+  targetVerticals   Json     // ["boutique hotels", "salons", ...]
+  discoveryMethod   String   // "maps" | "linkedin"
+  platformOptions   Json?    // ["Instagram", "TikTok", ...]
+  sequenceTemplates Json     // [{id, name, steps, description}]
+  proposalTemplates Json     // [{id, name, description, price, setupPrice, period}]
+  reportMetrics     Json     // ["posts_managed", "engagement_rate", ...]
+  reportTemplates   Json     // [{id, name, description}]
+  portalTemplates   Json     // [{id, name, description}]
+  portalSections    Json     // ["content_calendar
+<truncated 45215 bytes>
+ management services" },
+      { id: "sm_seq_2", name: "TikTok Outreach", steps: 3, description: "3-step sequence for TikTok viral potential" },
+      { id: "sm_seq_3", name: "Full Package", steps: 5, description: "Instagram + TikTok + Pinterest combined" }
+    ],
+    proposalTemplates: [
+      { id: "sm_prop_1", name: "Instagram Growth", description: "50 posts + 30 stories/mo", price: 1200, setupPrice: 1200, period: "monthly", currency: "GBP" },
+      { id: "sm_prop_2", name: "TikTok Viral", description: "15 videos + hashtag strategy", price: 1000, setupPrice: 1000, period: "monthly", currency: "GBP" },
+      { id: "sm_prop_3", name: "Full Package", description: "Instagram + TikTok + Pinterest", price: 2000, setupPrice: 2000, period: "monthly", currency: "GBP" }
+    ],
+    reportMetrics: ["posts_managed", "engagement_rate", "follower_growth", "reach", "top_posts"],
+    reportTemplates: [
+      { id: "sm_rep_1", name: "Instagram Monthly", description: "Posts, engagement, followers" },
+      { id: "sm_rep_2", name: "TikTok Performance", description: "Videos, views, engagement" },
+      { id: "sm_rep_3", name: "Full Package", description: "Instagram + TikTok + Pinterest" }
+    ],
+    portalTemplates: [
+      { id: "sm_port_1", name: "Instagram Monthly", description: "Content calendar + recent posts + engagement" },
+      { id: "sm_port_2", name: "TikTok Performance", description: "Video library + view stats + engagement" }
+    ],
+    portalSections: ["content_calendar", "recent_posts", "engagement_stats", "follower_growth"],
+    toneOptions: ["professional", "friendly", "trendy", "consultative"],
+    objectionHandlers: [
+      { objection: "I already have a social media manager", response: "Great! We specialize in platform-specific growth strategies that complement existing teams." },
+      { objection: "I post myself", response: "Consi
+<truncated 11288 bytes>
+
+NOTE: The output was truncated because it was too long. Use a more targeted query or a smaller range to get the information you need.

@@ -9,9 +9,10 @@ interface Props {
   options: string[]
   placeholder?: string
   className?: string
+  dropUp?: boolean
 }
 
-export function ComboSelect({ value, onChange, options, placeholder = "Select or type…", className = "w-full" }: Props) {
+export function ComboSelect({ value, onChange, options, placeholder = "Select or type…", className = "w-full", dropUp = false }: Props) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
@@ -91,7 +92,7 @@ export function ComboSelect({ value, onChange, options, placeholder = "Select or
       {/* Dropdown */}
       {open && (
         <div
-          className="absolute top-full mt-1.5 w-full z-50 rounded-xl overflow-hidden py-1 max-h-52 overflow-y-auto"
+          className={`absolute w-full z-50 rounded-xl overflow-hidden py-1 max-h-52 overflow-y-auto ${dropUp ? "bottom-full mb-1.5" : "top-full mt-1.5"}`}
           style={{
             background: "#13151c",
             border: "1px solid rgba(255,255,255,.1)",

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps, @next/next/no-img-element */
 "use client"
 
 import { useState, useEffect } from "react"
@@ -149,7 +150,6 @@ export function LeadDetailSide({
     if (!place.websiteUri) return
     if (enrichment.contactsDone || enrichment.contactsLoading) return
     runContactSearch()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [place.id])
 
   // Auto-run audit when place changes and not yet done
@@ -157,14 +157,12 @@ export function LeadDetailSide({
     if (!place.websiteUri) return
     if (enrichment.auditData || enrichment.auditLoading) return
     runAudit()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [place.id])
 
   // Auto-run research when place changes and not yet done
   useEffect(() => {
     if (enrichment.research || enrichment.researchLoading) return
     runResearch()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [place.id])
 
   // Auto-run LinkedIn search when place changes and not yet done
@@ -173,7 +171,6 @@ export function LeadDetailSide({
     // Signal loading to parent before async work starts
     onLinkedInDone([])  // reset previous results
     runLinkedInSearch()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [place.id])
 
   // Auto-select recommended approach when research completes

@@ -3,17 +3,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { generateEmail } from "@/lib/ai"
 import { checkEmailQuota } from "@/lib/cost-guard"
-import { generateAndQueueEmails } from "@/lib/campaign-sender"
-import { generateDraftsForCampaign } from "@/lib/campaign-drafts"
-import { drainDueQueue } from "@/lib/scheduler"
-
-async function runLaunchPipeline(campaignId: string, userId: string, customEmails?: { leadId: string; stepNumber: number; subject: string; body: string }[]) {
-  // Sync pass — handles leads with custom emails or small batches
-  await generateAndQueueEmails(campaignId, userId, undefined, customEmails)
-  // Background pass — catch any leads still missing drafts
-  await generateDraftsForCampaign(campaignId, userId)
-  await drainDueQueue()
-}
+import { runLaunchPipeline } from "@/lib/campaign-sender"
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -52,6 +42,7 @@ export async function POST(req: NextRequest) {
       for (const step of campaign.sequence.steps) {
         const generated = await generateEmail(
           {
+            userId:              session.user.id,
             senderName:          campaign.user.name || "Your Name",
             senderTitle:         campaign.user.title || "Marketing Consultant",
             senderCompany:       campaign.user.agencyName || campaign.user.companyName || "Your Company",

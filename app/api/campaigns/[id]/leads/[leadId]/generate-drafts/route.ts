@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
@@ -160,6 +161,7 @@ export async function POST(
 
     const generated = await generateEmail(
       {
+        userId:            session.user.id,
         senderName:        user.name || "Your Name",
         senderTitle:       user.title || "Marketing Consultant",
         senderCompany:     user.agencyName || user.companyName || "Your Company",

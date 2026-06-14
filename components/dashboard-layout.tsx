@@ -1,12 +1,15 @@
 "use client"
 
-import { Menu } from "lucide-react"
+import { Menu, ChevronDown, Briefcase, Search, Bell, User } from "lucide-react"
 import type { Session } from "next-auth"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
 import { Sidebar } from "@/components/sidebar"
 import { DashboardBg } from "@/components/dashboard-bg"
 import { AiAdvisorBubble } from "@/components/ai-advisor-bubble"
+import { usePlaybook } from "@/lib/playbook-context"
+import { CommandPalette } from "@/components/command-palette"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -17,6 +20,8 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children, session, inboxCount = 0 }: DashboardLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [collapsed, setCollapsed]   = useState(false)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const { activePlaybook, playbooks, changePlaybook, isPending } = usePlaybook()
 
   useEffect(() => {
     const handle = () => { if (window.innerWidth < 1024) setMobileOpen(false) }
@@ -95,23 +100,134 @@ export function DashboardLayout({ children, session, inboxCount = 0 }: Dashboard
         >
           {/* Topbar */}
           <header
-            className="sticky top-0 z-30 flex h-14 items-center justify-between px-6 backdrop-blur-xl"
+            className="sticky top-0 z-30 flex h-14 items-center justify-between px-6 backdrop-blur-md"
             style={{
-              background: "rgba(26,28,36,.85)",
-              borderBottom: "1px solid rgba(255,255,255,.06)",
-              boxShadow: "0 1px 0 rgba(0,0,0,.2)",
+              background: "rgba(22, 24, 30, 0.7)",
+              borderBottom: "1px solid rgba(255,255,255,.05)",
             }}
           >
-            <button className="lg:hidden" onClick={() => setMobileOpen(true)}>
-              <Menu className="size-5 text-white/40" />
-            </button>
-
-            <div className="flex items-center gap-2">
-              <div className="hidden sm:flex items-center gap-2 rounded-xl px-3 py-1.5"
-                style={{ background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.06)" }}>
-                <span className="status-dot size-1.5 rounded-full bg-emerald-400" />
-                <span className="text-[11px] font-semibold text-white/35 tracking-wide">Systems live</span>
+            {/* Left Section: Mobile Menu & Breadcrumb/Branding */}
+            <div className="flex items-center gap-4">
+              <button className="lg:hidden p-1.5 -ml-1.5 rounded-md hover:bg-white/5 transition-colors" onClick={() => setMobileOpen(true)}>
+                <Menu className="size-5 text-white/50" />
+              </button>
+              
+              <div className="hidden sm:flex items-center gap-2 text-[13px] font-semibold text-white/50">
+                <span className="text-white/80">Agnelix</span>
+                <span className="text-white/20">/</span>
+                <span className="text-white/80">{activePlaybook?.name || "Dashboard"}</span>
               </div>
+            </div>
+
+            {/* Center Section: Command Palette Trigger (Search Bar) */}
+            <div className="hidden md:flex flex-1 max-w-md mx-6">
+              <div 
+                className="group flex w-full items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-[13px] font-medium text-white/40 border border-white/[0.08] bg-black/20 hover:bg-white/[0.04] hover:text-white/60 transition-all cursor-pointer shadow-inner shadow-black/20"
+                onClick={() => {
+                  const event = new KeyboardEvent('keydown', { key: 'k', ctrlKey: true });
+                  window.dispatchEvent(event);
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <Search className="size-4 opacity-50 group-hover:opacity-80 transition-opacity" />
+                  <span>Search or jump to...</span>
+                </div>
+                <kbd className="hidden sm:inline-flex h-5 items-center gap-1 rounded px-1.5 text-[10px] font-mono font-medium text-white/40 bg-white/[0.05] border border-white/[0.05]">
+                  <span className="text-[9px]">⌘</span>K
+                </kbd>
+              </div>
+            </div>
+
+            {/* Right Section: Status, Playbook, Notifications, Profile */}
+            <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+              
+              {/* Playbook Selector */}
+              {playbooks.length > 0 && (
+                <div className="relative hidden sm:block">
+                  <button
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                    disabled={isPending}
+                    className={cn(
+                      "flex items-center gap-2 rounded-lg px-3 py-1.5 text-[12px] font-semibold text-white/70 transition-all",
+                      "hover:bg-white/[0.06] hover:text-white",
+                      isPending ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                    )}
+                  >
+                    <Briefcase className="size-3.5 text-white/40" />
+                    <span>{activePlaybook?.name || "Select"}</span>
+                    <ChevronDown className={cn("size-3.5 text-white/30 transition-transform duration-200", dropdownOpen && "rotate-180")} />
+                  </button>
+
+                  {dropdownOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setDropdownOpen(false)} />
+                      <div
+                        className="absolute right-0 mt-2 w-56 origin-top-right rounded-xl border border-white/[0.08] p-1.5 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150"
+                        style={{
+                          background: "rgba(22, 24, 30, 0.98)",
+                          backdropFilter: "blur(12px)",
+                        }}
+                      >
+                        <p className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white/30">Playbooks</p>
+                        <div className="space-y-0.5">
+                          {playbooks.map((p) => {
+                            const active = p.type === activePlaybook?.type
+                            return (
+                              <button
+                                key={p.id}
+                                onClick={() => {
+                                  changePlaybook(p.type)
+                                  setDropdownOpen(false)
+                                }}
+                                className={cn(
+                                  "w-full flex items-center justify-between rounded-lg px-2.5 py-2 text-left text-[13px] font-medium transition-all",
+                                  active
+                                    ? "bg-white/[0.06] text-white"
+                                    : "text-white/60 hover:bg-white/[0.04] hover:text-white"
+                                )}
+                              >
+                                <span>{p.name}</span>
+                                {active && (
+                                  <span className="size-1.5 rounded-full bg-emerald-400" />
+                                )}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              <div className="h-4 w-px bg-white/[0.1] hidden sm:block" />
+
+              {/* Systems Live Status (Dot only on desktop, full text maybe hidden or tooltip) */}
+              <div 
+                className="flex items-center justify-center size-8 rounded-full hover:bg-white/5 transition-colors cursor-help"
+                title="Systems Live: All operational"
+              >
+                <span className="relative flex size-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-40"></span>
+                  <span className="relative inline-flex size-2 rounded-full bg-emerald-400"></span>
+                </span>
+              </div>
+
+              {/* Notification Bell */}
+              <button className="flex items-center justify-center size-8 rounded-full hover:bg-white/5 transition-colors text-white/50 hover:text-white">
+                <Bell className="size-4" />
+              </button>
+
+              {/* User Profile / Avatar */}
+              <button className="flex items-center justify-center size-8 rounded-full border border-white/[0.1] overflow-hidden hover:border-white/[0.3] transition-colors ml-1">
+                {session?.user?.image ? (
+                  <Image src={session.user.image} alt="User" width={32} height={32} className="size-full object-cover" />
+                ) : (
+                  <div className="size-full flex items-center justify-center bg-indigo-500/20 text-indigo-300">
+                    <User className="size-4" />
+                  </div>
+                )}
+              </button>
             </div>
           </header>
 
@@ -123,6 +239,7 @@ export function DashboardLayout({ children, session, inboxCount = 0 }: Dashboard
       </div>
 
       <AiAdvisorBubble />
+      <CommandPalette />
     </>
   )
 }

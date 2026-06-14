@@ -29,7 +29,7 @@ export function formatRelative(date: Date | string | null) {
 
 export function pct(num: number, den: number) {
   if (!den) return "0%"
-  return `${Math.round((num / den) * 100)}%`
+  return `${Math.min(100, Math.round((num / den) * 100))}%`
 }
 
 export function initials(name?: string | null) {

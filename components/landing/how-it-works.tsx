@@ -2,32 +2,32 @@ import { MapPin, Search, Mail, Bot, Sparkles, ArrowRight } from "lucide-react"
 
 export function HowItWorks() {
   const steps = [
-    { 
-      step: "01", 
-      icon: MapPin, 
-      title: "Discover Leads", 
-      desc: "Search by business type and city. Agnelix finds prospects and pulls their name, website, phone, ratings, and reviews.",
-      badge: "Targeting"
+    {
+      step: "01",
+      icon: MapPin,
+      title: "Find Leads",
+      desc: "Tell Agnelix what kind of business you want and where. It searches the web and builds a list with names, websites, phone numbers, and reviews.",
+      badge: "Search"
     },
-    { 
-      step: "02", 
-      icon: Search, 
-      title: "Research & Enrich", 
-      desc: "AI visits each prospect's website, finds their email address, and puts together a quick summary of what they do.",
-      badge: "AI Analysis"
+    {
+      step: "02",
+      icon: Search,
+      title: "Research Each One",
+      desc: "Agnelix visits each website, finds the best email address, and writes a short summary of what the business does.",
+      badge: "AI Research"
     },
-    { 
-      step: "03", 
-      icon: Mail, 
-      title: "Launch Campaigns", 
-      desc: "Build email sequences with multiple steps. AI writes each email based on the prospect's info. Preview and send.",
+    {
+      step: "03",
+      icon: Mail,
+      title: "Send Personal Emails",
+      desc: "Set up a series of emails. Agnelix writes each one using what it learned about the business, then sends them on schedule.",
       badge: "Outreach"
     },
-    { 
-      step: "04", 
-      icon: Bot, 
-      title: "Autonomous Follow-Up", 
-      desc: "When someone replies, AI reads the message, writes a response, and can book a meeting for you automatically.",
+    {
+      step: "04",
+      icon: Bot,
+      title: "Follow Up Automatically",
+      desc: "When someone replies, Agnelix reads the message, writes a reply, and can book the meeting straight onto your calendar.",
       badge: "Closing"
     },
   ]
@@ -50,7 +50,7 @@ export function HowItWorks() {
             From search to meeting in <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#c5a880] to-[#e6d5b8]">four steps.</span>
           </h2>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-400 font-medium">
-            No manual scraping. No copy-paste. One tool takes you entirely from finding leads to booking meetings.
+            No spreadsheets. No copy-paste. One tool takes you from finding a lead to booking the meeting.
           </p>
         </div>
 

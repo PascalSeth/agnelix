@@ -1,4 +1,5 @@
 export interface EmailPromptParams {
+  userId?: string
   senderName: string
   senderTitle: string
   senderCompany: string

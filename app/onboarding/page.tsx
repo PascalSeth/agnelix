@@ -1,9 +1,14 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
-import { ArrowRight, Check, Loader2, Upload, Zap, Brain, Mail, TrendingUp } from "lucide-react"
+import Image from "next/image"
+import {
+  ArrowRight, Check, Loader2, Upload, Sparkles, Send,
+  Pencil, SkipForward, Bot,
+} from "lucide-react"
 import { toast } from "sonner"
 import { initials } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -16,42 +21,159 @@ const TITLES = [
   "VP of Sales", "VP of Marketing", "Head of Sales", "Head of Marketing",
   "Sales Manager", "Marketing Manager", "Account Executive", "Business Development Manager",
 ]
-
-const FEATURES = [
-  { icon: Brain,      label: "AI email personalisation", desc: "Agnelix AI writes cold emails using your agency context" },
-  { icon: Mail,       label: "Gmail integration",        desc: "Sends from your inbox, tracks opens and replies" },
-  { icon: Zap,        label: "Battle card generation",   desc: "Instant talking points when a prospect replies" },
-  { icon: TrendingUp, label: "Pipeline management",      desc: "Kanban board tracks every deal from cold to won" },
+const PLAYBOOK_OPTIONS = [
+  { type: "social_media", name: "Social Media Agency" },
+  { type: "seo", name: "SEO Agency" },
+  { type: "ppc", name: "PPC & Paid Ads Agency" },
+  { type: "sales", name: "Sales & B2B Lead Gen" },
+  { type: "finance", name: "Fractional CFO & Finance" },
+  { type: "web_design", name: "Web Design & Development" },
 ]
+
+type StepKey = "agencyName" | "title" | "playbook" | "companyDesc" | "tone" | "calendarLink" | "logo" | "review"
+const STEP_ORDER: StepKey[] = ["agencyName", "title", "playbook", "companyDesc", "tone", "calendarLink", "logo", "review"]
 
 const fieldStyle = {
   background: "rgba(255,255,255,.04)",
-  border: "1px solid rgba(255,255,255,.08)",
+  border: "1px solid rgba(255,255,255,.1)",
+}
+
+function AiAvatar({ active = false }: { active?: boolean }) {
+  return (
+    <div className="relative shrink-0">
+      {active && (
+        <div
+          className="absolute inset-0 rounded-xl"
+          style={{ animation: "bot-pulse-ring 1.6s ease-out infinite", background: "rgba(124,131,253,.5)" }}
+        />
+      )}
+      <div
+        className="relative flex size-8 items-center justify-center rounded-xl"
+        style={{
+          background: "linear-gradient(135deg,#7c83fd,#5a61d6)",
+          boxShadow: "0 4px 16px rgba(124,131,253,.35)",
+          animation: `bot-float ${active ? "1.4s" : "3.4s"} ease-in-out infinite`,
+        }}
+      >
+        <Bot className="size-4 text-white" />
+      </div>
+    </div>
+  )
+}
+
+function AiBubble({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-2.5" style={{ animation: "message-in .35s ease-out both" }}>
+      <AiAvatar />
+      <div
+        className="max-w-[85%] rounded-2xl rounded-tl-sm px-4 py-2.5 text-[13px] leading-relaxed text-white/75"
+        style={{ background: "rgba(255,255,255,.045)", border: "1px solid rgba(255,255,255,.07)" }}
+      >
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function UserBubble({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex justify-end" style={{ animation: "message-in .35s ease-out both" }}>
+      <div
+        className="max-w-[80%] rounded-2xl rounded-tr-sm px-4 py-2.5 text-[13px] leading-relaxed text-white/85"
+        style={{ background: "rgba(124,131,253,.16)", border: "1px solid rgba(124,131,253,.28)" }}
+      >
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function TypingBubble() {
+  return (
+    <div className="flex items-start gap-2.5" style={{ animation: "message-in .35s ease-out both" }}>
+      <AiAvatar active />
+      <div
+        className="flex items-center gap-1.5 rounded-2xl rounded-tl-sm px-4 py-3"
+        style={{ background: "rgba(255,255,255,.045)", border: "1px solid rgba(255,255,255,.07)" }}
+      >
+        {[0, 0.15, 0.3].map(delay => (
+          <span
+            key={delay}
+            className="size-2 rounded-full"
+            style={{
+              background: "linear-gradient(135deg,#9ca3ff,#7c83fd)",
+              animation: `bot-dot 1.1s ease-in-out ${delay}s infinite`,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  )
 }
 
 export default function OnboardingPage() {
   const { data: session } = useSession()
   const router = useRouter()
-  const [done, setDone] = useState(false)
-  const [saving, setSaving] = useState(false)
+  const fromEmail = session?.user?.email ?? ""
+
+  const [agencyName, setAgencyName]   = useState("")
+  const [title, setTitle]             = useState("")
+  const [playbookName, setPlaybookName] = useState("Sales & B2B Lead Gen")
+  const [companyDesc, setCompanyDesc] = useState("")
+  const [tone, setTone]               = useState("Professional")
+  const [calendarLink, setCalendarLink] = useState("")
+  const [logoUrl, setLogoUrl]         = useState<string | null>(null)
+  const [logoUploading, setLogoUploading] = useState(false)
+
+  const [step, setStep]       = useState(0)
+  const [returnTo, setReturnTo] = useState<number | null>(null)
+  const [typing, setTyping]   = useState(true)
+  const [draft, setDraft]     = useState("")
+  const [saving, setSaving]   = useState(false)
+  const [done, setDone]       = useState(false)
   const [countdown, setCountdown] = useState(3)
+
+  // Company description: write it yourself, or generate from a website URL
+  const [descMode, setDescMode]   = useState<"write" | "url">("write")
+  const [descUrl, setDescUrl]     = useState("")
+  const [descGenerating, setDescGenerating] = useState(false)
+
+  const bottomRef = useRef<HTMLDivElement>(null)
+
+  // Typing indicator whenever we move to a new step
+  useEffect(() => {
+    setTyping(true)
+    const t = setTimeout(() => setTyping(false), 550)
+    return () => clearTimeout(t)
+  }, [step])
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
+  }, [step, typing, done])
 
   useEffect(() => {
     if (!done) return
     const interval = setInterval(() => setCountdown(c => c - 1), 1000)
-    const timeout  = setTimeout(() => router.push("/sequences"), 3000)
+    const timeout  = setTimeout(() => router.push("/dashboard"), 3000)
     return () => { clearInterval(interval); clearTimeout(timeout) }
   }, [done, router])
 
-  const [agencyName, setAgencyName]   = useState("")
-  const [title, setTitle]             = useState("")
-  const [companyDesc, setCompanyDesc] = useState("")
-  const [tone, setTone]               = useState("Professional")
-  const [logoUrl, setLogoUrl]         = useState<string | null>(null)
-  const [logoUploading, setLogoUploading] = useState(false)
-  const [calendarLink, setCalendarLink]   = useState("")
+  function goNext() {
+    if (returnTo !== null) {
+      setStep(returnTo)
+      setReturnTo(null)
+    } else {
+      setStep(s => Math.min(s + 1, STEP_ORDER.length - 1))
+    }
+  }
 
-  const fromEmail = session?.user?.email ?? ""
+  function editStep(idx: number) {
+    setReturnTo(STEP_ORDER.length - 1) // back to review afterward
+    if (STEP_ORDER[idx] === "agencyName") setDraft(agencyName)
+    if (STEP_ORDER[idx] === "companyDesc") setDraft(companyDesc)
+    if (STEP_ORDER[idx] === "calendarLink") setDraft(calendarLink)
+    setStep(idx)
+  }
 
   async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -73,14 +195,17 @@ export default function OnboardingPage() {
   }
 
   async function handleSave() {
-    if (!agencyName.trim())  { toast.error("Enter your agency name"); return }
-    if (!companyDesc.trim()) { toast.error("Describe what your agency does"); return }
     setSaving(true)
     try {
+      const matched = PLAYBOOK_OPTIONS.find(p => p.name.toLowerCase() === playbookName.trim().toLowerCase())
+      const playbookType = matched
+        ? matched.type
+        : playbookName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "sales"
+
       const res = await fetch("/api/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agencyName, title, fromEmail, companyDesc, tone, onboardingDone: true, calendarLink }),
+        body: JSON.stringify({ agencyName, title, fromEmail, companyDesc, tone, onboardingDone: true, calendarLink, playbookType }),
       })
       if (!res.ok) throw new Error(await res.text())
       setDone(true)
@@ -91,296 +216,573 @@ export default function OnboardingPage() {
     }
   }
 
+  function submitAgencyName() {
+    if (!draft.trim()) { toast.error("Tell me your agency name to continue"); return }
+    setAgencyName(draft.trim())
+    setDraft("")
+    goNext()
+  }
+
+  function submitTitle() {
+    goNext()
+  }
+
+  function submitPlaybook() {
+    goNext()
+  }
+
+  function submitCompanyDesc() {
+    if (!draft.trim()) { toast.error("A quick description helps the AI a lot"); return }
+    setCompanyDesc(draft.trim())
+    setDraft("")
+    setDescMode("write")
+    goNext()
+  }
+
+  async function generateDescFromUrl() {
+    if (!descUrl.trim()) { toast.error("Paste your website URL first"); return }
+    setDescGenerating(true)
+    try {
+      const res = await fetch("/api/settings/refine", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "url", websiteUrl: descUrl.trim(), agencyName }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Couldn't generate a description")
+      setDraft(data.refined)
+      setDescMode("write")
+      toast.success("Drafted from your website — feel free to edit it")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't generate a description")
+    } finally {
+      setDescGenerating(false)
+    }
+  }
+
+  function selectTone(t: string) {
+    setTone(t)
+    setTimeout(goNext, 250)
+  }
+
+  function submitCalendarLink(skip = false) {
+    setCalendarLink(skip ? "" : draft.trim())
+    setDraft("")
+    goNext()
+  }
+
+  function continueFromLogo() {
+    goNext()
+  }
+
+  // ── Transcript history (steps before the current one) ─────────────────────
+  const history: { key: StepKey; ai: React.ReactNode; user: React.ReactNode }[] = []
+
+  if (step > 0) {
+    history.push({
+      key: "agencyName",
+      ai: <>Hey there <span className="text-base">👋</span> I&rsquo;m the Agnelix AI assistant. Let&rsquo;s get your agency set up — what should I call it?</>,
+      user: <>{agencyName}</>,
+    })
+  }
+  if (step > 1) {
+    history.push({
+      key: "title",
+      ai: <>Nice to meet <span className="text-white/95 font-bold">{agencyName}</span>! What&rsquo;s your role there? It helps me sign emails the right way.</>,
+      user: <>{title || "Decision Maker"}</>,
+    })
+  }
+  if (step > 2) {
+    history.push({
+      key: "playbook",
+      ai: <>What kind of agency do you run? This sets up your dashboard with the right playbook — you can change it anytime in settings.</>,
+      user: <>{playbookName}</>,
+    })
+  }
+  if (step > 3) {
+    history.push({
+      key: "companyDesc",
+      ai: <>Perfect. In your own words — what does <span className="text-white/95 font-bold">{agencyName}</span> do for clients? Be specific, this is the core context every AI email is built from.</>,
+      user: <>{companyDesc}</>,
+    })
+  }
+  if (step > 4) {
+    history.push({
+      key: "tone",
+      ai: <>Got it — that&rsquo;s gold. What tone should your outreach emails use?</>,
+      user: <>{tone}</>,
+    })
+  }
+  if (step > 5) {
+    history.push({
+      key: "calendarLink",
+      ai: <>Almost there. Got a Calendly or Cal.com link? I&rsquo;ll drop a booking button straight into your emails.</>,
+      user: <>{calendarLink ? calendarLink : "Skipped — no calendar link yet"}</>,
+    })
+  }
+  if (step > 6) {
+    history.push({
+      key: "logo",
+      ai: <>Last thing — want to add your logo? It&rsquo;ll show up on your dashboard and in your email signature.</>,
+      user: logoUrl ? <span className="flex items-center gap-2"><Avatar className="size-5 rounded-md"><AvatarImage src={logoUrl} /><AvatarFallback className="rounded-md text-[9px]">{initials(agencyName)}</AvatarFallback></Avatar> Logo uploaded</span> : <>Skipped for now</>,
+    })
+  }
+
+  const currentStepKey = STEP_ORDER[step]
+
   return (
-    <div className="flex w-full max-w-5xl overflow-hidden rounded-3xl"
-      style={{ border: "1px solid rgba(255,255,255,.07)", boxShadow: "0 32px 80px rgba(0,0,0,.5)" }}
-    >
-
-      {/* ── Left: branding panel ───────────────────────────────────── */}
-      <div
-        className="hidden lg:flex flex-col justify-between w-[42%] shrink-0 p-9 relative overflow-hidden"
-        style={{
-          background: "linear-gradient(160deg, rgba(255,255,255,.05) 0%, rgba(255,255,255,.02) 100%)",
-          borderRight: "1px solid rgba(255,255,255,.07)",
-        }}
-      >
-        {/* Top shine */}
-        <div className="absolute top-0 inset-x-10 h-px"
-          style={{ background: "linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent)" }} />
-
-        {/* Subtle corner glow */}
-        <div className="absolute -top-20 -left-20 size-64 rounded-full pointer-events-none"
-          style={{ background: "radial-gradient(circle,rgba(255,255,255,.04) 0%,transparent 70%)" }} />
-
-        <div className="relative">
-          <p className="text-[10px] font-black uppercase tracking-[.22em] text-white/25 mb-8">
-            Welcome to Agnelix
-          </p>
-          <h1 className="text-[26px] font-black leading-tight tracking-tight text-white/90 mb-3">
-            Set up your agency in&nbsp;minutes
-          </h1>
-          <p className="text-[13px] text-white/35 leading-relaxed">
-            Tell us about your business once. Every AI email, battle card, and reply draft is personalised using this context.
-          </p>
-        </div>
-
-        <div className="relative space-y-5">
-          {FEATURES.map(({ icon: Icon, label, desc }) => (
-            <div key={label} className="flex items-start gap-3.5">
-              <div
-                className="flex size-8 shrink-0 items-center justify-center rounded-xl mt-0.5"
-                style={{ background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.08)" }}
-              >
-                <Icon className="size-3.5 text-white/40" />
-              </div>
-              <div>
-                <p className="text-[12px] font-bold text-white/65">{label}</p>
-                <p className="text-[11px] text-white/30 mt-0.5 leading-snug">{desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <p className="relative text-[10px] text-white/15 font-medium">
-          Your data is never shared or used to train models.
-        </p>
+    <div className="relative w-full max-w-xl">
+      <style>{`
+        @keyframes bot-float {
+          0%, 100% { transform: translateY(0) rotate(0deg); }
+          50% { transform: translateY(-3px) rotate(-4deg); }
+        }
+        @keyframes bot-pulse-ring {
+          0% { transform: scale(1); opacity: .5; }
+          70% { transform: scale(1.6); opacity: 0; }
+          100% { transform: scale(1.6); opacity: 0; }
+        }
+        @keyframes bot-dot {
+          0%, 60%, 100% { transform: translateY(0) scale(.85); opacity: .45; }
+          30% { transform: translateY(-4px) scale(1.1); opacity: 1; }
+        }
+        @keyframes message-in {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+      {/* Ambient background image */}
+      <div className="fixed inset-0 -z-10 overflow-hidden opacity-25 pointer-events-none">
+        <Image
+          src="https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=1200&q=80"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover blur-3xl scale-110"
+        />
       </div>
 
-      {/* ── Right: form / success ──────────────────────────────────── */}
       <div
-        className="flex-1 flex flex-col"
-        style={{ background: "linear-gradient(160deg, rgba(255,255,255,.03) 0%, rgba(26,28,36,.95) 100%)" }}
+        className="flex flex-col overflow-hidden rounded-3xl h-[calc(100dvh-8.5rem)]"
+        style={{ border: "1px solid rgba(255,255,255,.07)", boxShadow: "0 32px 80px rgba(0,0,0,.5)", background: "linear-gradient(160deg, rgba(30,32,42,.92) 0%, rgba(20,21,28,.96) 100%)" }}
       >
-        {!done ? (
-          <div className="flex-1 overflow-y-auto px-8 py-9 space-y-6">
-
-            <div className="mb-2">
-              <h2 className="text-[18px] font-black tracking-tight text-white/90">Your agency profile</h2>
-              <p className="text-[12px] text-white/30 mt-1">Powers every AI email we generate for you</p>
+        {/* Header */}
+        <div className="flex items-center gap-3 px-6 py-4 relative"
+          style={{ borderBottom: "1px solid rgba(255,255,255,.06)" }}>
+          <div className="absolute top-0 inset-x-8 h-px"
+            style={{ background: "linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent)" }} />
+          <AiAvatar />
+          <div className="flex-1">
+            <p className="text-[13px] font-black text-white/85">Agnelix Assistant</p>
+            <div className="flex items-center gap-1.5">
+              <span className="size-1.5 rounded-full bg-emerald-400" />
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30">Setting up your account</p>
             </div>
-
-            {/* Logo + name + title */}
-            <div
-              className="rounded-2xl p-5 space-y-4 relative overflow-hidden"
-              style={{ background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.06)" }}
-            >
-              <div className="absolute top-0 inset-x-6 h-px"
-                style={{ background: "linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent)" }} />
-
-              <p className="text-[10px] font-black uppercase tracking-[.16em] text-white/25">Identity</p>
-
-              {/* Logo row */}
-              <div className="flex items-center gap-4">
-                <Avatar className="size-14 rounded-xl shrink-0"
-                  style={{ boxShadow: "0 0 0 2px rgba(255,255,255,.08)" }}>
-                  <AvatarImage src={logoUrl ?? undefined} />
-                  <AvatarFallback
-                    className="rounded-xl text-base font-black text-white/50"
-                    style={{ background: "linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.03))" }}
-                  >
-                    {initials(agencyName || "?")}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <label
-                    className="inline-flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-[12px] font-bold text-white/50 transition-all hover:text-white/70"
-                    style={{ background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.08)" }}
-                  >
-                    {logoUploading ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
-                    {logoUploading ? "Uploading…" : logoUrl ? "Change" : "Upload Logo"}
-                    <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={logoUploading} />
-                  </label>
-                  <p className="mt-1 text-[10px] text-white/20">Optional · PNG or JPG</p>
-                </div>
-              </div>
-
-              {/* Name + title row */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold text-white/30 uppercase tracking-wide">
-                    Agency Name <span className="text-red-400/60">*</span>
-                  </label>
-                  <input
-                    placeholder="Acme Marketing"
-                    value={agencyName}
-                    onChange={(e) => setAgencyName(e.target.value)}
-                    className="w-full rounded-xl px-3 py-2.5 text-[13px] text-white/75 outline-none placeholder:text-white/20"
-                    style={fieldStyle}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold text-white/30 uppercase tracking-wide">
-                    Your Title
-                  </label>
-                  <ComboSelect value={title} onChange={setTitle} options={TITLES} placeholder="Select or type…" />
-                </div>
-              </div>
- 
-              {/* Calendar link */}
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold text-white/30 uppercase tracking-wide">
-                  Calendar Booking Link
-                </label>
-                <input
-                  placeholder="e.g. https://calendly.com/your-slug or https://cal.com/your-slug"
-                  value={calendarLink}
-                  onChange={(e) => setCalendarLink(e.target.value)}
-                  className="w-full rounded-xl px-3 py-2.5 text-[13px] text-white/75 outline-none placeholder:text-white/20"
-                  style={fieldStyle}
-                  type="url"
-                />
-              </div>
-            </div>
-
-            {/* Email locked */}
-            <div
-              className="rounded-2xl p-5 space-y-4 relative overflow-hidden"
-              style={{ background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.06)" }}
-            >
-              <div className="absolute top-0 inset-x-6 h-px"
-                style={{ background: "linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent)" }} />
-
-              <p className="text-[10px] font-black uppercase tracking-[.16em] text-white/25">Sending Email</p>
-
-              <div className="flex items-center gap-3 rounded-xl px-4 py-2.5"
-                style={{ background: "rgba(255,255,255,.025)", border: "1px solid rgba(255,255,255,.06)" }}
-              >
-                <span className="text-[13px] text-white/50 flex-1 truncate">{fromEmail}</span>
-                <span className="shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white/25"
-                  style={{ background: "rgba(255,255,255,.05)" }}>
-                  Locked
-                </span>
-              </div>
-              <p className="text-[11px] text-white/20 -mt-1">
-                Set <code className="text-white/35">SMTP_USER</code> to this address in your environment variables
-              </p>
-            </div>
-
-            {/* What you do + tone */}
-            <div
-              className="rounded-2xl p-5 space-y-4 relative overflow-hidden"
-              style={{ background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.06)" }}
-            >
-              <div className="absolute top-0 inset-x-6 h-px"
-                style={{ background: "linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent)" }} />
-
-              <p className="text-[10px] font-black uppercase tracking-[.16em] text-white/25">AI Context</p>
-
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold text-white/30 uppercase tracking-wide">
-                  What your agency does <span className="text-red-400/60">*</span>
-                </label>
-                <textarea
-                  placeholder="We help dental practices grow their patient base through SEO and paid ads. We specialise in local service businesses and typically get clients 15–30 new patients per month."
-                  value={companyDesc}
-                  onChange={(e) => setCompanyDesc(e.target.value)}
-                  rows={3}
-                  className="w-full rounded-xl px-4 py-3 text-[13px] text-white/75 outline-none placeholder:text-white/20 resize-none"
-                  style={fieldStyle}
-                />
-                <p className="text-[11px] text-white/20">Be specific — more detail = better AI emails</p>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold text-white/30 uppercase tracking-wide">
-                  Email Tone
-                </label>
-                <div className="flex gap-1.5">
-                  {TONES.map(t => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setTone(t)}
-                      className="flex-1 rounded-xl py-2 text-[11px] font-bold transition-all"
-                      style={tone === t
-                        ? { background: "rgba(255,255,255,.1)", border: "1px solid rgba(255,255,255,.18)", color: "rgba(255,255,255,.85)" }
-                        : { background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.06)", color: "rgba(255,255,255,.3)" }
-                      }
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-[13px] font-bold text-black transition-all hover:brightness-110 active:scale-[.99] disabled:opacity-50"
-              style={{ background: "linear-gradient(135deg,#e2e5ed,#c8cdd8)", boxShadow: "0 2px 12px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.5)" }}
-            >
-              {saving ? <Loader2 className="size-4 animate-spin" /> : null}
-              {saving ? "Saving…" : "Launch Dashboard"}
-              {!saving && <ArrowRight className="size-4" />}
-            </button>
           </div>
-        ) : (
-          /* ── Success state ── */
-          <div className="flex-1 flex flex-col items-center justify-center px-8 py-12 text-center space-y-6">
-            <div className="relative">
-              <div
-                className="flex size-20 items-center justify-center rounded-3xl mx-auto"
-                style={{ background: "rgba(52,211,153,.08)", border: "1px solid rgba(52,211,153,.2)" }}
-              >
-                <Check className="size-9 text-emerald-400" />
-              </div>
-              <div className="absolute -inset-3 rounded-full opacity-30 animate-ping"
-                style={{ background: "radial-gradient(circle,rgba(52,211,153,.3) 0%,transparent 70%)" }} />
-            </div>
+          <div className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1"
+            style={{ background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.08)" }}>
+            <Sparkles className="size-3 text-amber-300/80" />
+            <span className="text-[10px] font-bold text-white/40">AI-guided</span>
+          </div>
+        </div>
 
-            <div>
-              <h2 className="text-[22px] font-black tracking-tight text-white/90">
-                {agencyName || "Your agency"} is ready
-              </h2>
-              <p className="text-[13px] text-white/35 mt-2 max-w-xs mx-auto">
-                Your AI is configured. Next up: create your first email sequence.
-              </p>
-            </div>
-
-            {/* Redirect countdown */}
-            <div
-              className="w-full max-w-xs rounded-2xl p-4 text-center"
-              style={{ background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.07)" }}
-            >
-              <p className="text-[11px] text-white/30 mb-2">Taking you to Sequences in…</p>
-              <div className="flex items-center justify-center gap-2">
-                <span
-                  className="flex size-9 items-center justify-center rounded-full text-[18px] font-black text-white/80"
-                  style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)" }}
-                >
-                  {Math.max(0, countdown)}
-                </span>
-              </div>
-              {/* Progress bar */}
-              <div className="mt-3 h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,.07)" }}>
+        {/* Step progress */}
+        {!done && (
+          <div className="flex items-center gap-1.5 px-6 pt-3">
+            {STEP_ORDER.map((k, i) => (
+              <div key={k} className="h-1 flex-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,.06)" }}>
                 <div
-                  className="h-full rounded-full transition-all duration-1000"
+                  className="h-full rounded-full transition-all duration-700 ease-out"
                   style={{
-                    width: `${((3 - countdown) / 3) * 100}%`,
-                    background: "linear-gradient(90deg,rgba(52,211,153,.5),rgba(52,211,153,.8))",
+                    width: i <= step ? "100%" : "0%",
+                    background: "linear-gradient(90deg,#7c83fd,#5a61d6)",
                   }}
                 />
               </div>
-            </div>
+            ))}
+          </div>
+        )}
 
-            <div className="w-full max-w-xs space-y-2.5">
+        {/* Chat transcript */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-6 space-y-4">
+          {!done ? (
+            <>
+              {history.map((h, i) => (
+                <div key={h.key + i} className="space-y-2.5">
+                  <AiBubble>{h.ai}</AiBubble>
+                  <UserBubble>{h.user}</UserBubble>
+                </div>
+              ))}
+
+              {typing ? (
+                <TypingBubble />
+              ) : (
+                <div className="space-y-3">
+                  {currentStepKey === "agencyName" && (
+                    <AiBubble>
+                      Hey there <span className="text-base">👋</span> I&rsquo;m the Agnelix AI assistant. Let&rsquo;s get your agency set up — what should I call it?
+                    </AiBubble>
+                  )}
+                  {currentStepKey === "title" && (
+                    <AiBubble>
+                      Nice to meet <span className="text-white/95 font-bold">{agencyName}</span>! What&rsquo;s your role there? It helps me sign emails the right way.
+                    </AiBubble>
+                  )}
+                  {currentStepKey === "playbook" && (
+                    <AiBubble>
+                      What kind of agency do you run? This sets up your dashboard with the right playbook — pick one or type your own. You can change it anytime in settings.
+                    </AiBubble>
+                  )}
+                  {currentStepKey === "companyDesc" && (
+                    <AiBubble>
+                      Perfect. In your own words — what does <span className="text-white/95 font-bold">{agencyName}</span> do for clients? Be specific, this is the core context every AI email is built from.
+                      <br /><br />
+                      Don&rsquo;t know what to write? Paste your website URL below and I&rsquo;ll write it for you.
+                    </AiBubble>
+                  )}
+                  {currentStepKey === "tone" && (
+                    <AiBubble>
+                      Got it — that&rsquo;s gold. What tone should your outreach emails use?
+                    </AiBubble>
+                  )}
+                  {currentStepKey === "calendarLink" && (
+                    <AiBubble>
+                      Almost there. Got a Calendly or Cal.com link? I&rsquo;ll drop a booking button straight into your emails.
+                    </AiBubble>
+                  )}
+                  {currentStepKey === "logo" && (
+                    <AiBubble>
+                      Last thing — want to add your logo? It&rsquo;ll show up on your dashboard and in your email signature.
+                    </AiBubble>
+                  )}
+                  {currentStepKey === "review" && (
+                    <AiBubble>
+                      <div className="space-y-3">
+                        <p>Here&rsquo;s your profile — tap anything to edit, or launch when ready.</p>
+                        <div className="rounded-xl overflow-hidden divide-y divide-white/[.06]" style={{ border: "1px solid rgba(255,255,255,.08)" }}>
+                          {[
+                            { label: "Agency", value: agencyName, idx: 0 },
+                            { label: "Role", value: title || "Decision Maker", idx: 1 },
+                            { label: "Focus", value: playbookName, idx: 2 },
+                            { label: "Sending email", value: fromEmail, idx: -1 },
+                            { label: "About", value: companyDesc, idx: 3 },
+                            { label: "Tone", value: tone, idx: 4 },
+                            { label: "Calendar link", value: calendarLink || "Not set", idx: 5 },
+                            { label: "Logo", value: logoUrl ? "Uploaded" : "Not set", idx: 6 },
+                          ].map(row => (
+                            <button
+                              key={row.label}
+                              type="button"
+                              disabled={row.idx === -1}
+                              onClick={() => row.idx !== -1 && editStep(row.idx)}
+                              className="w-full flex items-start justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-white/[.03] disabled:cursor-default"
+                              style={{ background: "rgba(255,255,255,.02)" }}
+                            >
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-bold uppercase tracking-wide text-white/25">{row.label}</p>
+                                <p className="text-[12px] text-white/70 mt-0.5 line-clamp-2">{row.value}</p>
+                              </div>
+                              {row.idx !== -1 && <Pencil className="size-3 shrink-0 text-white/20 mt-1" />}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </AiBubble>
+                  )}
+                </div>
+              )}
+
+              <div ref={bottomRef} />
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center text-center py-6 space-y-5">
+              <div className="relative">
+                <div
+                  className="flex size-16 items-center justify-center rounded-3xl mx-auto"
+                  style={{ background: "rgba(52,211,153,.08)", border: "1px solid rgba(52,211,153,.2)" }}
+                >
+                  <Check className="size-8 text-emerald-400" />
+                </div>
+                <div className="absolute -inset-3 rounded-full opacity-30 animate-ping"
+                  style={{ background: "radial-gradient(circle,rgba(52,211,153,.3) 0%,transparent 70%)" }} />
+              </div>
+
+              <div>
+                <h2 className="text-[20px] font-black tracking-tight text-white/90">
+                  {agencyName || "Your agency"} is ready 🎉
+                </h2>
+                <p className="text-[13px] text-white/35 mt-2 max-w-xs mx-auto">
+                  Your AI is configured. Next up: create your first email sequence.
+                </p>
+              </div>
+
+              <div
+                className="w-full max-w-xs rounded-2xl p-4 text-center"
+                style={{ background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.07)" }}
+              >
+                <p className="text-[11px] text-white/30 mb-2">Taking you to Sequences in…</p>
+                <div className="flex items-center justify-center gap-2">
+                  <span
+                    className="flex size-9 items-center justify-center rounded-full text-[18px] font-black text-white/80"
+                    style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)" }}
+                  >
+                    {Math.max(0, countdown)}
+                  </span>
+                </div>
+                <div className="mt-3 h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,.07)" }}>
+                  <div
+                    className="h-full rounded-full transition-all duration-1000"
+                    style={{
+                      width: `${((3 - countdown) / 3) * 100}%`,
+                      background: "linear-gradient(90deg,rgba(52,211,153,.5),rgba(52,211,153,.8))",
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="w-full max-w-xs space-y-2.5">
+                <button
+                  onClick={() => router.push("/dashboard")}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-[13px] font-black text-black transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  style={{ background: "linear-gradient(135deg,#e2e5ed,#c8cdd8)", boxShadow: "0 2px 12px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.5)" }}
+                >
+                  Go Now
+                  <ArrowRight className="size-4" />
+                </button>
+                <button
+                  onClick={() => router.push("/dashboard")}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-[13px] font-medium text-white/40 transition-all hover:text-white/60"
+                  style={{ background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.06)" }}
+                >
+                  Skip to Dashboard
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Input area */}
+        {!done && !typing && (
+          <div className="px-6 py-4 relative" style={{ borderTop: "1px solid rgba(255,255,255,.06)" }}>
+            {currentStepKey === "agencyName" && (
+              <div className="flex items-center gap-2">
+                <input
+                  autoFocus
+                  value={draft}
+                  onChange={e => setDraft(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && submitAgencyName()}
+                  placeholder="e.g. Acme Marketing"
+                  className="flex-1 rounded-xl px-4 py-2.5 text-[13px] text-white/85 outline-none placeholder:text-white/20"
+                  style={fieldStyle}
+                />
+                <button
+                  onClick={submitAgencyName}
+                  className="flex size-10 shrink-0 items-center justify-center rounded-xl transition-all hover:brightness-110"
+                  style={{ background: "linear-gradient(135deg,#7c83fd,#5a61d6)" }}
+                >
+                  <Send className="size-4 text-white" />
+                </button>
+              </div>
+            )}
+
+            {currentStepKey === "title" && (
+              <div className="flex items-center gap-2">
+                <div className="flex-1 min-w-0">
+                  <ComboSelect value={title} onChange={setTitle} options={TITLES} placeholder="Select or type your role…" dropUp />
+                </div>
+                <button
+                  onClick={submitTitle}
+                  className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-4 text-[12px] font-bold text-white/70 transition-all hover:brightness-110"
+                  style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)" }}
+                >
+                  Continue <ArrowRight className="size-3.5" />
+                </button>
+              </div>
+            )}
+
+            {currentStepKey === "playbook" && (
+              <div className="flex items-center gap-2">
+                <div className="flex-1 min-w-0">
+                  <ComboSelect
+                    value={playbookName}
+                    onChange={setPlaybookName}
+                    options={PLAYBOOK_OPTIONS.map(p => p.name)}
+                    placeholder="Select or type your agency type…"
+                    dropUp
+                  />
+                </div>
+                <button
+                  onClick={submitPlaybook}
+                  className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-4 text-[12px] font-bold text-white/70 transition-all hover:brightness-110"
+                  style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)" }}
+                >
+                  Continue <ArrowRight className="size-3.5" />
+                </button>
+              </div>
+            )}
+
+            {currentStepKey === "companyDesc" && descMode === "write" && (
+              <div className="space-y-2">
+                <textarea
+                  autoFocus
+                  value={draft}
+                  onChange={e => setDraft(e.target.value)}
+                  rows={3}
+                  placeholder="We help dental practices grow their patient base through SEO and paid ads. We typically get clients 15–30 new patients per month."
+                  className="w-full rounded-xl px-4 py-3 text-[13px] text-white/85 outline-none placeholder:text-white/20 resize-none"
+                  style={fieldStyle}
+                />
+                <div className="flex items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setDescMode("url")}
+                    className="text-[11px] font-semibold text-white/30 hover:text-white/55 transition-colors text-left"
+                  >
+                    ✨ Paste your website URL instead — let AI write it
+                  </button>
+                  <button
+                    onClick={submitCompanyDesc}
+                    className="flex shrink-0 items-center gap-1.5 rounded-xl px-4 py-2 text-[12px] font-bold text-white transition-all hover:brightness-110"
+                    style={{ background: "linear-gradient(135deg,#7c83fd,#5a61d6)" }}
+                  >
+                    Continue <ArrowRight className="size-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {currentStepKey === "companyDesc" && descMode === "url" && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    autoFocus
+                    type="url"
+                    value={descUrl}
+                    onChange={e => setDescUrl(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && !descGenerating && generateDescFromUrl()}
+                    placeholder="https://youragency.com"
+                    className="flex-1 rounded-xl px-4 py-2.5 text-[13px] text-white/85 outline-none placeholder:text-white/20"
+                    style={fieldStyle}
+                  />
+                  <button
+                    onClick={generateDescFromUrl}
+                    disabled={descGenerating}
+                    className="flex shrink-0 items-center gap-1.5 rounded-xl px-4 py-2.5 text-[12px] font-bold text-white transition-all hover:brightness-110 disabled:opacity-50"
+                    style={{ background: "linear-gradient(135deg,#7c83fd,#5a61d6)" }}
+                  >
+                    {descGenerating ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+                    {descGenerating ? "Reading site…" : "Write it for me"}
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setDescMode("write")}
+                  className="text-[11px] font-semibold text-white/30 hover:text-white/55 transition-colors"
+                >
+                  ← I&rsquo;ll write it myself
+                </button>
+              </div>
+            )}
+
+            {currentStepKey === "tone" && (
+              <div className="grid grid-cols-2 gap-2">
+                {TONES.map(t => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => selectTone(t)}
+                    className="rounded-xl py-2.5 text-[12px] font-bold transition-all"
+                    style={tone === t
+                      ? { background: "rgba(124,131,253,.18)", border: "1px solid rgba(124,131,253,.4)", color: "rgba(255,255,255,.9)" }
+                      : { background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.07)", color: "rgba(255,255,255,.5)" }
+                    }
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {currentStepKey === "calendarLink" && (
+              <div className="flex items-center gap-2">
+                <input
+                  autoFocus
+                  type="url"
+                  value={draft}
+                  onChange={e => setDraft(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && submitCalendarLink()}
+                  placeholder="https://calendly.com/your-slug"
+                  className="flex-1 rounded-xl px-4 py-2.5 text-[13px] text-white/85 outline-none placeholder:text-white/20"
+                  style={fieldStyle}
+                />
+                <button
+                  onClick={() => submitCalendarLink(true)}
+                  className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-3 text-[12px] font-bold text-white/40 transition-all hover:text-white/60"
+                  style={{ background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.07)" }}
+                >
+                  <SkipForward className="size-3.5" /> Skip
+                </button>
+                <button
+                  onClick={() => submitCalendarLink(false)}
+                  className="flex size-10 shrink-0 items-center justify-center rounded-xl transition-all hover:brightness-110"
+                  style={{ background: "linear-gradient(135deg,#7c83fd,#5a61d6)" }}
+                >
+                  <Send className="size-4 text-white" />
+                </button>
+              </div>
+            )}
+
+            {currentStepKey === "logo" && (
+              <div className="flex items-center gap-3">
+                <Avatar className="size-10 rounded-xl shrink-0" style={{ boxShadow: "0 0 0 2px rgba(255,255,255,.08)" }}>
+                  <AvatarImage src={logoUrl ?? undefined} />
+                  <AvatarFallback className="rounded-xl text-[13px] font-black text-white/50"
+                    style={{ background: "linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.03))" }}>
+                    {initials(agencyName || "?")}
+                  </AvatarFallback>
+                </Avatar>
+                <label
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2.5 text-[12px] font-bold text-white/60 transition-all hover:text-white/80"
+                  style={{ background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.08)" }}
+                >
+                  {logoUploading ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+                  {logoUploading ? "Uploading…" : logoUrl ? "Change" : "Upload"}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={logoUploading} />
+                </label>
+                <div className="flex-1" />
+                {!logoUrl && (
+                  <button
+                    onClick={continueFromLogo}
+                    className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-3 text-[12px] font-bold text-white/40 transition-all hover:text-white/60"
+                    style={{ background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.07)" }}
+                  >
+                    <SkipForward className="size-3.5" /> Skip
+                  </button>
+                )}
+                <button
+                  onClick={continueFromLogo}
+                  disabled={logoUploading}
+                  className="flex size-10 shrink-0 items-center justify-center rounded-xl transition-all hover:brightness-110 disabled:opacity-50"
+                  style={{ background: "linear-gradient(135deg,#7c83fd,#5a61d6)" }}
+                >
+                  <ArrowRight className="size-4 text-white" />
+                </button>
+              </div>
+            )}
+
+            {currentStepKey === "review" && (
               <button
-                onClick={() => router.push("/sequences")}
-                className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-[13px] font-bold text-black transition-all hover:brightness-110"
+                onClick={handleSave}
+                disabled={saving}
+                className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-[13px] font-bold text-black transition-all hover:brightness-110 active:scale-[.99] disabled:opacity-50"
                 style={{ background: "linear-gradient(135deg,#e2e5ed,#c8cdd8)", boxShadow: "0 2px 12px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.5)" }}
               >
-                Go Now
-                <ArrowRight className="size-4" />
+                {saving ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+                {saving ? "Setting things up…" : "Looks good — Launch Dashboard"}
+                {!saving && <ArrowRight className="size-4" />}
               </button>
-              <button
-                onClick={() => router.push("/dashboard")}
-                className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-[13px] font-medium text-white/40 transition-all hover:text-white/60"
-                style={{ background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.06)" }}
-              >
-                Skip to Dashboard
-              </button>
-            </div>
+            )}
           </div>
         )}
       </div>

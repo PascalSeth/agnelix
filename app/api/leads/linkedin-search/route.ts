@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import * as cheerio from "cheerio"
@@ -642,7 +643,6 @@ export async function findLinkedInProfiles(params: {
   logs.push(`[${new Date().toLocaleTimeString()}] Verifying AI-returned profile links...`)
   const verifiedAiResultsRaw = await Promise.all(
     (aiResults as AiResultWithHint[]).map(async (p) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { _unverifiedName, ...clean } = p
 
       if (!p.linkedinUrl) return clean

@@ -27,7 +27,7 @@ if (!globalForPoller.pollerStarted) {
     // Start background email/reply detection and sequence/auto-actions scheduler loops
     console.log("[Background Poller] Starting background IMAP & scheduler loops...")
 
-    // 1. Poll new replies from IMAP every 30 seconds
+    // 1. Poll new replies from IMAP every 10 seconds
     setInterval(async () => {
       try {
         const { detectReplies } = await import("./imap")
@@ -35,9 +35,9 @@ if (!globalForPoller.pollerStarted) {
       } catch (err) {
         console.error("[Background Poller] IMAP replies poll error:", err)
       }
-    }, 30000)
+    }, 10000)
 
-    // 2. Poll sequence queue sending and expired auto-actions every 30 seconds
+    // 2. Poll sequence queue sending and expired auto-actions every 10 seconds
     setInterval(async () => {
       try {
         const { processSequenceQueue } = await import("./scheduler")
@@ -76,6 +76,6 @@ if (!globalForPoller.pollerStarted) {
       } catch (err) {
         console.error("[Background Poller] Scheduler poll error:", err)
       }
-    }, 30000)
+    }, 10000)
   }
 }

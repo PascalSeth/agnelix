@@ -1,11 +1,16 @@
 "use client"
 
-import { useState } from "react"
-import { signIn } from "next-auth/react"
+import { Suspense, useState } from "react"
+import { signIn, signOut } from "next-auth/react"
+import { useSearchParams } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+const ERROR_MESSAGES: Record<string, string> = {
+  OAuthAccountNotLinked: "That account couldn't be linked automatically. Please sign out of any other Google account in your browser and try again.",
+}
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" className="size-4 shrink-0">
@@ -17,11 +22,25 @@ const GoogleIcon = () => (
 )
 
 export default function SignInPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignInForm />
+    </Suspense>
+  )
+}
+
+function SignInForm() {
   const [tab, setTab] = useState<"signin" | "signup">("signin")
   const [loading, setLoading] = useState(false)
+  const searchParams = useSearchParams()
+  const errorCode = searchParams.get("error")
+  const errorMessage = errorCode ? (ERROR_MESSAGES[errorCode] ?? "Something went wrong while signing you in. Please try again.") : null
 
   async function handleGoogle() {
     setLoading(true)
+    // Clear any stale session before starting a fresh OAuth flow, so signing in
+    // with a different Google account doesn't collide with the old session.
+    await signOut({ redirect: false })
     await signIn("google", { callbackUrl: "/dashboard" })
   }
 
@@ -86,6 +105,13 @@ export default function SignInPage() {
                 : "Start sending AI-powered emails in minutes"}
             </p>
           </div>
+
+          {/* Error message */}
+          {errorMessage && (
+            <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-[13px] text-red-300">
+              {errorMessage}
+            </div>
+          )}
 
           {/* Google OAuth */}
           <button

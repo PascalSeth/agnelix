@@ -7,7 +7,7 @@ import {
   ArrowLeft, Search, MapPin, Globe, Phone,
   Check, Loader2, Download, Megaphone, Plus, GitBranch,
   Filter, Star, Globe2, MessageSquare,
-  Shield, Gauge, ChevronDown, Sparkles,
+  Shield, Gauge, ChevronDown, Sparkles, Layers, Target,
 } from "lucide-react"
 import { toast } from "sonner"
 import { CustomSelect } from "@/components/ui/custom-select"
@@ -16,6 +16,7 @@ import { LeadDetailSide, type AuditData, type PlaceEnrichment } from "@/componen
 import type { ContactResult } from "@/lib/contact-finder"
 import type { LinkedInDecisionMaker } from "@/app/api/leads/linkedin-search/route"
 import { emailFromPlace } from "@/lib/utils"
+import { usePlaybook } from "@/lib/playbook-context"
 
 type Campaign = { id: string; name: string; status: string }
 type Sequence  = { id: string; name: string }
@@ -208,6 +209,8 @@ export default function FindLeadsPage() {
   const [searched, setSearched]         = useState(false)
   const [limit, setLimit]               = useState(20)
   const [searchTarget, setSearchTarget] = useState<"b2b" | "b2c">("b2b")
+  const [platformFocus, setPlatformFocus] = useState<string | null>(null)
+  const { activePlaybook } = usePlaybook()
 
   // Filter state
   const [showFilters, setShowFilters]     = useState(false)
@@ -484,6 +487,8 @@ export default function FindLeadsPage() {
           contactsJson: contacts.length > 0 ? JSON.stringify(contacts) : null,
           linkedinProfilesJson: cached.linkedInProfiles ? JSON.stringify(cached.linkedInProfiles) : null,
           recommendedApproach: cached.research?.recommendedApproach?.id || null,
+          sourceQuery: query.trim() || null,
+          platformFocus: platformFocus || null,
         }
       })
 
@@ -783,6 +788,53 @@ export default function FindLeadsPage() {
               )}
             </button>
           </div>
+
+          {/* Playbook discovery chips */}
+          {activePlaybook && (activePlaybook.targetVerticals.length > 0 || (activePlaybook.platformOptions?.length ?? 0) > 0) && (
+            <div className="flex flex-wrap items-center gap-2">
+              {activePlaybook.targetVerticals.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="flex items-center gap-1 text-[9px] font-black text-white/25 uppercase tracking-wider">
+                    <Target className="size-3" /> {activePlaybook.name}
+                  </span>
+                  {activePlaybook.targetVerticals.map(v => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setQuery(v)}
+                      className="rounded-full px-2.5 py-1 text-[10px] font-semibold transition-all hover:brightness-125"
+                      style={query === v
+                        ? { background: "rgba(56,189,248,.18)", border: "1px solid rgba(56,189,248,.3)", color: "rgba(125,211,252,.9)" }
+                        : { background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", color: "rgba(255,255,255,.45)" }}
+                    >
+                      {v}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {(activePlaybook.platformOptions?.length ?? 0) > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="flex items-center gap-1 text-[9px] font-black text-white/25 uppercase tracking-wider">
+                    <Layers className="size-3" /> Platform
+                  </span>
+                  {activePlaybook.platformOptions!.map(p => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setPlatformFocus(prev => prev === p ? null : p)}
+                      className="rounded-full px-2.5 py-1 text-[10px] font-semibold transition-all hover:brightness-125"
+                      style={platformFocus === p
+                        ? { background: "rgba(139,92,246,.18)", border: "1px solid rgba(139,92,246,.3)", color: "rgba(196,181,253,.9)" }
+                        : { background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", color: "rgba(255,255,255,.45)" }}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Local Neighbor Info Banner */}
           {searchTarget === "b2c" && (

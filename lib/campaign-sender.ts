@@ -2,6 +2,9 @@ import { prisma } from "./db"
 import { generateEmail } from "./ai"
 import { checkEmailQuota } from "./cost-guard"
 import { performCompanyResearch } from "./research"
+import { generateDraftsForCampaign } from "./campaign-drafts"
+import { drainDueQueue } from "./scheduler"
+import { enrichLeadsInBackground } from "./lead-enricher"
 
 /**
  * Generates AI emails and queues them for a campaign.
@@ -52,21 +55,23 @@ export async function generateAndQueueEmails(
 
     if (drafts.length > 0) {
       if (campaign.autonomous) {
-        // Promote all drafts to QUEUED with proper step delays
+        // Promote only the lowest step number draft to QUEUED. Keep others as DRAFT.
+        const lowestStep = drafts[0].stepNumber
         for (const email of drafts) {
-          const scheduledAt = new Date(now)
-          if (email.stepNumber > 1) {
-            let daysOffset = 0
-            for (let i = 1; i < email.stepNumber; i++) daysOffset += steps[i - 1]?.delayDays ?? 1
-            scheduledAt.setDate(scheduledAt.getDate() + daysOffset)
+          if (email.stepNumber === lowestStep) {
+            await prisma.email.update({
+              where: { id: email.id },
+              data: { status: "QUEUED", scheduledAt: now },
+            })
+            queued++
+          } else {
+            // Ensure follow-ups are DRAFT status until the prior step is sent
+            await prisma.email.update({
+              where: { id: email.id },
+              data: { status: "DRAFT" },
+            })
           }
-          await prisma.email.update({
-            where: { id: email.id },
-            data: { status: "QUEUED", scheduledAt },
-          })
         }
-        // Count only step-1 emails as immediately due
-        queued += drafts.filter(d => d.stepNumber === 1).length
       }
       continue
     }
@@ -109,6 +114,7 @@ export async function generateAndQueueEmails(
       } else {
         const generated = await generateEmail(
           {
+            userId:            user.id,
             senderName:        user.name || "Your Name",
             senderTitle:       user.title || "Marketing Consultant",
             senderCompany:     user.agencyName || user.companyName || "Your Company",
@@ -146,7 +152,7 @@ export async function generateAndQueueEmails(
           body,
           aiPrompt: promptStr,
           stepNumber: step.stepNumber,
-          status: campaign.autonomous ? "QUEUED" : "DRAFT",
+          status: (campaign.autonomous && step.stepNumber === 1) ? "QUEUED" : "DRAFT",
           scheduledAt,
         },
       })
@@ -178,4 +184,48 @@ export async function generateAndQueueEmails(
   }
 
   return { queued }
+}
+
+/**
+ * Main campaign launch and autopilot execution pipeline.
+ * Triggers background enrichment for unenriched leads (if autonomous/autopilot),
+ * generates drafts, promotes Step 1 to QUEUED, and drains the sending queue.
+ */
+export async function runLaunchPipeline(
+  campaignId: string,
+  userId: string,
+  customEmails?: { leadId: string; stepNumber: number; subject: string; body: string }[]
+) {
+  const campaign = await prisma.campaign.findUnique({
+    where: { id: campaignId },
+    include: {
+      campaignLeads: {
+        include: { lead: true }
+      }
+    }
+  })
+  if (!campaign) return
+
+  // 1. If autonomous/autopilot, trigger background enrichment for NEW leads that have not been enriched
+  if (campaign.autonomous) {
+    const unenrichedLeadIds = campaign.campaignLeads
+      .filter(cl => cl.lead.status === "NEW" && cl.lead.contactsJson === null)
+      .map(cl => cl.lead.id)
+
+    if (unenrichedLeadIds.length > 0) {
+      console.log(`[Launch Autopilot] Triggering background enrichment for ${unenrichedLeadIds.length} unenriched leads.`)
+      enrichLeadsInBackground(unenrichedLeadIds).catch(err => {
+        console.error("[Launch Autopilot] Background enrichment error:", err)
+      })
+    }
+  }
+
+  // 2. Process already-enriched leads and custom overrides
+  await generateAndQueueEmails(campaignId, userId, undefined, customEmails)
+  
+  // 3. Generate drafts for remaining leads
+  await generateDraftsForCampaign(campaignId, userId)
+  
+  // 4. Drain the SMTP queue
+  await drainDueQueue()
 }

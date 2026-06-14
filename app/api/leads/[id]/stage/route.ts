@@ -48,7 +48,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   // Stage-specific automation
   if (stage === "MEETING_BOOKED") {
     // Cancel remaining queued follow-ups
-    ops.push(prisma.email.updateMany({ where: { leadId: id, status: "QUEUED" }, data: { status: "FAILED" } }))
+    ops.push(prisma.email.deleteMany({ where: { leadId: id, status: "QUEUED" } }))
     // Increment meeting counter on campaigns
     if (campaignIds.length > 0) {
       ops.push(prisma.campaign.updateMany({ where: { id: { in: campaignIds } }, data: { meetings: { increment: 1 } } }))
@@ -79,25 +79,25 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   if (stage === "WON") {
     // Cancel all remaining queued emails
-    ops.push(prisma.email.updateMany({ where: { leadId: id, status: "QUEUED" }, data: { status: "FAILED" } }))
+    ops.push(prisma.email.deleteMany({ where: { leadId: id, status: "QUEUED" } }))
     ops.push(prisma.activity.create({ data: { leadId: id, type: "DEAL_WON", note: "Deal marked as Won" } }))
   }
 
   if (stage === "LOST") {
     // Cancel all remaining queued emails
-    ops.push(prisma.email.updateMany({ where: { leadId: id, status: "QUEUED" }, data: { status: "FAILED" } }))
+    ops.push(prisma.email.deleteMany({ where: { leadId: id, status: "QUEUED" } }))
     ops.push(prisma.activity.create({ data: { leadId: id, type: "DEAL_LOST", note: "Deal marked as Lost" } }))
   }
 
   if (stage === "NOT_INTERESTED") {
     // Cancel all remaining queued emails
-    ops.push(prisma.email.updateMany({ where: { leadId: id, status: "QUEUED" }, data: { status: "FAILED" } }))
+    ops.push(prisma.email.deleteMany({ where: { leadId: id, status: "QUEUED" } }))
     ops.push(prisma.activity.create({ data: { leadId: id, type: "DEAL_LOST", note: "Lead marked as Not Interested" } }))
   }
 
   if (stage === "BOUNCED") {
     // Cancel all remaining queued emails
-    ops.push(prisma.email.updateMany({ where: { leadId: id, status: "QUEUED" }, data: { status: "FAILED" } }))
+    ops.push(prisma.email.deleteMany({ where: { leadId: id, status: "QUEUED" } }))
     ops.push(prisma.activity.create({ data: { leadId: id, type: "DEAL_LOST", note: "Lead email Bounced" } }))
   }
 

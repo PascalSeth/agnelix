@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ImapFlow } from "imapflow"
 import { prisma } from "./db"
 import { generateBattleCard } from "./ai"
@@ -235,7 +236,6 @@ export async function detectReplies(userId?: string): Promise<{ found: number; e
             // Extract reply body from IMAP message
             let replyBody = ""
             try {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const textPart = (msg.bodyParts as any)?.get?.("text")
               if (textPart) {
                 const rawBody = Buffer.isBuffer(textPart) ? textPart.toString("utf8") : String(textPart)
@@ -299,9 +299,9 @@ export async function detectReplies(userId?: string): Promise<{ found: number; e
                   ...(battleCardJson ? { battleCard: battleCardJson } : {}),
                 },
               }),
-              prisma.email.updateMany({
-                where: { leadId: lead.id, status: "QUEUED" },
-                data: { status: "FAILED" },
+              // Lead replied — cancel any remaining unsent sequence templates
+              prisma.email.deleteMany({
+                where: { leadId: lead.id, status: { in: ["QUEUED", "DRAFT"] } },
               }),
               campaignIds.length > 0
                 ? prisma.campaign.updateMany({

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { auth } from "@/auth"
 import { notFound } from "next/navigation"
 import { prisma } from "@/lib/db"
@@ -42,7 +43,6 @@ export default async function LeadDetailPage({
   const { id } = await params
   const userId = session.user.id
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let lead: any = null
   try {
     lead = await prisma.lead.findUnique({
@@ -60,9 +60,7 @@ export default async function LeadDetailPage({
   } catch { notFound() }
   if (!lead) notFound()
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let activities: any[] = []
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let replies: any[] = []
 
   try {
@@ -292,6 +290,12 @@ export default async function LeadDetailPage({
             contactsJson={lead.contactsJson}
             linkedinProfilesJson={lead.linkedinProfilesJson}
             recommendedApproach={lead.recommendedApproach}
+            icebreaker={lead.icebreaker}
+            researchNotes={lead.researchNotes}
+            painPoints={lead.painPoints}
+            competitorAnalysis={lead.competitorAnalysis}
+            buyingSignalsJson={lead.buyingSignalsJson}
+            signalsCheckedAt={lead.signalsCheckedAt}
           />
 
           {/* Mobile: pipeline panel below tabs */}

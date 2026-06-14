@@ -42,7 +42,7 @@ export async function generateDraftsForCampaign(
         try { auditData = JSON.parse(lead.auditJson) } catch { /* ignore */ }
       }
 
-      const approach = lead.recommendedApproach || "competitor"
+      const approach = lead.recommendedApproach || "website"
       const companyResearch = await performCompanyResearch(
         lead.company || lead.email.split("@")[0],
         lead.website,
@@ -64,6 +64,7 @@ export async function generateDraftsForCampaign(
 
         const result = await generateEmail(
           {
+            userId:              user.id,
             senderName:          user.name || "Your Name",
             senderTitle:         user.title || "Marketing Consultant",
             senderCompany:       user.agencyName || user.companyName || "Your Company",
@@ -100,7 +101,7 @@ export async function generateDraftsForCampaign(
             body:       result.body,
             aiPrompt:   `${approach} approach`,
             stepNumber: step.stepNumber,
-            status:     autonomous ? "QUEUED" : "DRAFT",
+            status:     (autonomous && step.stepNumber === 1) ? "QUEUED" : "DRAFT",
             scheduledAt,
           },
         })

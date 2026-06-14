@@ -7,7 +7,7 @@ import { formatRelative, initials } from "@/lib/utils"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { toast } from "sonner"
 
-type LeadStatus = "NEW" | "CONTACTED" | "REPLIED" | "MEETING_BOOKED" | "NOT_INTERESTED" | "BOUNCED"
+type LeadStatus = "NEW" | "CONTACTED" | "REPLIED" | "INTERESTED" | "MEETING_BOOKED" | "PROPOSAL_SENT" | "WON" | "LOST" | "NOT_INTERESTED" | "BOUNCED"
 
 export interface LeadRow {
   id: string
@@ -22,13 +22,19 @@ export interface LeadRow {
   linkedinUrl?: string | null
   auditJson?: string | null
   contactsJson?: string | null
+  platformFocus?: string | null
+  sourceQuery?: string | null
 }
 
 const STATUS_STYLE: Record<LeadStatus, { text: string; bg: string }> = {
   NEW:            { text: "text-white/40",    bg: "rgba(255,255,255,.06)"  },
   CONTACTED:      { text: "text-sky-300",     bg: "rgba(125,211,252,.1)"  },
   REPLIED:        { text: "text-violet-300",  bg: "rgba(167,139,250,.1)"  },
+  INTERESTED:     { text: "text-amber-300",   bg: "rgba(252,211,77,.1)"   },
   MEETING_BOOKED: { text: "text-emerald-300", bg: "rgba(52,211,153,.1)"   },
+  PROPOSAL_SENT:  { text: "text-indigo-300",  bg: "rgba(129,140,248,.1)"  },
+  WON:            { text: "text-emerald-400", bg: "rgba(16,185,129,.12)"  },
+  LOST:           { text: "text-white/25",    bg: "rgba(255,255,255,.03)" },
   NOT_INTERESTED: { text: "text-white/30",    bg: "rgba(255,255,255,.04)" },
   BOUNCED:        { text: "text-red-400",     bg: "rgba(239,68,68,.1)"    },
 }
@@ -90,7 +96,7 @@ export function LeadTable({ leads: initial }: { leads: LeadRow[] }) {
       {/* Rows */}
       {rows.map((lead, idx) => {
         const name = [lead.firstName, lead.lastName].filter(Boolean).join(" ") || lead.email
-        const ss   = STATUS_STYLE[lead.status]
+        const ss   = STATUS_STYLE[lead.status] ?? STATUS_STYLE.NEW
         return (
           <div
             key={lead.id}
@@ -145,6 +151,16 @@ export function LeadTable({ leads: initial }: { leads: LeadRow[] }) {
                     } catch {}
                     return null
                   })()}
+                  {lead.platformFocus && (
+                    <span className="inline-flex items-center gap-0.5 text-[8px] font-bold text-violet-400 bg-violet-400/5 border border-violet-400/10 px-1 py-0.25 rounded">
+                      {lead.platformFocus}
+                    </span>
+                  )}
+                  {lead.sourceQuery && (
+                    <span className="inline-flex items-center gap-0.5 text-[8px] font-bold text-indigo-400 bg-indigo-400/5 border border-indigo-400/10 px-1.5 py-0.25 rounded max-w-[120px] truncate" title={lead.sourceQuery}>
+                      {lead.sourceQuery}
+                    </span>
+                  )}
                 </div>
               </div>
             </Link>

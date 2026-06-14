@@ -23,7 +23,7 @@ export function CampaignCard({
 }: CampaignCardProps) {
   const s        = STATUS[status]
   const openRate = pct(emailsOpened, emailsSent)
-  const replyRate= pct(replies, emailsSent)
+  const replyRate= pct(replies, totalLeads)
   const sentPct  = totalLeads > 0 ? Math.round((emailsSent / totalLeads) * 100) : 0
 
   const metrics = [

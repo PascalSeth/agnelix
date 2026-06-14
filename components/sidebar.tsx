@@ -8,6 +8,8 @@ import {
   LayoutDashboard, Users, Megaphone, GitBranch,
   Settings, LogOut, X, ChevronLeft, ChevronRight,
   KanbanSquare, Inbox, Sparkles,
+  Search, FileText, Briefcase, Swords, Globe, BarChart3,
+  ClipboardList, BookOpen, Copy, Zap, Bot
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn, initials } from "@/lib/utils"
@@ -15,24 +17,53 @@ import Image from "next/image"
 
 const navGroups = [
   {
+    label: "Command Center",
     items: [
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { href: "/pipeline",  label: "Pipeline",  icon: KanbanSquare },
       { href: "/inbox",     label: "Inbox",     icon: Inbox },
+    ],
+  },
+  {
+    label: "Acquisition",
+    items: [
+      { href: "/leads/find", label: "Find Leads", icon: Search },
+      { href: "/auto-prospecting", label: "Auto-Prospecting", icon: Zap },
+      { href: "/leads",      label: "Leads Database", icon: Users },
+      { href: "/campaigns",  label: "Campaigns", icon: Megaphone },
+      { href: "/sequences",  label: "Sequences", icon: GitBranch },
       { href: "/playground", label: "Playground", icon: Sparkles },
     ],
   },
   {
-    label: "Outreach",
+    label: "Convert",
     items: [
-      { href: "/sequences",          label: "Sequences", icon: GitBranch },
-      { href: "/campaigns",          label: "Campaigns", icon: Megaphone },
-      { href: "/leads",              label: "Leads",     icon: Users },
+      { href: "/proposals",        label: "Proposals", icon: FileText },
+      { href: "/case-studies",     label: "Case Studies", icon: Briefcase },
+      { href: "/competitor-intel", label: "Competitor Intel", icon: Swords },
     ],
   },
   {
+    label: "Client Layer",
     items: [
-      { href: "/settings/agency", label: "Settings", icon: Settings },
+      { href: "/portals",    label: "Client Portals", icon: Globe },
+      { href: "/reports",    label: "Reports", icon: BarChart3 },
+      { href: "/onboarding", label: "Onboarding", icon: ClipboardList },
+    ],
+  },
+  {
+    label: "Assets & Playbooks",
+    items: [
+      { href: "/playbooks",    label: "Playbook Settings", icon: BookOpen },
+      { href: "/templates",    label: "Templates", icon: Copy },
+      { href: "/battle-cards", label: "Battle Cards", icon: Zap },
+    ],
+  },
+  {
+    label: "Automation & Settings",
+    items: [
+      { href: "/settings/autopilot", label: "Autopilot", icon: Bot },
+      { href: "/settings/agency",    label: "Agency Profile", icon: Settings },
     ],
   },
 ]

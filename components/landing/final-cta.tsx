@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Mail, Bot, MapPin, Workflow, ArrowRight, CheckCircle2, Zap } from "lucide-react"
-import Link from "next/link"
+import { CtaLink } from "@/components/landing/cta-link"
 
 export function FinalCTA() {
   return (
@@ -26,7 +27,7 @@ export function FinalCTA() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
             </span>
-            Agent ready for deployment
+            Ready when you are
           </div>
 
           {/* Headline */}
@@ -34,13 +35,13 @@ export function FinalCTA() {
             Ready to put your
             <br />
             <span className="font-luxury-serif italic text-transparent bg-clip-text bg-gradient-to-r from-[#c5a880] to-[#e6d5b8] font-normal">
-              outreach on autopilot?
+              sales on autopilot?
             </span>
           </h2>
-          
+
           {/* Subheadline */}
           <p className="anim-fade-up mx-auto mt-8 max-w-2xl text-lg lg:text-xl text-slate-400 font-medium leading-relaxed" style={{ animationDelay: "0.3s" }}>
-            Stop manually searching for leads and writing emails. Agnelix finds businesses, handles replies, and books meetings—<span className="text-white">you just wake up to a full calendar.</span>
+            Stop searching for leads and writing emails by hand. Agnelix finds businesses, writes the emails, and replies to interested leads — <span className="text-white">you just wake up to a full calendar.</span>
           </p>
 
           <div className="anim-fade-up mt-12 flex flex-col items-center gap-6" style={{ animationDelay: "0.4s" }}>
@@ -50,14 +51,14 @@ export function FinalCTA() {
               {/* Outer Button Glow */}
               <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-[#c5a880] via-[#e6d5b8] to-[#c5a880] opacity-40 blur-lg transition-all duration-500 group-hover:opacity-70 group-hover:blur-xl group-hover:duration-200" />
               
-              <Link
-                href="/sign-in"
+              <CtaLink
                 className="relative flex items-center justify-center gap-3 rounded-2xl bg-white px-8 py-4 text-base font-bold text-[#0A0B0E] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-[inset_0_-2px_10px_rgba(0,0,0,0.1)]"
+                authedChildren={<><Zap className="h-5 w-5 fill-current" /> Go to Dashboard <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" /></>}
               >
                 <Zap className="h-5 w-5 fill-current" />
-                Deploy Your AI Agent
+                Start Free Trial
                 <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-              </Link>
+              </CtaLink>
             </div>
 
             {/* Micro Trust Copy */}
@@ -68,10 +69,10 @@ export function FinalCTA() {
             {/* Trust/Feature Checkmarks */}
             <div className="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 pt-8 border-t border-white/5">
               {[
-                { icon: MapPin, text: "Automated Lead Discovery" },
+                { icon: MapPin, text: "Finds leads automatically" },
                 { icon: Mail, text: "Connects to Gmail & Outlook" },
-                { icon: Bot, text: "Autonomous Follow-ups" },
-                { icon: Workflow, text: "CRM Pipeline Included" }
+                { icon: Bot, text: "Replies & books meetings" },
+                { icon: Workflow, text: "Tracks every deal" }
               ].map(({ icon: Icon, text }) => (
                 <span key={text} className="flex items-center gap-2 text-sm font-semibold text-slate-400 transition-colors hover:text-white">
                   <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/5 border border-white/10">

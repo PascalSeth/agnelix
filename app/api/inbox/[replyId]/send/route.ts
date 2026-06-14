@@ -44,7 +44,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ rep
 
   try {
     const smtp = resolveSmtp(user)
-    await sendEmail({
+    const sendResult = await sendEmail({
       to:         lead.email,
       from:       smtp.user,
       fromName:   user.agencyName || user.name || "Agnelix",
@@ -57,14 +57,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ rep
       calendlyLink: user.calendarLink || undefined,
     }, smtp)
 
-    await prisma.activity.create({
-      data: {
-        leadId: lead.id,
-        type: "EMAIL_SENT",
-        note: subject,
-        metadata: { manual: true, replyTo: reply.fromEmail },
-      },
-    })
+    await Promise.all([
+      prisma.email.update({
+        where: { id: emailRecord.id },
+        data: { messageId: sendResult.messageId },
+      }),
+      prisma.activity.create({
+        data: {
+          leadId: lead.id,
+          type: "EMAIL_SENT",
+          note: subject,
+          metadata: { manual: true, replyTo: reply.fromEmail },
+        },
+      }),
+    ])
 
     const { rescheduleNextCampaignStep } = await import("@/lib/scheduler")
     await rescheduleNextCampaignStep(lead.id)

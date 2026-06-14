@@ -1,4 +1,5 @@
-import { Zap, Check, CalendarCheck, Percent, HelpCircle } from "lucide-react"
+import { Zap, Check, CalendarCheck, Percent } from "lucide-react"
+import { CtaLink } from "@/components/landing/cta-link"
 
 export function Pricing() {
   const subscriptionTiers = [
@@ -75,13 +76,13 @@ export function Pricing() {
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-3.5 py-1.5 text-xs font-semibold text-slate-300 backdrop-blur-md mb-4 shadow-sm">
             <Zap className="h-3 w-3 text-[#c5a880]" />
-            Flexible Pricing Models
+            Simple Pricing
           </div>
           <h2 className="text-4xl font-bold tracking-tight text-white sm:text-5xl font-luxury-sans">
-            Transparent, Value-Aligned Plans
+            Pick the plan that fits your agency
           </h2>
           <p className="mt-4 text-lg text-slate-400 font-medium">
-            Choose the subscription tier that matches your agency&apos;s scale, or leverage our performance-based options to align with client results.
+            Start small and upgrade as you grow — or pay based on the meetings and deals Agnelix brings in.
           </p>
         </div>
 
@@ -124,16 +125,26 @@ export function Pricing() {
                 </ul>
               </div>
 
-              <a
-                href="/sign-in"
-                className={`w-full py-2.5 rounded-xl text-center text-xs font-bold transition-all duration-200 ${
-                  tier.popular
-                    ? "bg-gradient-to-r from-[#ffffff] to-[#cbd5e1] text-black hover:brightness-110"
-                    : "bg-white/5 text-white hover:bg-white/10 border border-white/10"
-                }`}
-              >
-                {tier.name === "Enterprise" ? "Contact Sales" : "Get Started"}
-              </a>
+              {tier.name === "Enterprise" ? (
+                <a
+                  href="mailto:hello@agnelix.com"
+                  className="w-full py-2.5 rounded-xl text-center text-xs font-bold transition-all duration-200 bg-white/5 text-white hover:bg-white/10 border border-white/10"
+                >
+                  Contact Sales
+                </a>
+              ) : (
+                <CtaLink
+                  className={`w-full py-2.5 rounded-xl text-center text-xs font-bold transition-all duration-200 ${
+                    tier.popular
+                      ? "bg-gradient-to-r from-[#ffffff] to-[#cbd5e1] text-black hover:brightness-110"
+                      : "bg-white/5 text-white hover:bg-white/10 border border-white/10"
+                  }`}
+                  authedHref="/settings/agency"
+                  authedChildren="Manage Plan"
+                >
+                  Get Started
+                </CtaLink>
+              )}
             </div>
           ))}
         </div>
@@ -151,13 +162,13 @@ export function Pricing() {
           <div className="relative flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-center">
             <div className="flex-1 max-w-2xl">
               <div className="inline-flex items-center gap-1.5 rounded-full bg-[#c5a880]/15 px-3 py-1 text-[11px] font-bold text-[#c5a880] border border-[#c5a880]/30 mb-4 uppercase tracking-wider">
-                <Zap className="h-3 w-3" /> Performance Booking Engine
+                <Zap className="h-3 w-3" /> Pay For Results
               </div>
               <h3 className="text-2xl font-bold tracking-tight text-white md:text-3xl font-luxury-sans">
-                Want to align platform pricing with direct results?
+                Prefer to pay based on what Agnelix actually delivers?
               </h3>
               <p className="mt-3 text-sm text-slate-400 leading-relaxed font-medium">
-                For qualified campaigns, Agnelix offers value-aligned performance integrations. Pay standard SaaS subscription plans or enable automated performance-based add-ons that sync straight with Calendly and your CRM.
+                On top of your plan, you can add performance-based pricing — pay extra only when Agnelix books you a meeting or helps you close a deal.
               </p>
             </div>
 

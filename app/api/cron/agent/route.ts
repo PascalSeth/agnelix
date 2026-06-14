@@ -41,11 +41,7 @@ export async function GET(req: Request) {
 
   for (const action of expired) {
     try {
-      const isAutonomous = action.reply?.email?.campaign?.autonomous ?? false
-      if (action.type === "SEND_REPLY" && action.riskLevel === "HIGH" && !isAutonomous) {
-        skipped++
-        continue
-      }
+      // AI always autonomously executes when expiresAt is reached
       const result = await executePendingAction(action, "auto")
       if (result.ok && action.type === "SEND_REPLY") sent++
       else if (result.ok) skipped++

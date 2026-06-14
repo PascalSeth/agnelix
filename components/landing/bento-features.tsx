@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, @next/next/no-img-element */
 import { MapPin, Brain, Bot, BarChart3, Zap, Swords, Mail, Sparkles, User, Crosshair } from "lucide-react"
 
 export function BentoFeatures() {
@@ -10,12 +11,12 @@ export function BentoFeatures() {
       <div className="mx-auto max-w-7xl px-6 relative z-10">
         <div className="anim-fade-up text-center mb-16 lg:mb-24">
           <h2 className="text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-6xl font-luxury-sans">
-            Everything you need to
+            Everything you need,
             <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#c5a880] to-[#e6d5b8]">automate outreach.</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#c5a880] to-[#e6d5b8]">in one place.</span>
           </h2>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-400 font-medium">
-            Find leads, send emails, and manage deals — all in one place. Replace your fragmented stack with a single autonomous agent.
+            No more juggling five different tools. Agnelix finds leads, writes emails, manages your deals, and follows up — all by itself.
           </p>
         </div>
 
@@ -62,7 +63,7 @@ export function BentoFeatures() {
               </div>
               <h3 className="text-2xl font-bold text-white font-luxury-sans">Lead Discovery</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-400 font-medium max-w-md">
-                Search for businesses by type and location. Agnelix pulls their name, website, phone, and ratings — then finds their direct email address instantly.
+                Tell Agnelix the type of business and the city. It pulls their name, website, phone number, and ratings — then finds a direct email address for each one.
               </p>
             </div>
           </div>
@@ -78,7 +79,7 @@ export function BentoFeatures() {
               </div>
               <h3 className="font-bold text-white font-luxury-sans text-lg">AI Email Writer</h3>
               <p className="mt-2 text-xs leading-relaxed text-slate-400 font-medium">
-                Drafts hyper-personalized emails by reading the prospect&apos;s actual website.
+                Reads each prospect&apos;s website and writes a personal email — not a generic template.
               </p>
             </div>
           </div>
@@ -92,7 +93,7 @@ export function BentoFeatures() {
               </div>
               <h3 className="font-bold text-white font-luxury-sans text-lg">Autonomous Agent</h3>
               <p className="mt-2 text-xs leading-relaxed text-slate-400 font-medium">
-                Reads replies, handles objections, and automatically books meetings for you.
+                When a prospect replies, Agnelix reads it, responds, and can book the meeting — no extra work from you.
               </p>
             </div>
           </div>
@@ -106,7 +107,7 @@ export function BentoFeatures() {
                 </div>
                 <h3 className="font-bold text-lg text-white font-luxury-sans">Pipeline &amp; CRM</h3>
                 <p className="mt-2 text-xs leading-relaxed text-slate-400 font-medium">
-                  Track every deal from first contact to closed won. See your revenue pipeline at a glance.
+                  See every lead and deal in one place — from first email to closed deal — so you always know what&apos;s happening.
                 </p>
               </div>
               {/* UI Mockup of Kanban */}
@@ -143,7 +144,7 @@ export function BentoFeatures() {
               </div>
               <h3 className="font-bold text-lg text-white font-luxury-sans">Battle Cards</h3>
               <p className="mt-2 text-xs leading-relaxed text-slate-400 font-medium">
-                AI generates an instant cheat sheet when a prospect replies. Get talking points, objection handling, and clear next steps automatically.
+                When a prospect replies, Agnelix instantly gives you a one-page cheat sheet — what to say, how to handle objections, and what to do next.
               </p>
             </div>
           </div>

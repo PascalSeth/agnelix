@@ -130,3 +130,90 @@ Keep the response under 150 words total, bullet-pointed.`
     return `Company name: ${companyName}. Website: ${websiteUrl}. (Failed to process raw text)`
   }
 }
+
+/**
+ * Scrapes an agency's own website and asks the AI to write a short
+ * first-person description of what they do, for use as onboarding companyDesc.
+ */
+export async function generateAgencyDescriptionFromUrl(websiteUrl: string): Promise<string> {
+  const url = websiteUrl.startsWith("http") ? websiteUrl : `https://${websiteUrl}`
+
+  let websiteText = ""
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        "User-Agent": UA,
+        "Accept-Language": "en-GB,en;q=0.9",
+      },
+      signal: AbortSignal.timeout(8000),
+      redirect: "follow",
+    })
+    if (res.ok) {
+      const html = await res.text()
+      const $ = cheerio.load(html)
+
+      $("script, style, svg, iframe, noscript, nav, footer").remove()
+
+      const title = $("title").text().trim()
+      const metaDesc = $("meta[name='description']").attr("content") ?? ""
+
+      const headings: string[] = []
+      $("h1, h2, h3").each((_, el) => {
+        const t = $(el).text().trim()
+        if (t && t.length > 5 && !headings.includes(t)) headings.push(t)
+      })
+
+      const paras: string[] = []
+      $("p").each((_, el) => {
+        const t = $(el).text().trim().replace(/\s+/g, " ")
+        if (t && t.length > 20 && !paras.includes(t)) paras.push(t)
+      })
+
+      websiteText = `
+TITLE: ${title}
+DESCRIPTION: ${metaDesc}
+HEADINGS: ${headings.slice(0, 8).join(" | ")}
+TEXT CONTENT: ${paras.slice(0, 6).join("\n")}
+      `.trim()
+    }
+  } catch (err) {
+    console.error("Website fetch for agency description failed:", err)
+  }
+
+  if (!websiteText) {
+    throw new Error("Couldn't read that website — try pasting a description instead.")
+  }
+
+  const openai = new OpenAI({
+    apiKey: process.env.NEXT_DEEPSEEKER_API_KEY,
+    baseURL: "https://api.deepseek.com",
+  })
+
+  const prompt = `You are helping a marketing/sales agency describe what they do, for use as context that powers their AI-written cold emails.
+
+Based on the content scraped from their own website below, write a concise first-person-plural description (2-4 sentences, starting with "We") covering:
+1. What services they offer
+2. Who their typical clients are
+3. The results/value they deliver
+
+WEBSITE DATA:
+${websiteText}
+
+Return ONLY the description text, no preamble or quotes.`
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "deepseek-v4-flash",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.4,
+      max_tokens: 200,
+      // @ts-expect-error — disable DeepSeek thinking for fast tasks
+      thinking: { type: "disabled" },
+    })
+    return response.choices[0]?.message?.content?.trim() || ""
+  } catch (err) {
+    console.error("AI agency description generation failed:", err)
+    throw new Error("Couldn't generate a description right now — try again or write it yourself.")
+  }
+}

@@ -56,7 +56,7 @@ export async function processReply(replyId: string): Promise<void> {
               id: true, name: true, agencyName: true,
               companyName: true, companyDesc: true, tone: true,
               fromEmail: true, smtpPass: true, smtpHost: true, smtpPort: true,
-              title: true, calendarLink: true,
+              title: true, calendarLink: true, playbookType: true,
             },
           },
         },
@@ -100,9 +100,8 @@ export async function processReply(replyId: string): Promise<void> {
       where: { id: lead.id },
       data: { status: "NOT_INTERESTED" },
     })
-    await prisma.email.updateMany({
+    await prisma.email.deleteMany({
       where: { leadId: lead.id, status: "QUEUED" },
-      data: { status: "FAILED" },
     })
     await prisma.agentMemory.create({
       data: {
@@ -126,9 +125,28 @@ export async function processReply(replyId: string): Promise<void> {
     confidence: classification.confidence,
     replyBody: reply.body,
   })
-  const isAutonomous = reply.email?.campaign?.autonomous ?? false
-  const reviewMins = isAutonomous ? 5 : policy.reviewWindowMins
-  const expiresAt = new Date(Date.now() + reviewMins * 60 * 1000)
+  // AI determines priority based on risk level and actively replies on a random timeline
+  const isHighPriority = policy.riskLevel === "HIGH"
+  
+  const lowPriorityDelayMins = goal.lowPriorityDelayMins ?? 2
+  const highPriorityDelayMins = goal.highPriorityDelayMins ?? 15
+
+  let randomDelayMs = 0
+  if (isHighPriority) {
+    if (highPriorityDelayMins > 0) {
+      const maxMins = highPriorityDelayMins
+      const minMins = Math.max(0, maxMins - 5)
+      randomDelayMs = (Math.random() * (maxMins - minMins) + minMins) * 60 * 1000
+    }
+  } else {
+    if (lowPriorityDelayMins > 0) {
+      const maxMins = lowPriorityDelayMins
+      const minMins = Math.max(0, maxMins - 1)
+      randomDelayMs = (Math.random() * (maxMins - minMins) + minMins) * 60 * 1000
+    }
+  }
+  
+  const expiresAt = new Date(Date.now() + randomDelayMs)
 
   // OOO — pause follow-ups, queue a stage note
   if (intent === "OOO") {
@@ -162,9 +180,8 @@ export async function processReply(replyId: string): Promise<void> {
       where: { id: lead.id },
       data: { status: "NOT_INTERESTED" },
     })
-    await prisma.email.updateMany({
+    await prisma.email.deleteMany({
       where: { leadId: lead.id, status: "QUEUED" },
-      data: { status: "FAILED" },
     })
     await prisma.agentMemory.create({
       data: {
@@ -220,6 +237,17 @@ export async function processReply(replyId: string): Promise<void> {
     .map(msg => `- ${msg.type.toUpperCase()}: ${msg.body}`)
     .join("\n")
 
+  let objectionHandlers = null
+  if (user.playbookType) {
+    const playbook = await prisma.playbook.findUnique({
+      where: { type: user.playbookType },
+      select: { objectionHandlers: true },
+    })
+    if (playbook) {
+      objectionHandlers = playbook.objectionHandlers
+    }
+  }
+
   const draft = await generateReplyDraft({
     leadName,
     company: lead.company ?? "their company",
@@ -233,6 +261,8 @@ export async function processReply(replyId: string): Promise<void> {
     responseStyle: learnedStyle,
     conversationHistory,
     calendarLink: user.calendarLink,
+    personaConfig: goal.personaConfig,
+    objectionHandlers,
   })
 
   let draftSubject = draft.subject
@@ -244,7 +274,11 @@ export async function processReply(replyId: string): Promise<void> {
         draftBody = `${draft.body}\n\nHere is my calendar link if you want to book a time directly: ${user.calendarLink}`
       }
     } else {
-      if (!draftBody.toLowerCase().includes("tue") && !draftBody.toLowerCase().includes("wed") && !draftBody.toLowerCase().includes("calendar")) {
+      const schedulingKeywords = ["mon", "tue", "wed", "thu", "fri", "sat", "sun", "calendar", "time", "hour", "day", "slot", "schedule", "meet", "call"];
+      const containsScheduling = schedulingKeywords.some(kw => 
+        draftBody.toLowerCase().includes(kw) || reply.body.toLowerCase().includes(kw)
+      );
+      if (!containsScheduling) {
         draftBody = `${draft.body}\n\nIf it helps, I can do:\n- Tue 11:00\n- Wed 15:00\nReply with what works and I will lock it in.`
       }
     }
@@ -256,7 +290,7 @@ export async function processReply(replyId: string): Promise<void> {
     }
   }
 
-  await prisma.pendingAction.create({
+  const createdAction = await prisma.pendingAction.create({
     data: {
       userId: user.id,
       leadId: lead.id,
@@ -271,6 +305,7 @@ export async function processReply(replyId: string): Promise<void> {
         style: learnedStyle,
         policyChecks: policy.policyChecks,
         nextBestAction,
+        extractedObjection: classification.extractedObjection,
         whyThisDraft: `Intent ${intent} with ${classification.confidence} confidence.`,
         planner: {
           meetingsPerMonth: goal.meetingsPerMonth,
@@ -281,7 +316,21 @@ export async function processReply(replyId: string): Promise<void> {
       confidence: classification.confidence,
       expiresAt,
     },
+    include: {
+      lead: { include: { user: true } },
+    },
   })
+
+  if (expiresAt <= new Date() && goal.autoSendEnabled) {
+    const isAutonomous = reply.email?.campaign?.autonomous ?? false
+    const shouldSkip = nextBestAction === "SEND_REPLY" && isHighPriority && !isAutonomous
+    if (!shouldSkip) {
+      const { executePendingAction } = await import("./agent-core")
+      await executePendingAction(createdAction, "auto").catch(e =>
+        console.error("[processReply] Instant execution error:", e)
+      )
+    }
+  }
 
   // Deterministic stage updates
   if (nextBestAction === "BOOK_MEETING" && lead.status !== "MEETING_BOOKED") {

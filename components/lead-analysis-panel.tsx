@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps, @next/next/no-img-element */
 "use client"
 
 import { useState, useRef } from "react"
@@ -112,7 +113,6 @@ export function LeadAnalysisPanel({
       runAudit()
       findDecisionMaker()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [placeProp?.id])
 
   if (!placeProp) return null

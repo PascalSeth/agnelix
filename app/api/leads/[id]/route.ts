@@ -42,15 +42,27 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       ...(body.auditJson !== undefined && { auditJson: body.auditJson }),
       ...(body.linkedinProfilesJson !== undefined && { linkedinProfilesJson: body.linkedinProfilesJson }),
       ...(body.recommendedApproach !== undefined && { recommendedApproach: body.recommendedApproach }),
+      ...(body.icebreaker !== undefined && { icebreaker: body.icebreaker }),
+      ...(body.researchNotes !== undefined && { researchNotes: body.researchNotes }),
+      ...(body.painPoints !== undefined && { painPoints: body.painPoints }),
+      ...(body.competitorAnalysis !== undefined && { competitorAnalysis: body.competitorAnalysis }),
     },
   })
 
   // Propagate status change → campaign reply/meeting counters
   if (body.status && existing && existing.status !== body.status) {
     const campaignIds = existing.campaignLeads.map((cl) => cl.campaignId)
-    if (campaignIds.length > 0) {
-      const ops: Promise<unknown>[] = []
+    const ops: Promise<unknown>[] = []
 
+    // If marked as replied, booked, won, lost, bounced, not interested - delete future unsent emails
+    const finalizedStages = ["REPLIED", "MEETING_BOOKED", "NOT_INTERESTED", "WON", "LOST", "BOUNCED"]
+    if (finalizedStages.includes(body.status)) {
+      ops.push(prisma.email.deleteMany({
+        where: { leadId: id, status: { in: ["QUEUED", "DRAFT"] } }
+      }))
+    }
+
+    if (campaignIds.length > 0) {
       // Decrement counter for old status
       if (existing.status === "REPLIED")
         ops.push(prisma.campaign.updateMany({ where: { id: { in: campaignIds } }, data: { replies: { decrement: 1 } } }))
@@ -62,9 +74,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         ops.push(prisma.campaign.updateMany({ where: { id: { in: campaignIds } }, data: { replies: { increment: 1 } } }))
       else if (body.status === "MEETING_BOOKED")
         ops.push(prisma.campaign.updateMany({ where: { id: { in: campaignIds } }, data: { meetings: { increment: 1 } } }))
-
-      if (ops.length) await Promise.all(ops)
     }
+
+    if (ops.length) await Promise.all(ops)
   }
 
   return NextResponse.json({ updated: lead.count })

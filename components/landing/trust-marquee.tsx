@@ -2,15 +2,15 @@ import { MapPin, Mail, Bot, BarChart3, Swords, Zap, Workflow, Eye, Cpu } from "l
 
 export function TrustMarquee() {
   const modules = [
-    { icon: MapPin, text: "Local Lead Discovery" },
-    { icon: Mail, text: "AI-Personalized Emails" },
-    { icon: Bot, text: "Autonomous Reply Handling" },
-    { icon: BarChart3, text: "Pipeline CRM" },
+    { icon: MapPin, text: "Find Local Leads" },
+    { icon: Mail, text: "Personal AI Emails" },
+    { icon: Bot, text: "Auto Reply Handling" },
+    { icon: BarChart3, text: "Pipeline & CRM" },
     { icon: Eye, text: "Open & Click Tracking" },
-    { icon: Swords, text: "Auto Battle Cards" },
+    { icon: Swords, text: "Battle Cards" },
     { icon: Zap, text: "Autopilot Mode" },
-    { icon: Workflow, text: "Multi-Step Sequences" },
-    { icon: Cpu, text: "AI Core Engine" }
+    { icon: Workflow, text: "Email Sequences" },
+    { icon: Cpu, text: "AI Engine" }
   ]
 
   return (

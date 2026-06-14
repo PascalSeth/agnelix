@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import OpenAI from "openai"
+import { generateAgencyDescriptionFromUrl } from "@/lib/research"
 
 const openai = new OpenAI({
   apiKey: process.env.NEXT_DEEPSEEKER_API_KEY,
@@ -11,7 +12,21 @@ export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { agencyName, title, rawDescription, rawTitle, mode } = await req.json()
+  const { agencyName, title, rawDescription, rawTitle, mode, websiteUrl } = await req.json()
+
+  // ── Mode: write company description from a website URL ───────────────────
+  if (mode === "url") {
+    if (!websiteUrl?.trim()) return NextResponse.json({ error: "Website URL required" }, { status: 400 })
+
+    try {
+      const refined = await generateAgencyDescriptionFromUrl(websiteUrl.trim())
+      if (!refined) return NextResponse.json({ error: "Couldn't generate a description from that site" }, { status: 422 })
+      return NextResponse.json({ refined })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Couldn't read that website"
+      return NextResponse.json({ error: msg }, { status: 422 })
+    }
+  }
 
   // ── Mode: refine job title ────────────────────────────────────────────────
   if (mode === "title") {

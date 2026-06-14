@@ -1,17 +1,26 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any, react/no-unescaped-entities */
 "use client"
 
 import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
-import { GitBranch, Plus, Trash2, Loader2, Pencil, Sparkles, X, ChevronDown, ChevronUp } from "lucide-react"
+import { GitBranch, Plus, Trash2, Loader2, Pencil, Sparkles, X, ChevronDown, ChevronUp, Mail, UserPlus, MessageSquare, Hourglass, Lightbulb, Wand2 } from "lucide-react"
 import { toast } from "sonner"
 import { formatDate } from "@/lib/utils"
+import { usePlaybook } from "@/lib/playbook-context"
 
 type Sequence = {
   id: string
   name: string
   isDefault: boolean
   createdAt: string
-  steps: { stepNumber: number; delayDays: number; subjectTemplate?: string | null; bodyTemplate?: string | null }[]
+  steps: { 
+    stepNumber: number; 
+    delayDays: number; 
+    subjectTemplate?: string | null; 
+    bodyTemplate?: string | null;
+    stepType?: string | null;
+    aiPrompt?: string | null;
+  }[]
 }
 
 type StepInput = {
@@ -21,10 +30,76 @@ type StepInput = {
   bodyTemplate: string
   aiPrompt: string
   expandedRules: boolean
+  stepType: "EMAIL" | "LINKEDIN_CONNECT" | "LINKEDIN_MESSAGE" | "WAIT"
+}
+
+// ── Demo sequences — one per playbook type, showing how that kind of agency
+// typically talks to prospects (angle, proof point, and offer).
+const DEMO_SEQUENCES: Record<string, { name: string; angle: string; steps: Omit<StepInput, "expandedRules">[] }> = {
+  social_media: {
+    name: "Instagram Growth Outreach",
+    angle: "Lead with a content/engagement gap you can see on their page, then prove it with results from a similar account, then make booking a call effortless.",
+    steps: [
+      { stepNumber: 1, delayDays: 0, label: "Spotted a content gap", bodyTemplate: "Hi {{firstName}}, I checked out {{companyName}}'s Instagram — great products, but your posting is inconsistent and reels aren't being used. That's usually 2-3x the reach you're leaving on the table. Worth a quick look at a content plan?", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 2, delayDays: 3, label: "Proof from a similar account", bodyTemplate: "Quick follow-up — we helped a similar brand go from ~2k to 11k followers in 90 days with a consistent reels + story strategy. Happy to show you the exact plan we used.", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 3, delayDays: 6, label: "Connect on LinkedIn", bodyTemplate: "Hi {{firstName}}, sent you a couple of notes about {{companyName}}'s Instagram — thought I'd connect here too in case it's easier to chat.", aiPrompt: "", stepType: "LINKEDIN_CONNECT" },
+      { stepNumber: 4, delayDays: 10, label: "Free content calendar offer", bodyTemplate: "Last note from me — I put together a free 2-week content calendar idea for {{companyName}}. Want me to send it over, no strings attached?", aiPrompt: "", stepType: "EMAIL" },
+    ],
+  },
+  seo: {
+    name: "Local SEO Audit Hook",
+    angle: "Open with specific, visible problems on their site/Google profile, back it up with a quick-win case study, then offer a free audit to remove friction.",
+    steps: [
+      { stepNumber: 1, delayDays: 0, label: "3 things hurting your ranking", bodyTemplate: "Hi {{firstName}}, I ran a quick check on {{companyName}}'s site and found 3 issues that are likely hurting your Google ranking — slow mobile load time, missing location keywords, and an incomplete Google Business Profile. Want me to send the full breakdown?", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 2, delayDays: 4, label: "Case study: similar business", bodyTemplate: "Following up — we fixed similar issues for a business like yours and they went from page 3 to the top 3 local results in about 8 weeks. Happy to show you what that looked like.", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 3, delayDays: 8, label: "Free audit, final nudge", bodyTemplate: "No pressure either way — if it's useful, I can run a free, no-obligation SEO audit for {{companyName}} this week. Just reply 'yes' and I'll send it over.", aiPrompt: "", stepType: "EMAIL" },
+    ],
+  },
+  ppc: {
+    name: "Ad Spend Audit",
+    angle: "Show you've done the research on their ad presence (or lack of it), quantify wasted spend with a benchmark, then offer a free teardown.",
+    steps: [
+      { stepNumber: 1, delayDays: 0, label: "What your competitors are spending", bodyTemplate: "Hi {{firstName}}, I looked at the ad landscape for {{companyName}}'s market — a couple of your competitors are running consistent Meta/Google campaigns and likely picking up customers you're not bidding for. Want a quick rundown of what they're doing?", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 2, delayDays: 3, label: "Where budget gets wasted", bodyTemplate: "Most accounts we audit are wasting 20-30% of spend on broad targeting and weak creative. We can usually find that within a day. Want a free teardown of what that'd look like for {{companyName}}?", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 3, delayDays: 6, label: "Connect on LinkedIn", bodyTemplate: "Hi {{firstName}}, following up on the ad audit idea for {{companyName}} — connecting here in case it's easier to continue the conversation.", aiPrompt: "", stepType: "LINKEDIN_CONNECT" },
+      { stepNumber: 4, delayDays: 9, label: "Final offer: free teardown", bodyTemplate: "Last note — happy to send over a free, no-obligation ad account teardown for {{companyName}} this week if useful. Just say the word.", aiPrompt: "", stepType: "EMAIL" },
+    ],
+  },
+  sales: {
+    name: "B2B Outreach Sequence",
+    angle: "Lead with a specific pain point your buyer persona feels, follow with social proof, mix in LinkedIn touches, and close with a polite breakup that often re-engages.",
+    steps: [
+      { stepNumber: 1, delayDays: 0, label: "Pain point intro", bodyTemplate: "Hi {{firstName}}, most {{industry}} teams we talk to are spending hours a week on manual prospecting with little to show for it. Curious how {{companyName}} currently handles outbound — is it mostly manual today?", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 2, delayDays: 3, label: "Case study / proof", bodyTemplate: "Quick follow-up — we helped a team similar to yours book 12 extra meetings a month by automating the research + first-touch email. Happy to show you how it works if useful.", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 3, delayDays: 6, label: "Connect on LinkedIn", bodyTemplate: "Hi {{firstName}}, sent over a couple of notes about outbound for {{companyName}} — connecting here too in case that's easier.", aiPrompt: "", stepType: "LINKEDIN_CONNECT" },
+      { stepNumber: 4, delayDays: 9, label: "LinkedIn nudge", bodyTemplate: "Hi {{firstName}}, following up on my email — would a quick 15-minute call make sense to see if this is a fit for {{companyName}}?", aiPrompt: "", stepType: "LINKEDIN_MESSAGE" },
+      { stepNumber: 5, delayDays: 13, label: "Breakup email", bodyTemplate: "Hi {{firstName}}, haven't heard back so I'll assume now isn't the right time. I'll close this out for now — feel free to reach out if priorities change.", aiPrompt: "", stepType: "EMAIL" },
+    ],
+  },
+  finance: {
+    name: "CFO Advisory Outreach",
+    angle: "Speak to financial pain (cashflow, runway, tax) in plain terms, support with a results-based case study, then offer a low-friction financial health check.",
+    steps: [
+      { stepNumber: 1, delayDays: 0, label: "Cashflow visibility", bodyTemplate: "Hi {{firstName}}, a lot of founders we work with don&apos;t have clear visibility into cashflow until it's a problem. Does {{companyName}} have a rolling 13-week cashflow forecast in place today?", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 2, delayDays: 4, label: "Tax strategy case study", bodyTemplate: "Following up — we recently helped a business save a meaningful amount through better tax structuring and forecasting, without changing how they operate day to day. Want a quick example?", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 3, delayDays: 8, label: "Free financial health check", bodyTemplate: "No pressure — if useful, I can put together a free financial health check for {{companyName}} covering cashflow, margins, and runway. Want me to send it over?", aiPrompt: "", stepType: "EMAIL" },
+    ],
+  },
+  web_design: {
+    name: "Mobile/Speed Redesign Pitch",
+    angle: "Point out a concrete, visible problem (mobile experience, load speed), show a before/after style proof, then offer a limited-time incentive.",
+    steps: [
+      { stepNumber: 1, delayDays: 0, label: "Mobile experience issue", bodyTemplate: "Hi {{firstName}}, I loaded {{companyName}}'s site on mobile and it's slow to load and a bit hard to navigate — likely costing you visitors and sales. Want me to show you what's going on?", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 2, delayDays: 4, label: "Before/after example", bodyTemplate: "Here's an example of a similar redesign we did — same business type, faster load time and a much cleaner mobile layout, which led to a noticeable bump in conversions. Want to see it?", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 3, delayDays: 8, label: "Limited-time offer", bodyTemplate: "Last note — we have a couple of redesign slots open this month with a discount for early sign-ups. If a faster, mobile-friendly site is on your radar for {{companyName}}, happy to send details.", aiPrompt: "", stepType: "EMAIL" },
+    ],
+  },
 }
 
 export default function SequencesPage() {
   const { status } = useSession()
+  const { activeType, activePlaybook } = usePlaybook()
+  const [showInsights, setShowInsights] = useState(false)
   const [sequences, setSequences]     = useState<Sequence[]>([])
   const [name, setName]               = useState("")
   const [creating, setCreating]       = useState(false)
@@ -36,16 +111,19 @@ export default function SequencesPage() {
 
   // Dynamic steps for creation/editing
   const [newSteps, setNewSteps] = useState<StepInput[]>([
-    { stepNumber: 1, delayDays: 0, label: "Initial Outreach", bodyTemplate: "", aiPrompt: "", expandedRules: false },
-    { stepNumber: 2, delayDays: 3, label: "Follow-up", bodyTemplate: "", aiPrompt: "", expandedRules: false },
-    { stepNumber: 3, delayDays: 7, label: "Final Attempt", bodyTemplate: "", aiPrompt: "", expandedRules: false },
+    { stepNumber: 1, delayDays: 0, label: "Initial Outreach", bodyTemplate: "", aiPrompt: "", expandedRules: false, stepType: "EMAIL" },
+    { stepNumber: 2, delayDays: 3, label: "Follow-up", bodyTemplate: "", aiPrompt: "", expandedRules: false, stepType: "EMAIL" },
+    { stepNumber: 3, delayDays: 7, label: "Final Attempt", bodyTemplate: "", aiPrompt: "", expandedRules: false, stepType: "EMAIL" },
   ])
 
   useEffect(() => {
     if (status !== "authenticated") return
     fetch("/api/sequences")
       .then((r) => r.json())
-      .then((data) => { setSequences(data); setLoading(false) })
+      .then((data) => {
+        setSequences(data)
+        setLoading(false)
+      })
   }, [status])
 
   function addStep() {
@@ -57,7 +135,8 @@ export default function SequencesPage() {
         label: `Step ${prev.length + 1}`,
         bodyTemplate: "",
         aiPrompt: "",
-        expandedRules: false
+        expandedRules: false,
+        stepType: "EMAIL"
       }
     ])
   }
@@ -69,7 +148,7 @@ export default function SequencesPage() {
   }
 
   // Update specific step attributes
-  function updateStep(idx: number, key: keyof StepInput, val: string | number | boolean) {
+  function updateStep(idx: number, key: keyof StepInput, val: any) {
     setNewSteps(prev => prev.map((s, i) => i === idx ? { ...s, [key]: val } : s))
   }
 
@@ -83,7 +162,9 @@ export default function SequencesPage() {
           stepNumber: s.stepNumber, 
           delayDays: s.delayDays,
           subjectTemplate: s.label.trim(),
-          bodyTemplate: s.bodyTemplate?.trim() || null
+          bodyTemplate: s.bodyTemplate?.trim() || null,
+          stepType: s.stepType,
+          aiPrompt: s.aiPrompt?.trim() || null
         })),
       }
 
@@ -126,8 +207,9 @@ export default function SequencesPage() {
       delayDays: s.delayDays,
       label: s.subjectTemplate || `Step ${s.stepNumber}`,
       bodyTemplate: s.bodyTemplate || "",
-      aiPrompt: "",
-      expandedRules: !!s.bodyTemplate
+      aiPrompt: s.aiPrompt || "",
+      expandedRules: !!s.bodyTemplate || !!s.aiPrompt,
+      stepType: (s.stepType as any) || "EMAIL"
     })))
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
@@ -137,20 +219,30 @@ export default function SequencesPage() {
     setEditingId(null)
     setName("")
     setNewSteps([
-      { stepNumber: 1, delayDays: 0, label: "Initial Outreach", bodyTemplate: "", aiPrompt: "", expandedRules: false },
-      { stepNumber: 2, delayDays: 3, label: "Follow-up", bodyTemplate: "", aiPrompt: "", expandedRules: false },
-      { stepNumber: 3, delayDays: 7, label: "Final Attempt", bodyTemplate: "", aiPrompt: "", expandedRules: false },
+      { stepNumber: 1, delayDays: 0, label: "Initial Outreach", bodyTemplate: "", aiPrompt: "", expandedRules: false, stepType: "EMAIL" },
+      { stepNumber: 2, delayDays: 3, label: "Follow-up", bodyTemplate: "", aiPrompt: "", expandedRules: false, stepType: "EMAIL" },
+      { stepNumber: 3, delayDays: 7, label: "Final Attempt", bodyTemplate: "", aiPrompt: "", expandedRules: false, stepType: "EMAIL" },
     ])
   }
 
+  function loadDemoSequence() {
+    const demo = DEMO_SEQUENCES[activeType] || DEMO_SEQUENCES.sales
+    setIsAddingNew(true)
+    setEditingId(null)
+    setName(demo.name)
+    setNewSteps(demo.steps.map(s => ({ ...s, expandedRules: false })))
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  // Cancel edit
   function cancelEdit() {
     setEditingId(null)
     setIsAddingNew(false)
     setName("")
     setNewSteps([
-      { stepNumber: 1, delayDays: 0, label: "Initial Outreach", bodyTemplate: "", aiPrompt: "", expandedRules: false },
-      { stepNumber: 2, delayDays: 3, label: "Follow-up", bodyTemplate: "", aiPrompt: "", expandedRules: false },
-      { stepNumber: 3, delayDays: 7, label: "Final Attempt", bodyTemplate: "", aiPrompt: "", expandedRules: false },
+      { stepNumber: 1, delayDays: 0, label: "Initial Outreach", bodyTemplate: "", aiPrompt: "", expandedRules: false, stepType: "EMAIL" },
+      { stepNumber: 2, delayDays: 3, label: "Follow-up", bodyTemplate: "", aiPrompt: "", expandedRules: false, stepType: "EMAIL" },
+      { stepNumber: 3, delayDays: 7, label: "Final Attempt", bodyTemplate: "", aiPrompt: "", expandedRules: false, stepType: "EMAIL" },
     ])
   }
 
@@ -233,6 +325,106 @@ export default function SequencesPage() {
           </button>
         )}
       </div>
+
+      {/* Collapsed insights toggle */}
+      {!showInsights && !showEditor && (
+        <button
+          onClick={() => setShowInsights(true)}
+          className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-violet-300/70 hover:text-violet-300 transition-colors"
+          style={{ background: "rgba(167,139,250,.06)", border: "1px solid rgba(167,139,250,.12)" }}
+        >
+          <Lightbulb className="size-3" /> How to plan a sequence + example for your agency
+        </button>
+      )}
+
+      {/* Insights / how-to panel */}
+      {showInsights && !showEditor && (
+        <div
+          className="relative overflow-hidden rounded-2xl p-5 sm:p-6"
+          style={{
+            background: "linear-gradient(145deg,rgba(167,139,250,.06) 0%,rgba(255,255,255,.02) 100%)",
+            border: "1px solid rgba(167,139,250,.15)",
+          }}
+        >
+          <button
+            onClick={() => setShowInsights(false)}
+            className="absolute top-4 right-4 text-white/25 hover:text-white/60 transition-colors"
+          >
+            <X className="size-3.5" />
+          </button>
+
+          <div className="flex items-start gap-3">
+            <div
+              className="flex size-9 shrink-0 items-center justify-center rounded-xl"
+              style={{ background: "rgba(167,139,250,.12)", border: "1px solid rgba(167,139,250,.2)" }}
+            >
+              <Lightbulb className="size-4 text-violet-300" />
+            </div>
+            <div className="min-w-0 flex-1 space-y-3">
+              <div>
+                <p className="text-[13px] font-bold text-white/85">How to plan a sequence that converts</p>
+                <p className="mt-1 text-[12px] text-white/40 leading-relaxed">
+                  A sequence is a series of timed touchpoints (emails, LinkedIn connections/messages, or wait periods) sent automatically as your AI works a lead.
+                  <span className="text-white/55 font-semibold"> Every type of agency talks to prospects differently</span> — an SEO agency leads with a technical audit,
+                  a social media agency leads with a content gap, a fractional CFO leads with cashflow risk. Your sequence should reflect{" "}
+                  <span className="text-white/55 font-semibold">your</span> angle: the specific problem you spot, proof that you can fix it, and a low-friction next step.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.06)" }}>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-violet-300/80 mb-1">1. Hook</p>
+                  <p className="text-[11px] text-white/45 leading-relaxed">Day 0 — point out a specific, visible problem you noticed about their business. Specific beats generic.</p>
+                </div>
+                <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.06)" }}>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-violet-300/80 mb-1">2. Proof</p>
+                  <p className="text-[11px] text-white/45 leading-relaxed">A few days later — back it up with a quick case study or result from a similar client. Mix in a LinkedIn touch if it fits.</p>
+                </div>
+                <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.06)" }}>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-violet-300/80 mb-1">3. Easy next step</p>
+                  <p className="text-[11px] text-white/45 leading-relaxed">Final step — make it effortless to say yes: a free audit, a quick call, or "just reply yes". Then a polite breakup.</p>
+                </div>
+              </div>
+
+              {/* Playbook-tailored example */}
+              <div
+                className="rounded-xl p-4"
+                style={{ background: "rgba(0,0,0,.2)", border: "1px solid rgba(255,255,255,.06)" }}
+              >
+                <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                  <p className="text-[11px] font-bold text-white/60">
+                    Example for <span className="text-violet-300">{activePlaybook?.name || "your agency"}</span>
+                  </p>
+                  <button
+                    onClick={loadDemoSequence}
+                    className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[10.5px] font-bold text-violet-300 hover:text-violet-200 transition-colors"
+                    style={{ background: "rgba(167,139,250,.1)", border: "1px solid rgba(167,139,250,.2)" }}
+                  >
+                    <Wand2 className="size-3" /> Use this as a starting point
+                  </button>
+                </div>
+                <p className="text-[11px] text-white/35 leading-relaxed mb-3">
+                  {(DEMO_SEQUENCES[activeType] || DEMO_SEQUENCES.sales).angle}
+                </p>
+                <div className="space-y-1.5">
+                  {(DEMO_SEQUENCES[activeType] || DEMO_SEQUENCES.sales).steps.map((s) => (
+                    <div key={s.stepNumber} className="flex items-center gap-2 text-[11px]">
+                      <span className="text-[9.5px] font-bold text-white/25 bg-white/5 border border-white/5 rounded-md px-1.5 py-0.5 shrink-0">Day {s.delayDays}</span>
+                      <span className="text-white/65 font-semibold shrink-0">{s.label}</span>
+                      <span className="text-white/25 truncate">— {s.bodyTemplate}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <p className="text-[11px] text-white/25 leading-relaxed">
+                💡 Tip: Use the <span className="text-white/45 font-semibold">Agnel Step Copilot</span> on each step — describe the angle in a sentence
+                (e.g. "pitch a free speed audit, mention their slow mobile site") and it will draft the message for you, in the tone you set in onboarding.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Creator/Editor panel */}
       {showEditor && (
@@ -323,14 +515,30 @@ export default function SequencesPage() {
                       <input 
                         value={s.label}
                         onChange={(e) => updateStep(idx, "label", e.target.value)}
-                        placeholder="e.g. Case Study Follow-up"
+                        placeholder={s.stepType === "WAIT" ? "e.g. Wait Period" : "e.g. Case Study Follow-up"}
                         className="bg-transparent text-[13px] font-bold text-white/80 outline-none placeholder:text-white/15 w-full md:w-64"
                       />
                     </div>
 
-                    <div className="flex items-center gap-3 justify-between md:justify-end">
+                    <div className="flex items-center gap-3 justify-between md:justify-end flex-wrap">
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-white/25 uppercase tracking-wider">Delay</span>
+                        <span className="text-[10px] font-bold text-white/25 uppercase tracking-wider">Type</span>
+                        <select
+                          value={s.stepType}
+                          onChange={(e) => updateStep(idx, "stepType", e.target.value)}
+                          className="rounded-lg px-2 py-1 text-[11px] font-bold text-white/70 outline-none bg-black/40 border border-white/10"
+                        >
+                          <option value="EMAIL" className="bg-[#1a1b24] text-white">Email</option>
+                          <option value="LINKEDIN_CONNECT" className="bg-[#1a1b24] text-white">LinkedIn Connection</option>
+                          <option value="LINKEDIN_MESSAGE" className="bg-[#1a1b24] text-white">LinkedIn Message</option>
+                          <option value="WAIT" className="bg-[#1a1b24] text-white">Wait</option>
+                        </select>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-white/25 uppercase tracking-wider">
+                          {s.stepType === "WAIT" ? "Wait" : "Delay"}
+                        </span>
                         <div className="flex items-center">
                           <input 
                             type="number"
@@ -343,16 +551,18 @@ export default function SequencesPage() {
                         </div>
                       </div>
 
-                      <button 
-                        onClick={() => updateStep(idx, "expandedRules", !s.expandedRules)}
-                        className={`text-[10px] font-bold px-2 py-1 rounded-lg border transition-all ${
-                          s.expandedRules 
-                            ? "bg-indigo-500/10 border-indigo-500/25 text-indigo-300"
-                            : "bg-white/5 border-white/5 text-white/40 hover:bg-white/10"
-                        }`}
-                      >
-                        {s.expandedRules ? "Hide Rules" : "Add Rules / AI Assist"}
-                      </button>
+                      {s.stepType !== "WAIT" && (
+                        <button 
+                          onClick={() => updateStep(idx, "expandedRules", !s.expandedRules)}
+                          className={`text-[10px] font-bold px-2 py-1 rounded-lg border transition-all ${
+                            s.expandedRules 
+                              ? "bg-indigo-500/10 border-indigo-500/25 text-indigo-300"
+                              : "bg-white/5 border-white/5 text-white/40 hover:bg-white/10"
+                          }`}
+                        >
+                          {s.expandedRules ? "Hide Rules" : "Add Rules / AI Assist"}
+                        </button>
+                      )}
 
                       <button 
                         onClick={() => removeStep(idx)}
@@ -365,16 +575,24 @@ export default function SequencesPage() {
                   </div>
 
                   {/* Advanced guidelines / AI Copilot (Collapsible) */}
-                  {s.expandedRules && (
+                  {s.expandedRules && s.stepType !== "WAIT" && (
                     <div className="mt-3 pt-3 border-t border-white/5 space-y-3">
                       <div className="space-y-1.5">
                         <label className="block text-[10px] font-bold text-white/25 uppercase tracking-wide">
-                          Step Guidelines / Base Template
+                          {s.stepType === "EMAIL" && "Step Guidelines / Base Template"}
+                          {s.stepType === "LINKEDIN_CONNECT" && "Connection Note (Max 300 chars)"}
+                          {s.stepType === "LINKEDIN_MESSAGE" && "LinkedIn InMail / Message Template"}
                         </label>
                         <textarea
                           value={s.bodyTemplate}
                           onChange={(e) => updateStep(idx, "bodyTemplate", e.target.value)}
-                          placeholder="e.g. Introduce a dentist case study. Keep it under 3 sentences. Offer to send a free PDF."
+                          placeholder={
+                            s.stepType === "EMAIL"
+                              ? "e.g. Introduce a dentist case study. Keep it under 3 sentences. Offer to send a free PDF."
+                              : s.stepType === "LINKEDIN_CONNECT"
+                              ? "e.g. Hi {{firstName}}, saw your profile and loved your agency work. Let's connect!"
+                              : "e.g. Hi {{firstName}}, following up on our connection. Wanted to share a recent design study..."
+                          }
                           className="w-full min-h-[70px] rounded-xl px-4 py-3 text-[12px] text-white/70 bg-black/20 border border-white/5 outline-none focus:border-indigo-500/20 placeholder:text-white/10 resize-none font-sans leading-relaxed"
                         />
                       </div>
@@ -395,9 +613,12 @@ export default function SequencesPage() {
                             type="text"
                             value={s.aiPrompt || ""}
                             onChange={(e) => updateStep(idx, "aiPrompt", e.target.value)}
-                            placeholder={s.stepNumber === 1 
-                              ? "Pitch site speed optimization, offer free 10-minute speed audit..."
-                              : `Write a follow-up on day ${s.delayDays} referencing a dental case study...`
+                            placeholder={
+                              s.stepType === "EMAIL"
+                                ? "Pitch site speed optimization, offer free 10-minute speed audit..."
+                                : s.stepType === "LINKEDIN_CONNECT"
+                                ? "Write a short, friendly message suggesting we connect..."
+                                : "Write a follow-up offering a brief 5-minute call..."
                             }
                             className="flex-1 min-w-0 rounded-lg px-3 py-1.5 text-[11px] text-white/70 bg-black/30 border border-white/5 outline-none placeholder:text-white/15"
                             onKeyDown={(e) => {
@@ -553,30 +774,37 @@ export default function SequencesPage() {
 
                 {/* Expanded Steps Timeline Summary */}
                 {isExpanded && (
-                  <div className="mt-4 border-t border-white/5 pt-4 pl-6 relative space-y-4">
+                  <div className="mt-4 border-t border-white/5 pt-4 pl-7 relative space-y-4">
                     {/* Vertical dashed line */}
-                    <div className="absolute left-[13px] top-6 bottom-6 w-px border-l border-dashed border-white/10" />
+                    <div className="absolute left-[14px] top-6 bottom-6 w-px border-l border-dashed border-white/10" />
                     
-                    {seq.steps.map((step, sIdx) => (
-                      <div key={sIdx} className="relative space-y-1">
-                        {/* Timeline dot */}
-                        <div className="absolute left-[-21px] top-1.5 size-2 rounded-full bg-violet-400" />
-                        
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[11px] font-black text-white/35">Step {step.stepNumber}</span>
-                          <span className="text-[12px] font-bold text-white/80">{step.subjectTemplate}</span>
-                          <span className="text-[9.5px] text-white/45 bg-white/5 border border-white/5 rounded-md px-1.5 py-0.5">Day {step.delayDays}</span>
-                        </div>
-                        {step.bodyTemplate && (
-                          <div className="rounded-lg p-2.5 bg-black/20 border border-white/5 text-[10.5px] text-white/50 max-w-xl leading-relaxed mt-1 font-mono">
-                            {step.bodyTemplate}
+                    {seq.steps.map((step, sIdx) => {
+                      const stepType = step.stepType || "EMAIL"
+                      const Icon = stepType === "EMAIL" ? Mail : stepType === "LINKEDIN_CONNECT" ? UserPlus : stepType === "LINKEDIN_MESSAGE" ? MessageSquare : Hourglass
+                      return (
+                        <div key={sIdx} className="relative space-y-1">
+                          {/* Timeline dot replaced with step type icon */}
+                          <div className="absolute left-[-25px] top-1 p-0.5 rounded bg-[#0c0c12] border border-white/10 text-violet-400">
+                            <Icon className="size-3" />
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[11px] font-black text-white/35">
+                              Step {step.stepNumber} ({stepType.replace(/_/g, " ")})
+                            </span>
+                            <span className="text-[12px] font-bold text-white/80">{step.subjectTemplate}</span>
+                            <span className="text-[9.5px] text-white/45 bg-white/5 border border-white/5 rounded-md px-1.5 py-0.5">Day {step.delayDays}</span>
+                          </div>
+                          {step.bodyTemplate && stepType !== "WAIT" && (
+                            <div className="rounded-lg p-2.5 bg-black/20 border border-white/5 text-[10.5px] text-white/50 max-w-xl leading-relaxed mt-1 font-mono">
+                              {step.bodyTemplate}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
-
               </div>
             )
           })

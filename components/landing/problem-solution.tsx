@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { X, Sparkles, MapPin, Search, Calendar, ArrowRight } from "lucide-react"
 
 export function ProblemSolution() {
@@ -24,8 +25,8 @@ export function ProblemSolution() {
           </div>
         </div>
       ),
-      problem: "You waste hours scraping Google Maps, buying outdated lists, and guessing email addresses.",
-      solution: "Agnelix finds local businesses by niche and city instantly, extracting verified contact info automatically."
+      problem: "Right now you spend hours on Google Maps, buy outdated lists, and guess at email addresses.",
+      solution: "Tell Agnelix the type of business and the city. It finds real local businesses with verified emails and phone numbers — in seconds."
     },
     {
       id: "writing",
@@ -51,8 +52,8 @@ export function ProblemSolution() {
           </div>
         </div>
       ),
-      problem: "Copy-pasted templates land in spam folders. Prospects ignore generic, robotic outreach.",
-      solution: "AI reads their actual website and crafts hyper-personalized emails that sound authentically human."
+      problem: "Copy-paste templates get ignored or land in spam. People can spot a generic email instantly.",
+      solution: "Agnelix reads each prospect's website and writes a personal email that mentions their actual business — not a template."
     },
     {
       id: "closing",
@@ -75,8 +76,8 @@ export function ProblemSolution() {
           </div>
         </div>
       ),
-      problem: "When leads finally reply, you take too long to respond and they go cold.",
-      solution: "Agnelix reads inbound replies, handles objections, and automatically books them onto your calendar."
+      problem: "When a lead finally replies, you're busy. By the time you respond, they've gone cold.",
+      solution: "Agnelix reads the reply, answers questions, handles objections, and books the meeting on your calendar — automatically."
     }
   ]
 
@@ -89,10 +90,10 @@ export function ProblemSolution() {
       <div className="mx-auto max-w-7xl px-6 relative z-10">
         <div className="anim-fade-up text-center mb-16 lg:mb-24">
           <h2 className="text-3xl font-bold tracking-tight text-white md:text-5xl lg:text-5xl font-luxury-sans">
-            Manual prospecting is <span className="text-slate-500 line-through decoration-rose-400/60 font-medium">dead</span>.
+            Stop chasing leads <span className="text-slate-500 line-through decoration-rose-400/60 font-medium">by hand</span>.
           </h2>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-slate-400 font-semibold leading-relaxed">
-            Stop digging for emails and tracking spreadsheets. Agnelix automates the busywork so you can focus entirely on closing deals.
+            No more digging for emails or updating spreadsheets. Agnelix does the busywork so you can spend your time closing deals.
           </p>
         </div>
 

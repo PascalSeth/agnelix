@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
@@ -90,7 +91,6 @@ export function CampaignPageShell(props: CampaignPageShellProps) {
     const needsPoll = status === "ACTIVE" && (hasPending || leadsWithoutDrafts > 0 || isEnriching)
     if (!needsPoll) return
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshCampaign()
     const iv = setInterval(refreshCampaign, 4000)
     return () => clearInterval(iv)
@@ -116,7 +116,7 @@ export function CampaignPageShell(props: CampaignPageShellProps) {
     { label: "Leads",    value: leads.length,                               icon: Users,         color: "rgba(255,255,255,.4)"  },
     { label: "Sent",     value: emailsSent,                                 icon: Mail,          color: "rgba(125,211,252,.7)"  },
     { label: "Opened",   value: pct(emailsOpened, emailsSent),              icon: Eye,           color: "rgba(52,211,153,.7)"   },
-    { label: "Replied",  value: pct(replies, emailsSent),                   icon: MessageSquare, color: "rgba(167,139,250,.7)"  },
+    { label: "Replied",  value: pct(replies, leads.length),                 icon: MessageSquare, color: "rgba(167,139,250,.7)"  },
     { label: "Meetings", value: meetings,                                   icon: Calendar,      color: "rgba(251,191,36,.7)"   },
   ]
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { 
   Sparkles, 
   Play, 
@@ -11,7 +12,7 @@ import {
   Zap,
   Calendar
 } from "lucide-react"
-import { SignInButton } from "@/components/sign-in-button"
+import { CtaLink } from "@/components/landing/cta-link"
 import Link from "next/link"
 
 export function Hero() {
@@ -31,44 +32,44 @@ export function Hero() {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#728972]/60 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-[#728972]" />
               </span>
-              Meet Agnelix, Your AI Sales Concierge
+              Meet Agnelix — Your AI Sales Assistant
               <Sparkles className="h-3.5 w-3.5 text-[#c5a880]" />
             </div>
 
             {/* Headline */}
             <h1 className="anim-fade-up font-luxury-sans text-5xl font-light tracking-tight text-white sm:text-6xl lg:text-[4rem] leading-[1.08]" style={{ animationDelay: "0.1s" }}>
-              Find prospects. <br />
-              Write emails. <br />
+              Find new clients. <br />
+              Without lifting <br />
               <span className="font-luxury-serif italic text-gradient-gold font-normal">
-                Book meetings.
+                a finger.
               </span>
             </h1>
 
             {/* Description */}
             <p className="anim-fade-up mt-6 max-w-lg text-lg leading-relaxed text-slate-400 font-medium" style={{ animationDelay: "0.2s" }}>
-              Stop manually digging for leads. Agnelix finds verified local businesses, reads their websites, and sends personalized sequences automatically. <span className="text-white font-semibold">Wake up to booked meetings.</span>
+              Agnelix finds local businesses, writes a personal email for each one, and follows up when they reply. <span className="text-white font-semibold">You just show up to the meetings.</span>
             </p>
 
             {/* CTA Buttons */}
             <div className="anim-fade-up mt-8 flex flex-wrap items-center gap-4" style={{ animationDelay: "0.3s" }}>
               <div className="relative group">
                 <div className="absolute -inset-1 rounded-xl bg-white/10 opacity-20 blur transition duration-500 group-hover:opacity-40" />
-                <Link
-                  href="/sign-in"
+                <CtaLink
                   className="inline-flex items-center justify-center rounded-xl px-7 py-3.5 text-sm font-bold text-black transition-all hover:brightness-110 active:scale-[.98]"
                   style={{
                     background: "linear-gradient(135deg,#ffffff,#cbd5e1)",
                     boxShadow: "0 4px 15px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.4)"
                   }}
+                  authedChildren={<>Go to Dashboard <ArrowRight className="ml-2 h-4 w-4" /></>}
                 >
                   Start Free Trial
                   <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
+                </CtaLink>
               </div>
-              <button className="group flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-6 py-3.5 text-sm font-semibold text-slate-300 transition-all hover:bg-white/[0.08] hover:border-white/[0.12] shadow-sm">
+              <Link href="/playground" className="group flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-6 py-3.5 text-sm font-semibold text-slate-300 transition-all hover:bg-white/[0.08] hover:border-white/[0.12] shadow-sm">
                 <Play className="h-4 w-4 text-[#c5a880] transition-transform group-hover:scale-110" />
                 Watch Demo
-              </button>
+              </Link>
             </div>
 
             {/* Trust Markers */}

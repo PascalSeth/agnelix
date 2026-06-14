@@ -48,7 +48,31 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
-// ── Application models ────────────────────────────────────────────────────────
+// ── Playbook Engine ───────────────────────────────────────────────────────────
+
+model Playbook {
+  id                String   @id @default(cuid())
+  type              String   @unique
+  name              String
+  targetVerticals   Json
+  discoveryMethod   String
+  platformOptions   Json?
+  sequenceTemplates Json
+  proposalTemplates Json
+  reportMetrics     Json
+  reportTemplates   Json
+  portalTemplates   Json
+  portalSections    Json
+  toneOptions       Json
+  objectionHandlers Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("playbooks")
+}
+
+// ── Application models ───────────────────────────────────────────────────────
 
 model User {
   id            String    @id @default(cuid())
@@ -76,6 +100,15 @@ model User {
   onboardingDone Boolean  @default(false)
   calendarLink   String?
 
+  // NEW: Playbook & Identity
+  playbookType      String?   @default("sales")
+  brandColor        String?
+  domain            String?
+  timezone          String    @default("Europe/London")
+  currency          String    @default("GBP")
+  imapEnabled       Boolean   @default(false)
+  gmailAppPassword  String?
+
   campaigns      Campaign[]
   leads          Lead[]
   sequences      Sequence[]
@@ -84,6 +117,12 @@ model User {
   agentGoal      AgentGoal?
   agentMemories  AgentMemory[]
   digestLogs     AgentDigestLog[]
+
+  // NEW: Phase 1 & 2 relations
+  proposals         Proposal[]
+  caseStudies       CaseStudy[]
+  clientPortals     ClientPortal[]
+  clientReports     ClientReport[]
 
   @@map("users")
 }
@@ -121,6 +160,28 @@ model Lead {
   linkedinProfilesJson String? @db.Text
   recommendedApproach  String?
 
+  // NEW: Playbook Context
+  platformFocus     String?
+  sourceQuery       String?
+
+  // NEW: AI Research
+  icebreaker        String? @db.Text
+  researchNotes     String? @db.Text
+  painPoints        Json?
+  competitorAnalysis String? @db.Text
+
+  // NEW: Buying Signals (news, leadership changes, hiring, funding etc.)
+  buyingSignalsJson String?   @db.Text
+  signalsCheckedAt  DateTime?
+
+  // NEW: Engagement Counters
+  emailsSentCount    Int       @default(0)
+  emailsOpenedCount  Int       @default(0)
+  repliesReceivedCount Int     @default(0)
+  meetingsBookedCount Int      @default(0)
+  lastContactedAt    DateTime?
+  dealCurrency       String    @default("GBP")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -130,6 +191,10 @@ model Lead {
   activities     Activity[]
   pendingActions PendingAction[]
   agentMemories  AgentMemory[]
+
+  // NEW: Relations
+  proposals      Proposal[]
+  leadNotes      Note[]
 
   @@index([userId])
   @@index([status])
@@ -168,6 +233,13 @@ model Campaign {
 
   autonomous Boolean @default(false)
 
+  // NEW: Playbook & Workflow
+  playbookType   String?
+  targetVertical String?
+  platformFocus  String?
+  workflowStage  WorkflowStage @default(ENRICH)
+  revenueAttributed Float?
+
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   launchedAt DateTime?
@@ -175,6 +247,11 @@ model Campaign {
   emails        Email[]
   campaignLeads CampaignLead[]
   autoSearches  AutoSearch[]
+
+  // NEW: Relations
+  clientPortal  ClientPortal?
+  clientReports ClientReport[]
+  proposals     Proposal[]
 
   @@index([userId])
   @@index([status])
@@ -188,6 +265,14 @@ enum CampaignStatus {
   COMPLETED
 }
 
+enum WorkflowStage {
+  ENRICH
+  DRAFT
+  REVIEW
+  SEND
+  LIVE
+}
+
 model CampaignLead {
   id         String   @id @default(cuid())
   campaignId String
@@ -196,8 +281,24 @@ model CampaignLead {
   lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
   enrolledAt DateTime @default(now())
 
+  // NEW: Step Tracking
+  currentStep       Int       @default(0)
+  campaignStatus    CampaignLeadStatus @default(PENDING)
+  generatedEmails   Json?
+
   @@unique([campaignId, leadId])
   @@map("campaign_leads")
+}
+
+enum CampaignLeadStatus {
+  PENDING
+  ENRICHING
+  DRAFTING
+  READY
+  SENT
+  REPLIED
+  BOUNCED
+  UNSUBSCRIBED
 }
 
 model Sequence {
@@ -207,6 +308,11 @@ model Sequence {
 
   name      String
   isDefault Boolean @default(false)
+
+  // NEW: Template System
+  isTemplate   Boolean  @default(false)
+  playbookType String?
+  description  String?  @db.Text
 
   steps        SequenceStep[]
   campaigns    Campaign[]
@@ -229,11 +335,22 @@ model SequenceStep {
   subjectTemplate String?
   bodyTemplate    String?
 
+  // NEW: Step Types
+  stepType   StepType  @default(EMAIL)
+  aiPrompt   String?   @db.Text
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([sequenceId])
   @@map("sequence_steps")
+}
+
+enum StepType {
+  EMAIL
+  LINKEDIN_CONNECT
+  LINKEDIN_MESSAGE
+  WAIT
 }
 
 model Email {
@@ -262,6 +379,12 @@ model Email {
   campaignId String?
   campaign   Campaign? @relation(fields: [campaignId], references: [id])
 
+  // NEW: Rich Content & AI
+  bodyHtml    String?   @db.Text
+  aiDraft     String?   @db.Text
+  aiDraftTone String?
+  intent      EmailIntent?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -285,6 +408,17 @@ enum EmailStatus {
   REPLIED
   BOUNCED
   FAILED
+}
+
+enum EmailIntent {
+  INTERESTED
+  MEETING_REQUEST
+  OBJECTION
+  REFERRAL
+  UNSUBSCRIBE
+  NOT_INTERESTED
+  NURTURE
+  NEEDS_INFO
 }
 
 model AutoSearch {
@@ -323,10 +457,25 @@ model Reply {
   body       String   @db.Text
   receivedAt DateTime @default(now())
 
+  // NEW: AI Processing
+  intent      EmailIntent?
+  aiDraft     String?   @db.Text
+  aiDraftTone String?
+  status      ReplyStatus @default(RECEIVED)
+
   pendingActions PendingAction[]
 
   @@index([leadId])
   @@map("replies")
+}
+
+enum ReplyStatus {
+  RECEIVED
+  DRAFTED
+  REVIEWING
+  APPROVED
+  SENT
+  SCHEDULED
 }
 
 model Activity {
@@ -354,6 +503,32 @@ enum ActivityType {
   DEAL_LOST
   BATTLE_CARD_GENERATED
   PROPOSAL_GENERATED
+  PROPOSAL_SENT
+  PROPOSAL_VIEWED
+  PROPOSAL_SIGNED
+  CASE_STUDY_ATTACHED
+  COMPETITOR_ANALYSIS_GENERATED
+  PORTAL_ACTIVATED
+  PORTAL_VIEWED
+  REPORT_SENT
+  REPORT_VIEWED
+  ONBOARDING_COMPLETED
+  ONBOARDING_STEP_COMPLETED
+  LINKEDIN_TASK_GENERATED
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  content   String   @db.Text
+  createdBy String
+
+  createdAt DateTime @default(now())
+
+  @@index([leadId])
+  @@map("notes")
 }
 
 model TrackingEvent {
@@ -388,7 +563,7 @@ model PendingAction {
   riskLevel    PendingRiskLevel    @default(HIGH)
   confidence   PendingConfidence   @default(LOW)
 
-  expiresAt  DateTime
+  expiresAt  DateTime?
   status     PendingActionStatus @default(PENDING)
   executedAt DateTime?
 
@@ -407,6 +582,7 @@ enum PendingActionType {
   UPDATE_STAGE
   BOOK_MEETING
   SEND_PROPOSAL
+  GENERATE_CASE_STUDY
 }
 
 enum PendingActionStatus {
@@ -436,9 +612,13 @@ model AgentGoal {
   replyRateTarget Float @default(8)
   dailyLeadCap Int @default(40)
   autoSendEnabled Boolean @default(true)
+  autoProspectingEnabled Boolean @default(false)
   reviewWindowMins Int @default(5)
   maxAutoSendsPerDay Int @default(12)
   minConfidence PendingConfidence @default(MEDIUM)
+  personaConfig Json?
+  lowPriorityDelayMins   Int @default(2)
+  highPriorityDelayMins  Int @default(15)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -496,11 +676,180 @@ model AgentDigestLog {
 model DomainContactCache {
   id           String   @id @default(cuid())
   domain       String   @unique
-  contactsJson String?  @db.Text // stores JSON string of ContactResult[]
-  profilesJson String?  @db.Text // stores JSON string of LinkedInDecisionMaker[]
+  contactsJson String?  @db.Text
+  profilesJson String?  @db.Text
   updatedAt    DateTime @updatedAt
   createdAt    DateTime @default(now())
 
   @@index([domain])
   @@map("domain_contact_caches")
+}
+
+// ── Phase 1: Conversion Layer ─────────────────────────────────────────────────
+
+model Proposal {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leadId      String
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  campaignId  String?
+  campaign    Campaign? @relation(fields: [campaignId], references: [id])
+
+  title       String
+  contentJson Json
+  executiveSummary String? @db.Text
+
+  pricingPackages Json
+  totalValue    Float?
+  currency      String @default("GBP")
+
+  status      ProposalStatus @default(DRAFT)
+  sentAt      DateTime?
+  viewedAt    DateTime?
+  signedAt    DateTime?
+  expiredAt   DateTime?
+  signatureData Json?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([leadId])
+  @@index([status])
+  @@map("proposals")
+}
+
+enum ProposalStatus {
+  DRAFT
+  SENT
+  VIEWED
+  SIGNED
+  EXPIRED
+  DECLINED
+}
+
+model CaseStudy {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  clientName  String
+  industry    String
+  nicheTags   Json
+  challenge   String   @db.Text
+  solution    String   @db.Text
+  results     String   @db.Text
+  testimonialQuote String? @db.Text
+  metrics     Json?
+  imageUrls   Json?
+  usageCount  Int      @default(0)
+  aiSummary   String?  @db.Text
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([industry])
+  @@map("case_studies")
+}
+
+// ── Phase 2: Client Layer ───────────────────────────────────────────────────
+
+model ClientPortal {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaignId  String   @unique
+  campaign    Campaign @relation(fields: [campaignId], references: [id])
+
+  portalTemplate String?
+  enabledSections Json
+  customSections  Json?
+
+  logoUrl     String?
+  brandColor  String?
+  customDomain String?
+  accessUrl   String     @unique
+  accessToken String
+  isActive    Boolean    @default(true)
+
+  lastViewedAt DateTime?
+  viewCount    Int       @default(0)
+
+  reports     ClientReport[]
+  documents   PortalDocument[]
+  messages    PortalMessage[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("client_portals")
+}
+
+model ClientReport {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id])
+  portalId    String?
+  portal      ClientPortal? @relation(fields: [portalId], references: [id])
+
+  reportTemplate String?
+  periodStart    DateTime
+  periodEnd      DateTime
+  metricsJson    Json
+  aiNarrative    String?   @db.Text
+
+  pdfUrl      String?
+  status      ReportStatus @default(DRAFT)
+  sentAt      DateTime?
+  scheduledSendAt DateTime?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([campaignId])
+  @@map("client_reports")
+}
+
+enum ReportStatus {
+  DRAFT
+  SCHEDULED
+  SENT
+  VIEWED
+}
+
+model PortalDocument {
+  id          String   @id @default(cuid())
+  portalId    String
+  portal      ClientPortal @relation(fields: [portalId], references: [id], onDelete: Cascade)
+
+  name        String
+  fileUrl     String
+  fileType    String
+  category    String
+  uploadedBy  String
+
+  createdAt   DateTime @default(now())
+
+  @@index([portalId])
+  @@map("portal_documents")
+}
+
+model PortalMessage {
+  id          String   @id @default(cuid())
+  portalId    String
+  portal      ClientPortal @relation(fields: [portalId], references: [id], onDelete: Cascade)
+
+  direction   String
+  content     String   @db.Text
+
+  createdAt   DateTime @default(now())
+
+  @@index([portalId])
+  @@map("portal_messages")
 }

@@ -31,8 +31,40 @@ export async function sendEmailImmediately(emailId: string): Promise<boolean> {
     return false
   }
 
+  // Prevent out-of-order sends (safety check for older/corrupted campaign states)
+  if (email.stepNumber > 1 && email.campaignId) {
+    const priorUnsent = await prisma.email.findFirst({
+      where: {
+        leadId: lead.id,
+        campaignId: email.campaignId,
+        stepNumber: { lt: email.stepNumber },
+        status: { notIn: ["SENT", "REPLIED", "FAILED"] },
+      },
+    })
+    if (priorUnsent) {
+      console.log(`[Scheduler] Skipping step ${email.stepNumber} for lead ${lead.id} because prior step ${priorUnsent.stepNumber} is not sent.`)
+      await prisma.email.update({
+        where: { id: emailId },
+        data: { status: "DRAFT" },
+      })
+      return false
+    }
+  }
+
   const canSend = await checkEmailQuota(lead.userId)
   if (!canSend) return false
+
+  const now = new Date()
+
+  // 1. Atomically claim/update the email status to "SENT" to prevent concurrent double-sends
+  const claimResult = await prisma.email.updateMany({
+    where: { id: emailId, status: "QUEUED" },
+    data: { status: "SENT", sentAt: now },
+  })
+
+  if (claimResult.count === 0) {
+    return false
+  }
 
   try {
     const smtp = resolveSmtp(lead.user)
@@ -52,11 +84,9 @@ export async function sendEmailImmediately(emailId: string): Promise<boolean> {
       smtp,
     )
 
-    const now = new Date()
-
     await prisma.email.update({
       where: { id: emailId },
-      data: { status: "SENT", sentAt: now, messageId: result.messageId },
+      data: { messageId: result.messageId },
     })
 
     await prisma.lead.update({
@@ -83,7 +113,10 @@ export async function sendEmailImmediately(emailId: string): Promise<boolean> {
           nextScheduledAt.setDate(nextScheduledAt.getDate() + delayDays)
           await prisma.email.update({
             where: { id: nextEmail.id },
-            data: { scheduledAt: nextScheduledAt },
+            data: {
+              scheduledAt: nextScheduledAt,
+              ...(email.campaign.autonomous ? { status: "QUEUED" } : {}),
+            },
           })
         }
       }
@@ -143,6 +176,11 @@ export async function drainDueQueue(maxRounds = 20) {
     totals.rounds++
     if (r.sent === 0 && r.failed === 0 && r.skipped === 0) break
     if (r.sent === 0 && r.failed === 0) break
+
+    // Pause between rounds to avoid bursts of SMTP sends triggering rate limits
+    if (i + 1 < maxRounds) {
+      await new Promise(r => setTimeout(r, 2000))
+    }
   }
   return totals
 }
@@ -159,6 +197,7 @@ async function _processQueue() {
       status: "DRAFT",
       stepNumber: { gt: 1 },
       scheduledAt: { lte: expiredCutoff },
+      campaign: { status: "ACTIVE" }, // Only promote drafts for active campaigns
     },
     include: {
       campaign: { select: { autonomous: true } },
@@ -186,9 +225,16 @@ async function _processQueue() {
   // We fetch IDs first, then batch-update their scheduledAt to a future date to lock them.
   // Any concurrent runner that also queries will see the future date and skip them.
   const dueEmailIds = await prisma.email.findMany({
-    where: { status: "QUEUED", scheduledAt: { lte: now } },
+    where: {
+      status: "QUEUED",
+      scheduledAt: { lte: now },
+      OR: [
+        { campaignId: null },
+        { campaign: { status: "ACTIVE" } }, // Only send emails for active campaigns
+      ],
+    },
     orderBy: { scheduledAt: "asc" },
-    take: 10, // Conservative — Gmail allows 500/day; process in small batches
+    take: 5, // Conservative — Gmail allows 500/day; process in small batches with pacing
     select: { id: true },
   })
 
@@ -217,9 +263,9 @@ async function _processQueue() {
     if (success) results.sent++
     else results.failed++
 
-    // Small delay between sends to avoid Gmail rate limits
+    // Delay between sends to avoid Gmail rate limits / throttling-induced failures
     if (claimedEmails.indexOf(email) < claimedEmails.length - 1) {
-      await new Promise(r => setTimeout(r, 500))
+      await new Promise(r => setTimeout(r, 3000))
     }
   }
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, react-hooks/set-state-in-effect */
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
@@ -269,6 +270,23 @@ function LeadRow({
     }
   }
 
+  async function handleStopEnrichment(e: React.MouseEvent) {
+    e.stopPropagation() // Prevent row expansion
+    try {
+      const res = await fetch(`/api/leads/${lead.id}/stop-enrichment`, {
+        method: "POST",
+      })
+      if (res.ok) {
+        toast.success("Enrichment stopped")
+        onUpdateLead({ ...lead, contactsJson: "[]" })
+      } else {
+        toast.error("Failed to stop enrichment")
+      }
+    } catch {
+      toast.error("An error occurred")
+    }
+  }
+
   const showOutreachDesigner = emails.length === 0 || emails.every(e => e.status === "DRAFT")
 
   return (
@@ -276,7 +294,7 @@ function LeadRow({
       {/* Row */}
       <div
         onClick={toggle}
-        className="grid items-center gap-3 px-5 py-3.5 hover:bg-white/[.015] cursor-pointer transition-colors"
+        className="grid items-center gap-3 px-5 py-3.5 hover:bg-white/[.015] cursor-pointer transition-colors group"
         style={{ gridTemplateColumns: "minmax(0,2fr) minmax(0,2fr) minmax(0,1.2fr) 52px 96px 28px" }}
       >
         {/* Name */}
@@ -322,13 +340,22 @@ function LeadRow({
 
         {/* Status badge */}
         {lead.status === "NEW" && !lead.contactsJson ? (
-          <span
-            className="text-[10px] font-bold uppercase tracking-wide truncate flex items-center gap-1.5 text-emerald-400"
-            title="Enriching contacts, LinkedIn profiles, and website audit details in the background..."
-          >
-            <Loader2 className="size-3 animate-spin text-emerald-400 shrink-0" />
-            Enriching...
-          </span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span
+              className="text-[10px] font-bold uppercase tracking-wide truncate flex items-center gap-1 text-emerald-400"
+              title="Enriching contacts, LinkedIn profiles, and website audit details in the background..."
+            >
+              <Loader2 className="size-3 animate-spin text-emerald-400 shrink-0" />
+              Enriching...
+            </span>
+            <button
+              onClick={handleStopEnrichment}
+              className="text-[9px] font-black uppercase tracking-wider text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/25 px-1.5 py-0.5 rounded transition-all opacity-0 group-hover:opacity-100 select-none shrink-0"
+              title="Stop enrichment for this lead"
+            >
+              Stop
+            </button>
+          </div>
         ) : (
           <span
             className="text-[10px] font-bold uppercase tracking-wide truncate"
@@ -741,7 +768,6 @@ export function CampaignView({ campaignId, status, autonomous, leads, sequenceSt
   // Fetch activities when activity tab open
   useEffect(() => {
     if (tab !== "activity") return
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchActivities()
     const iv = setInterval(fetchActivities, 8000)
     return () => clearInterval(iv)

@@ -18,4 +18,4 @@ const cronHandler = async () => {
   }
 }
 
-export const handler = schedule("0 * * * *", cronHandler)
+export const handler = schedule("* * * * *", cronHandler)

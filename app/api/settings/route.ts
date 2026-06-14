@@ -20,6 +20,7 @@ export async function GET() {
       agencyLogo: true,
       onboardingDone: true,
       calendarLink: true,
+      playbookType: true,
     },
   })
 
@@ -31,7 +32,7 @@ export async function PATCH(req: NextRequest) {
   if (!session?.user?.id) return new NextResponse("Unauthorized", { status: 401 })
 
   const body = await req.json()
-  const allowed = ["agencyName", "fromEmail", "smtpPass", "smtpHost", "smtpPort", "companyDesc", "title", "tone", "agencyLogo", "onboardingDone", "calendarLink"]
+  const allowed = ["agencyName", "fromEmail", "smtpPass", "smtpHost", "smtpPort", "companyDesc", "title", "tone", "agencyLogo", "onboardingDone", "calendarLink", "playbookType"]
   const data: Record<string, unknown> = {}
   for (const key of allowed) {
     if (key in body) data[key] = body[key]
@@ -52,6 +53,7 @@ export async function PATCH(req: NextRequest) {
       agencyLogo: true,
       onboardingDone: true,
       calendarLink: true,
+      playbookType: true,
     },
   })
 

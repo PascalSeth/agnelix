@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, @next/next/no-img-element */
 "use client"
 
 import { useState, useEffect } from "react"
@@ -47,7 +48,7 @@ const BATTLE_CARD = {
   ],
   objections: [
     { q: "How much does it cost?", a: "Frame around one new patient per month covering the fee — most dental practices are worth £400–800/patient." },
-    { q: "We already have a website company", a: "Ask what they do about lead tracking and Google visibility — most website companies just build, they don't market." },
+    { q: "We already have a website company", a: "Ask what they do about lead tracking and Google visibility — most website companies just build, they don&apos;t market." },
   ],
 }
 
@@ -512,7 +513,7 @@ const scenarios: { id: string; label: string; emoji: string; color: string; tagl
             />
           </div>
         ),
-        prospect: <GmailReply text={`Hi Pascal,\n\nAppreciate you reaching out, but we already have someone who manages our website. I don't think we're looking to change at the moment.\n\nThanks,\nJames`} />,
+        prospect: <GmailReply text={`Hi Pascal,\n\nAppreciate you reaching out, but we already have someone who manages our website. I don&apos;t think we're looking to change at the moment.\n\nThanks,\nJames`} />,
       },
       {
         tag: "Follow-up",

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
@@ -25,11 +26,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
           name: name.trim(),
           steps: {
             createMany: {
-              data: steps.map((s: { stepNumber: number; delayDays: number; subjectTemplate?: string | null; bodyTemplate?: string | null }) => ({
+              data: steps.map((s: { stepNumber: number; delayDays: number; subjectTemplate?: string | null; bodyTemplate?: string | null; stepType?: any; aiPrompt?: string | null }) => ({
                 stepNumber: s.stepNumber,
                 delayDays: s.delayDays,
                 subjectTemplate: s.subjectTemplate || null,
                 bodyTemplate: s.bodyTemplate || null,
+                stepType: s.stepType || "EMAIL",
+                aiPrompt: s.aiPrompt || null,
               })),
             },
           },

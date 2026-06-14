@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, @next/next/no-img-element */
 "use client"
 
 import { useState, useEffect, useRef } from "react"
 import { X, Send, Loader2, Sparkles } from "lucide-react"
+import { usePathname } from "next/navigation"
 
 interface Message {
   role: "user" | "assistant"
@@ -9,6 +11,7 @@ interface Message {
 }
 
 export function AiAdvisorBubble() {
+  const pathname = usePathname()
   const [open, setOpen]               = useState(false)
   const [messages, setMessages]       = useState<Message[]>([])
   const [input, setInput]             = useState("")
@@ -86,6 +89,8 @@ export function AiAdvisorBubble() {
   function handleKey(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send() }
   }
+
+  if (pathname?.includes("/inbox")) return null;
 
   return (
     <>

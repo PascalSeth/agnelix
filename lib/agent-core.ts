@@ -5,7 +5,7 @@ type PendingActionWithLead = {
   id: string
   userId: string
   leadId: string
-  type: "SEND_REPLY" | "ENROLL_NURTURE" | "UPDATE_STAGE" | "BOOK_MEETING" | "SEND_PROPOSAL"
+  type: "SEND_REPLY" | "ENROLL_NURTURE" | "UPDATE_STAGE" | "BOOK_MEETING" | "SEND_PROPOSAL" | "GENERATE_CASE_STUDY"
   intent: string
   draftSubject: string | null
   draftBody: string
@@ -83,7 +83,17 @@ export async function evaluateRiskPolicy(params: {
 
 export async function executePendingAction(action: PendingActionWithLead, mode: "approve" | "auto") {
   const now = new Date()
-  if (action.status !== "PENDING") return { ok: false as const, reason: "already_resolved" }
+  
+  // 1. Atomically claim/update the action to prevent concurrent double-executions
+  const finalStatus = mode === "auto" ? "AUTO_EXECUTED" : "APPROVED"
+  const claimResult = await prisma.pendingAction.updateMany({
+    where: { id: action.id, status: "PENDING" },
+    data: { status: finalStatus, executedAt: now },
+  })
+
+  if (claimResult.count === 0) {
+    return { ok: false as const, reason: "already_resolved" }
+  }
 
   if (action.type === "SEND_REPLY" || action.type === "BOOK_MEETING" || action.type === "SEND_PROPOSAL") {
     const user = action.lead.user
@@ -127,7 +137,6 @@ export async function executePendingAction(action: PendingActionWithLead, mode: 
         smtp
       )
 
-      const nextStatus = mode === "auto" ? "AUTO_EXECUTED" : "APPROVED"
       const activityNotePrefix =
         action.type === "BOOK_MEETING"
           ? "Meeting response"
@@ -139,10 +148,6 @@ export async function executePendingAction(action: PendingActionWithLead, mode: 
         prisma.email.update({
           where: { id: emailRecord.id },
           data: { messageId: sendResult.messageId },
-        }),
-        prisma.pendingAction.update({
-          where: { id: action.id },
-          data: { status: nextStatus, executedAt: now },
         }),
         prisma.activity.create({
           data: {
@@ -159,7 +164,7 @@ export async function executePendingAction(action: PendingActionWithLead, mode: 
             intent: action.intent,
             responseStyle: typeof action.metadata === "object" && action.metadata ? String((action.metadata as Record<string, unknown>).style ?? "") : undefined,
             ctaType: action.type,
-            outcome: nextStatus,
+            outcome: finalStatus,
             bookedMeeting: action.type === "BOOK_MEETING",
             score: action.type === "BOOK_MEETING" ? 1 : 0.5,
             metadata: action.metadata ?? undefined,
@@ -224,11 +229,17 @@ export async function executePendingAction(action: PendingActionWithLead, mode: 
     })
   }
 
-  const finalStatus = mode === "auto" ? "AUTO_EXECUTED" : "APPROVED"
-  await prisma.pendingAction.update({
-    where: { id: action.id },
-    data: { status: finalStatus, executedAt: now },
-  })
+  if (action.type === "GENERATE_CASE_STUDY") {
+    await prisma.activity.create({
+      data: {
+        leadId: action.leadId,
+        type: "CASE_STUDY_ATTACHED",
+        note: "Case study generated and attached by autonomous agent",
+      },
+    })
+  }
+
+  // Status already updated atomically at the start of execution
   await prisma.activity.create({
     data: {
       leadId: action.leadId,

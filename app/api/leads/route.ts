@@ -73,6 +73,8 @@ export async function POST(req: NextRequest) {
           contactsJson: lead.contactsJson || null,
           linkedinProfilesJson: lead.linkedinProfilesJson || null,
           recommendedApproach: lead.recommendedApproach || null,
+          sourceQuery: lead.sourceQuery || null,
+          platformFocus: lead.platformFocus || null,
         },
       })
     )

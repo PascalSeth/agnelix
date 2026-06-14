@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { auth } from "@/auth"
 import { notFound } from "next/navigation"
 import { prisma } from "@/lib/db"
@@ -14,7 +15,6 @@ export default async function CampaignDetailPage({
   const { id } = await params
   const { new: isNew } = await searchParams
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let campaign: any = null
   try {
     campaign = await prisma.campaign.findUnique({
@@ -56,7 +56,6 @@ export default async function CampaignDetailPage({
   }
   if (!campaign) notFound()
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const leads = campaign.campaignLeads.map((cl: any) => cl.lead)
   const sequenceSteps = campaign.sequence.steps ?? []
   const stepCount = sequenceSteps.length || 1
