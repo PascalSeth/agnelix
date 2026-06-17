@@ -39,12 +39,14 @@ export function buildStep1Prompt(p: EmailPromptParams): string {
   let templateInstructions = ""
   if (p.subjectTemplate || p.bodyTemplate) {
     templateInstructions = `
-CUSTOM TEMPLATE INSTRUCTION:
-The user has configured a custom base template they wish to use for this step:
-${p.subjectTemplate ? `- Subject/Opening Template: ${p.subjectTemplate}` : ""}
-${p.bodyTemplate ? `- Body/CTA Template: ${p.bodyTemplate}` : ""}
+CUSTOM TEMPLATE / GUIDELINE INSTRUCTION:
+The user has configured a custom base template or guideline they wish to use for this step:
+${p.subjectTemplate ? `- Subject/Opening: ${p.subjectTemplate}` : ""}
+${p.bodyTemplate ? `- Body/CTA: ${p.bodyTemplate}` : ""}
 
-You MUST adapt, personalize, and fill in the details of this custom template. Preserve its overall message, structure, and intent, but replace placeholders (e.g. {{firstName}} or {{company}}) and rewrite sentences using the prospect information and personalization research to make it sound completely natural and highly researched.
+How to use this input:
+1. If the input is a template (contains placeholders like {{firstName}} or is written as a draft email message): You MUST adapt, personalize, and fill in the details. Preserve its overall message, structure, and intent, but replace placeholders and rewrite sentences using the prospect information and personalization research to make it sound completely natural and highly researched.
+2. If the input is a guideline/guide (contains instructions or bullet points on what to pitch, e.g. "Pitch site speed optimization, offer free 10-minute speed audit"): You MUST treat this as a set of strict instructions to draft a completely unique, highly personalized email from scratch based on those instructions. Do NOT copy the guideline text itself, but follow its directions to construct the email body.
 `
   }
 
@@ -149,7 +151,10 @@ PROSPECT:
 ${p.companyResearch ? `\nIN-DEPTH COMPANY RESEARCH:\n${p.companyResearch}\n` : ""}
 PERSONALIZATION RESEARCH:
 - Recent company activity: ${p.recentNews || "Not available"}
-- Likely pain point in this industry: ${p.painPoint || "Not available"}${approachInstructions}
+- Likely pain point: ${p.painPoint || "Not available"}
+- Google Maps Rating: ${p.rating || "unknown"}
+- Google Review Count: ${p.reviewCount || "unknown"}
+- Website speed/technical standings: ${p.auditData ? `SSL: ${p.auditData.ssl ? "Secure" : "Not Secure"}, Mobile speed: ${p.auditData.speed}ms, Mobile optimized: ${p.auditData.mobile ? "Yes" : "No"}, GA/GTM tags: ${p.auditData.googleAnalytics || p.auditData.googleTagManager ? "Present" : "Missing"}` : "Not checked"}${approachInstructions}
 
 RULES:
 1. Subject: 4-7 words, curiosity-driven. ${p.approach === "local-neighbor" ? "Frame it as a friendly neighbor introduction or invitation (e.g., 'Hello from your neighbor [Sender Company]' or 'Lunch for the [Prospect Company] team')." : "NO: 'Free', 'Guarantee', 'Act Now', 'Limited Time'"}
@@ -177,12 +182,14 @@ export function buildStep2Prompt(p: EmailPromptParams): string {
   let templateInstructions = ""
   if (p.subjectTemplate || p.bodyTemplate) {
     templateInstructions = `
-CUSTOM TEMPLATE INSTRUCTION:
-The user has configured a custom base template they wish to use for this follow-up step:
-${p.subjectTemplate ? `- Subject Template: ${p.subjectTemplate}` : ""}
-${p.bodyTemplate ? `- Body Template: ${p.bodyTemplate}` : ""}
+CUSTOM TEMPLATE / GUIDELINE INSTRUCTION:
+The user has configured a custom base template or guideline they wish to use for this follow-up step:
+${p.subjectTemplate ? `- Subject/Opening: ${p.subjectTemplate}` : ""}
+${p.bodyTemplate ? `- Body/CTA: ${p.bodyTemplate}` : ""}
 
-You MUST adapt, personalize, and fill in the details of this custom template. Preserve its overall message, structure, and intent, but replace placeholders and rewrite sentences using the prospect information to make it sound completely natural.
+How to use this input:
+1. If the input is a template (contains placeholders like {{firstName}} or is written as a draft email message): You MUST adapt, personalize, and fill in the details. Preserve its overall message, structure, and intent, but replace placeholders and rewrite sentences using the prospect information to make it sound completely natural.
+2. If the input is a guideline/guide (contains instructions or bullet points on what to pitch): You MUST treat this as a set of strict instructions to draft a completely unique, highly personalized email from scratch based on those instructions. Do NOT copy the guideline text itself, but follow its directions to construct the email body.
 `
   }
 
@@ -193,7 +200,19 @@ You MUST adapt, personalize, and fill in the details of this custom template. Pr
   return `You are writing a follow-up cold email. Keep it very short, creative, and human.
 ${templateInstructions}${previousContext}
 SENDER: ${p.senderName} from ${p.senderCompany}
-PROSPECT: ${p.prospectFirstName} at ${p.prospectCompany}
+
+PROSPECT:
+- Name: ${p.prospectFirstName} ${p.prospectLastName}
+- Company: ${p.prospectCompany}
+- Company does: ${p.prospectCompanyDesc}
+- Industry: ${p.industry}
+${p.companyResearch ? `\nIN-DEPTH COMPANY RESEARCH:\n${p.companyResearch}\n` : ""}
+PERSONALIZATION RESEARCH:
+- Recent company activity: ${p.recentNews || "Not available"}
+- Likely pain point: ${p.painPoint || "Not available"}
+- Google Maps Rating: ${p.rating || "unknown"}
+- Google Review Count: ${p.reviewCount || "unknown"}
+- Website speed/technical standings: ${p.auditData ? `SSL: ${p.auditData.ssl ? "Secure" : "Not Secure"}, Mobile speed: ${p.auditData.speed}ms, Mobile optimized: ${p.auditData.mobile ? "Yes" : "No"}, GA/GTM tags: ${p.auditData.googleAnalytics || p.auditData.googleTagManager ? "Present" : "Missing"}` : "Not checked"}
 
 Write a 2-3 sentence follow-up that:
 1. References the specific point or value pitch from the first email creatively (e.g. referencing the website speed audit, review rating gap, or industry shift mentioned previously). Avoid using generic phrases like "wanted to bump this up" or "just checking in" for every company.
@@ -213,12 +232,14 @@ export function buildStep3Prompt(p: EmailPromptParams): string {
   let templateInstructions = ""
   if (p.subjectTemplate || p.bodyTemplate) {
     templateInstructions = `
-CUSTOM TEMPLATE INSTRUCTION:
-The user has configured a custom base template they wish to use for this final breakup step:
-${p.subjectTemplate ? `- Subject Template: ${p.subjectTemplate}` : ""}
-${p.bodyTemplate ? `- Body Template: ${p.bodyTemplate}` : ""}
+CUSTOM TEMPLATE / GUIDELINE INSTRUCTION:
+The user has configured a custom base template or guideline they wish to use for this final breakup step:
+${p.subjectTemplate ? `- Subject/Opening: ${p.subjectTemplate}` : ""}
+${p.bodyTemplate ? `- Body/CTA: ${p.bodyTemplate}` : ""}
 
-You MUST adapt, personalize, and fill in the details of this custom template. Preserve its overall message, structure, and intent, but replace placeholders (e.g. {{firstName}}) and rewrite sentences to make it sound completely natural and respectful.
+How to use this input:
+1. If the input is a template (contains placeholders like {{firstName}} or is written as a draft email message): You MUST adapt, personalize, and fill in the details. Preserve its overall message, structure, and intent, but replace placeholders (e.g. {{firstName}}) and rewrite sentences to make it sound completely natural and respectful.
+2. If the input is a guideline/guide (contains instructions or bullet points on what to pitch): You MUST treat this as a set of strict instructions to draft a completely unique, highly personalized email from scratch based on those instructions. Do NOT copy the guideline text itself, but follow its directions to construct the email body.
 `
   }
 
@@ -229,7 +250,19 @@ You MUST adapt, personalize, and fill in the details of this custom template. Pr
   return `You are writing a final "breakup" cold email. Keep it polite, brief, and professional.
 ${templateInstructions}${previousContext}
 SENDER: ${p.senderName} from ${p.senderCompany}
-PROSPECT: ${p.prospectFirstName} at ${p.prospectCompany}
+
+PROSPECT:
+- Name: ${p.prospectFirstName} ${p.prospectLastName}
+- Company: ${p.prospectCompany}
+- Company does: ${p.prospectCompanyDesc}
+- Industry: ${p.industry}
+${p.companyResearch ? `\nIN-DEPTH COMPANY RESEARCH:\n${p.companyResearch}\n` : ""}
+PERSONALIZATION RESEARCH:
+- Recent company activity: ${p.recentNews || "Not available"}
+- Likely pain point: ${p.painPoint || "Not available"}
+- Google Maps Rating: ${p.rating || "unknown"}
+- Google Review Count: ${p.reviewCount || "unknown"}
+- Website speed/technical standings: ${p.auditData ? `SSL: ${p.auditData.ssl ? "Secure" : "Not Secure"}, Mobile speed: ${p.auditData.speed}ms, Mobile optimized: ${p.auditData.mobile ? "Yes" : "No"}, GA/GTM tags: ${p.auditData.googleAnalytics || p.auditData.googleTagManager ? "Present" : "Missing"}` : "Not checked"}
 
 Write a 2-3 sentence breakup email that:
 1. Acknowledges they may be busy or that the timing is not right.

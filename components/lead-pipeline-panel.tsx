@@ -22,7 +22,7 @@ type Activity = {
   id: string; type: string; note: string | null; createdAt: string; metadata: Record<string, unknown> | null
 }
 
-const ACTIVITY_ICONS: Record<string, { icon: React.ElementType; color: string }> = {
+const ACTIVITY_ICONS: Record<string, { icon: React.ElementType<{ className?: string }>; color: string }> = {
   EMAIL_SENT:            { icon: Mail,         color: "text-sky-400"     },
   EMAIL_OPENED:          { icon: Star,          color: "text-amber-400"   },
   EMAIL_CLICKED:         { icon: ChevronRight,  color: "text-emerald-400" },

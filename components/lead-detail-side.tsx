@@ -95,7 +95,7 @@ function PainPoint({ num, text, color = "red" }: { num: number; text: React.Reac
 }
 
 function SignalRow({ icon: Icon, label, ok, detail }: {
-  icon: React.ElementType
+  icon: React.ElementType<{ className?: string }>
   label: string
   ok: boolean
   detail: string
@@ -748,7 +748,7 @@ export function LeadDetailSide({
 
     const approaches: {
       id: Approach
-      icon: React.ElementType
+      icon: React.ElementType<{ className?: string }>
       label: string
       desc: string
       available: boolean

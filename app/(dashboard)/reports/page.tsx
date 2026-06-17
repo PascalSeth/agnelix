@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import { usePlaybook } from "@/lib/playbook-context"
 import { CustomSelect } from "@/components/ui/custom-select"
 import { BarChart3, Plus, Send, Loader2, Trash2 } from "lucide-react"
+import { ReportCardChart } from "@/components/report-card-chart"
+import { ReportsOverviewChart } from "@/components/reports-overview-chart"
 
 interface Campaign {
   id: string
@@ -195,31 +197,36 @@ export default function ReportsPage() {
           )}
         </div>
       ) : (
-        <div className="space-y-3">
-          {reports.map(report => (
-            <div key={report.id} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 space-y-3" style={{ backdropFilter: "blur(12px)" }}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-bold text-white">{report.campaign.name}</p>
-                  <p className="text-[11px] text-white/40">
-                    {new Date(report.periodStart).toLocaleDateString()} – {new Date(report.periodEnd).toLocaleDateString()}
-                  </p>
-                </div>
-                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${STATUS_STYLE[report.status]}`}>
-                  {report.status}
-                </span>
-              </div>
+        <div className="space-y-6">
+          <ReportsOverviewChart reports={reports} />
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {Object.entries(report.metricsJson).map(([k, v]) => (
-                  <div key={k} className="rounded-xl bg-white/[0.02] border border-white/[0.06] px-3 py-2">
-                    <p className="text-sm font-black text-white">{v}</p>
-                    <p className="text-[10px] text-white/40 uppercase tracking-wide capitalize">{k.replace(/_/g, " ")}</p>
+          <div className="space-y-3">
+            {reports.map(report => (
+              <div key={report.id} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 space-y-3" style={{ backdropFilter: "blur(12px)" }}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-white">{report.campaign.name}</p>
+                    <p className="text-[11px] text-white/40">
+                      {new Date(report.periodStart).toLocaleDateString()} – {new Date(report.periodEnd).toLocaleDateString()}
+                    </p>
                   </div>
-                ))}
-              </div>
+                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${STATUS_STYLE[report.status]}`}>
+                    {report.status}
+                  </span>
+                </div>
 
-              {report.aiNarrative && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {Object.entries(report.metricsJson).map(([k, v]) => (
+                    <div key={k} className="rounded-xl bg-white/[0.02] border border-white/[0.06] px-3 py-2">
+                      <p className="text-sm font-black text-white">{v}</p>
+                      <p className="text-[10px] text-white/40 uppercase tracking-wide capitalize">{k.replace(/_/g, " ")}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <ReportCardChart metrics={report.metricsJson} />
+
+                {report.aiNarrative && (
                 <p className="text-[12px] text-white/50 leading-relaxed whitespace-pre-line">{report.aiNarrative}</p>
               )}
 
@@ -244,6 +251,7 @@ export default function ReportsPage() {
             </div>
           ))}
         </div>
+      </div>
       )}
     </div>
   )

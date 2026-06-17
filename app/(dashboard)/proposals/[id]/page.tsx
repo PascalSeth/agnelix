@@ -72,7 +72,7 @@ export default function ProposalEditorPage({ params }: { params: Promise<{ id: s
     setPricing(prev => prev.map((p, i) => i === idx ? { ...p, ...patch } : p))
   }
 
-  const totalValue = pricing.reduce((s, p) => s + (Number(p.price) || 0), 0)
+  const totalValue = pricing.reduce((s, p) => s + (Number(p.price) || 0) + (Number(p.setupPrice) || 0), 0)
 
   async function handleSave() {
     setSaving(true)
@@ -264,7 +264,7 @@ export default function ProposalEditorPage({ params }: { params: Promise<{ id: s
         </div>
         <div className="space-y-3">
           {pricing.map((pkg, idx) => (
-            <div key={pkg.id || idx} className="grid gap-2 sm:grid-cols-4 items-center rounded-xl border border-white/[0.04] bg-white/[0.01] p-3">
+            <div key={pkg.id || idx} className="grid gap-2 sm:grid-cols-5 items-center rounded-xl border border-white/[0.04] bg-white/[0.01] p-3">
               <input
                 value={pkg.name}
                 onChange={e => updatePricing(idx, { name: e.target.value })}
@@ -279,6 +279,18 @@ export default function ProposalEditorPage({ params }: { params: Promise<{ id: s
                   onChange={e => updatePricing(idx, { price: parseFloat(e.target.value) || 0 })}
                   className="w-20 bg-transparent text-xs font-bold text-white outline-none border-b border-white/10"
                 />
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-white/40">+</span>
+                <span className="text-xs text-white/40">{pkg.currency === "GBP" ? "£" : pkg.currency}</span>
+                <input
+                  type="number"
+                  value={pkg.setupPrice || 0}
+                  onChange={e => updatePricing(idx, { setupPrice: parseFloat(e.target.value) || 0 })}
+                  className="w-16 bg-transparent text-xs text-white/70 outline-none border-b border-white/10"
+                  placeholder="Setup fee"
+                />
+                <span className="text-[9px] text-white/30 ml-0.5">setup</span>
               </div>
               <input
                 value={pkg.period}

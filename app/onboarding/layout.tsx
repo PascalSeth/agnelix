@@ -45,8 +45,8 @@ export default async function OnboardingLayout({ children }: { children: React.R
           </div>
         </header>
 
-        {/* Content */}
-        <main className="relative z-10 flex min-h-[calc(100vh-3.5rem)] items-center justify-center px-4 py-10">
+        {/* Content — full height below header */}
+        <main className="relative z-10 h-[calc(100vh-3.5rem)]">
           {children}
         </main>
       </div>

@@ -40,58 +40,58 @@ const DEMO_SEQUENCES: Record<string, { name: string; angle: string; steps: Omit<
     name: "Instagram Growth Outreach",
     angle: "Lead with a content/engagement gap you can see on their page, then prove it with results from a similar account, then make booking a call effortless.",
     steps: [
-      { stepNumber: 1, delayDays: 0, label: "Spotted a content gap", bodyTemplate: "Hi {{firstName}}, I checked out {{companyName}}'s Instagram — great products, but your posting is inconsistent and reels aren't being used. That's usually 2-3x the reach you're leaving on the table. Worth a quick look at a content plan?", aiPrompt: "", stepType: "EMAIL" },
-      { stepNumber: 2, delayDays: 3, label: "Proof from a similar account", bodyTemplate: "Quick follow-up — we helped a similar brand go from ~2k to 11k followers in 90 days with a consistent reels + story strategy. Happy to show you the exact plan we used.", aiPrompt: "", stepType: "EMAIL" },
-      { stepNumber: 3, delayDays: 6, label: "Connect on LinkedIn", bodyTemplate: "Hi {{firstName}}, sent you a couple of notes about {{companyName}}'s Instagram — thought I'd connect here too in case it's easier to chat.", aiPrompt: "", stepType: "LINKEDIN_CONNECT" },
-      { stepNumber: 4, delayDays: 10, label: "Free content calendar offer", bodyTemplate: "Last note from me — I put together a free 2-week content calendar idea for {{companyName}}. Want me to send it over, no strings attached?", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 1, delayDays: 0, label: "Spotted a content gap", bodyTemplate: "Draft a short, direct cold outreach email. Mention a content/reels inconsistency we noticed on their Instagram page. Pivot to the organic reach gap this leaves, and ask if they are open to seeing a content plan.", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 2, delayDays: 3, label: "Proof from a similar account", bodyTemplate: "Draft a brief follow-up email. Cite a case study of a similar brand we helped grow from 2k to 11k followers in 90 days with Reels. Offer to share the exact plan we used.", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 3, delayDays: 6, label: "Connect on LinkedIn", bodyTemplate: "Send a LinkedIn connection request. Reference our notes about their Instagram and suggest connecting to stay in touch.", aiPrompt: "", stepType: "LINKEDIN_CONNECT" },
+      { stepNumber: 4, delayDays: 10, label: "Free content calendar offer", bodyTemplate: "Draft a final email. Offer to send a free, no-obligation 2-week content calendar tailored to their profile.", aiPrompt: "", stepType: "EMAIL" },
     ],
   },
   seo: {
     name: "Local SEO Audit Hook",
     angle: "Open with specific, visible problems on their site/Google profile, back it up with a quick-win case study, then offer a free audit to remove friction.",
     steps: [
-      { stepNumber: 1, delayDays: 0, label: "3 things hurting your ranking", bodyTemplate: "Hi {{firstName}}, I ran a quick check on {{companyName}}'s site and found 3 issues that are likely hurting your Google ranking — slow mobile load time, missing location keywords, and an incomplete Google Business Profile. Want me to send the full breakdown?", aiPrompt: "", stepType: "EMAIL" },
-      { stepNumber: 2, delayDays: 4, label: "Case study: similar business", bodyTemplate: "Following up — we fixed similar issues for a business like yours and they went from page 3 to the top 3 local results in about 8 weeks. Happy to show you what that looked like.", aiPrompt: "", stepType: "EMAIL" },
-      { stepNumber: 3, delayDays: 8, label: "Free audit, final nudge", bodyTemplate: "No pressure either way — if it's useful, I can run a free, no-obligation SEO audit for {{companyName}} this week. Just reply 'yes' and I'll send it over.", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 1, delayDays: 0, label: "3 things hurting your ranking", bodyTemplate: "Draft a short, direct cold email. Note a few specific SEO/ranking issues on their website (e.g. slow speed, mobile rendering, missing metadata). Ask if they want a breakdown of these issues.", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 2, delayDays: 4, label: "Case study: similar business", bodyTemplate: "Draft a brief follow-up email. Highlight how we resolved similar ranking issues for a similar local business, helping them reach the top 3 of local maps in 8 weeks.", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 3, delayDays: 8, label: "Free audit, final nudge", bodyTemplate: "Draft a final email. Offer to run a free, no-obligation custom SEO and speed audit.", aiPrompt: "", stepType: "EMAIL" },
     ],
   },
   ppc: {
     name: "Ad Spend Audit",
     angle: "Show you've done the research on their ad presence (or lack of it), quantify wasted spend with a benchmark, then offer a free teardown.",
     steps: [
-      { stepNumber: 1, delayDays: 0, label: "What your competitors are spending", bodyTemplate: "Hi {{firstName}}, I looked at the ad landscape for {{companyName}}'s market — a couple of your competitors are running consistent Meta/Google campaigns and likely picking up customers you're not bidding for. Want a quick rundown of what they're doing?", aiPrompt: "", stepType: "EMAIL" },
-      { stepNumber: 2, delayDays: 3, label: "Where budget gets wasted", bodyTemplate: "Most accounts we audit are wasting 20-30% of spend on broad targeting and weak creative. We can usually find that within a day. Want a free teardown of what that'd look like for {{companyName}}?", aiPrompt: "", stepType: "EMAIL" },
-      { stepNumber: 3, delayDays: 6, label: "Connect on LinkedIn", bodyTemplate: "Hi {{firstName}}, following up on the ad audit idea for {{companyName}} — connecting here in case it's easier to continue the conversation.", aiPrompt: "", stepType: "LINKEDIN_CONNECT" },
-      { stepNumber: 4, delayDays: 9, label: "Final offer: free teardown", bodyTemplate: "Last note — happy to send over a free, no-obligation ad account teardown for {{companyName}} this week if useful. Just say the word.", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 1, delayDays: 0, label: "What your competitors are spending", bodyTemplate: "Draft a short cold email. Mention that competitors are running campaigns for their keywords while their presence is low. Ask if they want a look at competitor ad spend data.", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 2, delayDays: 3, label: "Where budget gets wasted", bodyTemplate: "Draft a brief follow-up email. Highlight that most ad accounts waste 20-30% on weak targeting, and offer a free teardown of their ad account strategy to identify wasted budget.", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 3, delayDays: 6, label: "Connect on LinkedIn", bodyTemplate: "Send a LinkedIn connection request. Mention our competitor ad research and suggest connecting to continue the conversation.", aiPrompt: "", stepType: "LINKEDIN_CONNECT" },
+      { stepNumber: 4, delayDays: 9, label: "Final offer: free teardown", bodyTemplate: "Draft a final email. Offer a free, no-obligation PPC account teardown.", aiPrompt: "", stepType: "EMAIL" },
     ],
   },
   sales: {
     name: "B2B Outreach Sequence",
     angle: "Lead with a specific pain point your buyer persona feels, follow with social proof, mix in LinkedIn touches, and close with a polite breakup that often re-engages.",
     steps: [
-      { stepNumber: 1, delayDays: 0, label: "Pain point intro", bodyTemplate: "Hi {{firstName}}, most {{industry}} teams we talk to are spending hours a week on manual prospecting with little to show for it. Curious how {{companyName}} currently handles outbound — is it mostly manual today?", aiPrompt: "", stepType: "EMAIL" },
-      { stepNumber: 2, delayDays: 3, label: "Case study / proof", bodyTemplate: "Quick follow-up — we helped a team similar to yours book 12 extra meetings a month by automating the research + first-touch email. Happy to show you how it works if useful.", aiPrompt: "", stepType: "EMAIL" },
-      { stepNumber: 3, delayDays: 6, label: "Connect on LinkedIn", bodyTemplate: "Hi {{firstName}}, sent over a couple of notes about outbound for {{companyName}} — connecting here too in case that's easier.", aiPrompt: "", stepType: "LINKEDIN_CONNECT" },
-      { stepNumber: 4, delayDays: 9, label: "LinkedIn nudge", bodyTemplate: "Hi {{firstName}}, following up on my email — would a quick 15-minute call make sense to see if this is a fit for {{companyName}}?", aiPrompt: "", stepType: "LINKEDIN_MESSAGE" },
-      { stepNumber: 5, delayDays: 13, label: "Breakup email", bodyTemplate: "Hi {{firstName}}, haven't heard back so I'll assume now isn't the right time. I'll close this out for now — feel free to reach out if priorities change.", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 1, delayDays: 0, label: "Pain point intro", bodyTemplate: "Draft a short cold email. Address the typical B2B prospecting pain point of spending hours on manual outreach. Ask how they currently handle outbound.", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 2, delayDays: 3, label: "Case study / proof", bodyTemplate: "Draft a brief follow-up email. Mention that we helped a similar team automate prospecting to book 12 extra meetings a month, and offer to show how.", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 3, delayDays: 6, label: "Connect on LinkedIn", bodyTemplate: "Send a LinkedIn connection request. Refer to our B2B outbound notes and suggest connecting.", aiPrompt: "", stepType: "LINKEDIN_CONNECT" },
+      { stepNumber: 4, delayDays: 9, label: "LinkedIn nudge", bodyTemplate: "Send a LinkedIn follow-up message. Suggest a brief 15-minute call to see if our system is a fit.", aiPrompt: "", stepType: "LINKEDIN_MESSAGE" },
+      { stepNumber: 5, delayDays: 13, label: "Breakup email", bodyTemplate: "Draft a polite breakup email closing the loop, leaving the door open for future collaboration.", aiPrompt: "", stepType: "EMAIL" },
     ],
   },
   finance: {
     name: "CFO Advisory Outreach",
     angle: "Speak to financial pain (cashflow, runway, tax) in plain terms, support with a results-based case study, then offer a low-friction financial health check.",
     steps: [
-      { stepNumber: 1, delayDays: 0, label: "Cashflow visibility", bodyTemplate: "Hi {{firstName}}, a lot of founders we work with don&apos;t have clear visibility into cashflow until it's a problem. Does {{companyName}} have a rolling 13-week cashflow forecast in place today?", aiPrompt: "", stepType: "EMAIL" },
-      { stepNumber: 2, delayDays: 4, label: "Tax strategy case study", bodyTemplate: "Following up — we recently helped a business save a meaningful amount through better tax structuring and forecasting, without changing how they operate day to day. Want a quick example?", aiPrompt: "", stepType: "EMAIL" },
-      { stepNumber: 3, delayDays: 8, label: "Free financial health check", bodyTemplate: "No pressure — if useful, I can put together a free financial health check for {{companyName}} covering cashflow, margins, and runway. Want me to send it over?", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 1, delayDays: 0, label: "Cashflow visibility", bodyTemplate: "Draft a short cold email. Speak to the difficulty of cashflow visibility for founders. Ask if they currently use a rolling 13-week cashflow forecast.", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 2, delayDays: 4, label: "Tax strategy case study", bodyTemplate: "Draft a brief follow-up email. Cite a case study of saving a client significant tax and cashflow overhead through forecasting. Offer to share details.", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 3, delayDays: 8, label: "Free financial health check", bodyTemplate: "Draft a final email. Offer a free financial health check focusing on margins and runway.", aiPrompt: "", stepType: "EMAIL" },
     ],
   },
   web_design: {
     name: "Mobile/Speed Redesign Pitch",
     angle: "Point out a concrete, visible problem (mobile experience, load speed), show a before/after style proof, then offer a limited-time incentive.",
     steps: [
-      { stepNumber: 1, delayDays: 0, label: "Mobile experience issue", bodyTemplate: "Hi {{firstName}}, I loaded {{companyName}}'s site on mobile and it's slow to load and a bit hard to navigate — likely costing you visitors and sales. Want me to show you what's going on?", aiPrompt: "", stepType: "EMAIL" },
-      { stepNumber: 2, delayDays: 4, label: "Before/after example", bodyTemplate: "Here's an example of a similar redesign we did — same business type, faster load time and a much cleaner mobile layout, which led to a noticeable bump in conversions. Want to see it?", aiPrompt: "", stepType: "EMAIL" },
-      { stepNumber: 3, delayDays: 8, label: "Limited-time offer", bodyTemplate: "Last note — we have a couple of redesign slots open this month with a discount for early sign-ups. If a faster, mobile-friendly site is on your radar for {{companyName}}, happy to send details.", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 1, delayDays: 0, label: "Mobile experience issue", bodyTemplate: "Draft a short cold email. Point out a slow load speed or hard-to-navigate mobile layout on their website. Ask if they want to see what is causing the gap.", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 2, delayDays: 4, label: "Before/after example", bodyTemplate: "Share a before/after example of a clean redesign that boosted conversion rates for a similar brand.", aiPrompt: "", stepType: "EMAIL" },
+      { stepNumber: 3, delayDays: 8, label: "Limited-time offer", bodyTemplate: "Draft a final email. Highlight a couple of open redesign slots with an early signup discount.", aiPrompt: "", stepType: "EMAIL" },
     ],
   },
 }
@@ -108,6 +108,47 @@ export default function SequencesPage() {
   const [editingId, setEditingId]     = useState<string | null>(null)
   const [expandedId, setExpandedId]   = useState<string | null>(null)
   const [aiLoading, setAiLoading]     = useState<Record<number, boolean>>({})
+  const [selectedPresetId, setSelectedPresetId] = useState("")
+  const [importingPreset, setImportingPreset] = useState(false)
+
+  async function handleImportPreset() {
+    if (!selectedPresetId || !activePlaybook) return
+    const preset = activePlaybook.sequenceTemplates.find(t => t.id === selectedPresetId)
+    if (!preset) return
+
+    setImportingPreset(true)
+    const toastId = toast.loading(`AI is drafting sequence copy for "${preset.name}"...`)
+    try {
+      const res = await fetch("/api/sequences/generate-from-preset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          presetName: preset.name,
+          presetDescription: preset.description,
+          stepsCount: preset.steps,
+        })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Generation failed")
+      
+      setName(preset.name)
+      setNewSteps(data.map((s: any) => ({
+        stepNumber: s.stepNumber,
+        delayDays: s.delayDays,
+        label: s.label,
+        bodyTemplate: s.bodyTemplate || "",
+        aiPrompt: "",
+        expandedRules: true,
+        stepType: s.stepType || "EMAIL"
+      })))
+      
+      toast.success(`AI drafted ${data.length} steps for "${preset.name}"!`, { id: toastId })
+    } catch (err: any) {
+      toast.error(err.message || "Failed to generate sequence preset.", { id: toastId })
+    } finally {
+      setImportingPreset(false)
+    }
+  }
 
   // Dynamic steps for creation/editing
   const [newSteps, setNewSteps] = useState<StepInput[]>([
@@ -468,6 +509,50 @@ export default function SequencesPage() {
               }}
             />
           </div>
+
+          {/* Playbook Preset Import Box */}
+          {!editingId && (
+            <div className="mb-6 rounded-xl p-4.5 space-y-3"
+                 style={{
+                   background: "linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, rgba(236, 72, 153, 0.02) 100%)",
+                   border: "1px solid rgba(139, 92, 246, 0.1)"
+                 }}>
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="size-3.5 text-violet-400 animate-pulse" />
+                <span className="text-[10px] font-black text-violet-400 uppercase tracking-widest">AI Playbook Preset Importer</span>
+              </div>
+              <p className="text-[11px] text-white/45">
+                Import a campaign outreach preset from your active playbook and let the AI draft the complete multi-step copy customized to your agency services.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <select
+                  value={selectedPresetId}
+                  onChange={e => setSelectedPresetId(e.target.value)}
+                  className="flex-1 rounded-xl px-3 py-2 text-xs text-white/80 bg-black/30 border border-white/5 outline-none focus:border-white/15"
+                >
+                  <option value="">Choose a playbook preset...</option>
+                  {activePlaybook?.sequenceTemplates.map(t => (
+                    <option key={t.id} value={t.id} className="bg-[#1a1b24] text-white">
+                      {t.name} ({t.steps} steps)
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={handleImportPreset}
+                  disabled={!selectedPresetId || importingPreset}
+                  className="shrink-0 flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white transition-all disabled:opacity-40"
+                  style={{
+                    background: "linear-gradient(135deg, rgba(236, 72, 153, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%)",
+                    border: "1px solid rgba(139, 92, 246, 0.2)"
+                  }}
+                >
+                  {importingPreset ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+                  <span>Generate Step Copy with AI</span>
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Steps Editor - Vertical Timeline */}
           <div className="mb-6 space-y-4">

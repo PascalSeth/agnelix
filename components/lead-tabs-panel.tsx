@@ -63,7 +63,7 @@ type Tab = "overview" | "contact" | "audit" | "intel" | "emails" | "replies"
 
 // ── Email status map ───────────────────────────────────────────────────────────
 
-const ES: Record<string, { icon: React.ElementType; color: string; label: string }> = {
+const ES: Record<string, { icon: React.ElementType<{ className?: string }>; color: string; label: string }> = {
   SENT:      { icon: Mail,              color: "text-white/40",    label: "Sent"      },
   DELIVERED: { icon: Mail,              color: "text-white/40",    label: "Delivered" },
   OPENED:    { icon: Eye,               color: "text-emerald-400", label: "Opened"    },
@@ -626,7 +626,7 @@ function AuditTab({ audit, auditLoading, auditDone, website, onRunAudit, fromDb 
       ) : audit ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {CHECKS.map((item) => {
-            const itemTyped = item as { speed?: boolean; neutral?: boolean; good?: boolean; label: string; val: string; icon: React.ElementType }
+            const itemTyped = item as { speed?: boolean; neutral?: boolean; good?: boolean; label: string; val: string; icon: React.ElementType<{ className?: string }> }
             const speedGood = itemTyped.speed
               ? audit.speed < 2000 ? true : audit.speed < 4000 ? null : false
               : null

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
+import { generatePlaybookTemplates } from "@/lib/ai"
 
 export async function GET() {
   const session = await auth()
@@ -56,6 +57,53 @@ export async function PATCH(req: NextRequest) {
       playbookType: true,
     },
   })
+
+  // If onboarding was just marked done, trigger playbook templates auto-generation!
+  if (body.onboardingDone === true && user.companyDesc) {
+    try {
+      const playbookType = user.playbookType || "sales"
+      const generated = await generatePlaybookTemplates({
+        companyName: user.agencyName || "Our Agency",
+        companyDesc: user.companyDesc,
+        playbookType,
+        currency: "GBP",
+      })
+
+      await prisma.playbook.upsert({
+        where: { type: playbookType },
+        update: {
+          targetVerticals: generated.targetVerticals || [],
+          platformOptions: generated.platformOptions || [],
+          sequenceTemplates: generated.sequenceTemplates as any,
+          proposalTemplates: generated.proposalTemplates as any,
+          objectionHandlers: generated.objectionHandlers as any,
+        },
+        create: {
+          type: playbookType,
+          name: playbookType === "social_media" ? "Social Media Agency"
+                : playbookType === "seo" ? "SEO Agency"
+                : playbookType === "ppc" ? "PPC & Paid Ads Agency"
+                : playbookType === "sales" ? "Sales & B2B Lead Gen"
+                : playbookType === "finance" ? "Fractional CFO & Finance"
+                : playbookType === "web_design" ? "Web Design & Development"
+                : "Custom Agency Playbook",
+          discoveryMethod: playbookType === "linkedin" || playbookType === "sales" || playbookType === "finance" ? "linkedin" : "maps",
+          targetVerticals: generated.targetVerticals || [],
+          platformOptions: generated.platformOptions || [],
+          sequenceTemplates: generated.sequenceTemplates as any,
+          proposalTemplates: generated.proposalTemplates as any,
+          objectionHandlers: generated.objectionHandlers as any,
+          reportMetrics: [],
+          reportTemplates: [],
+          portalTemplates: [],
+          portalSections: [],
+          toneOptions: ["Professional"],
+        },
+      })
+    } catch (err) {
+      console.error("Failed to auto-generate templates on onboarding:", err)
+    }
+  }
 
   return NextResponse.json(user)
 }

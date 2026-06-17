@@ -36,7 +36,7 @@ const SPECTRUM = [
 ]
 
 const BG_ICONS: {
-  Icon: React.ElementType
+  Icon: any
   left: string
   top: string
   size: number

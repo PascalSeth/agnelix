@@ -454,6 +454,96 @@ Be specific to ${params.company} and the ${params.industry} industry. Plain text
   }
 }
 
+export interface PlaybookTemplatesResult {
+  targetVerticals: string[]
+  platformOptions: string[]
+  sequenceTemplates: Array<{ id: string; name: string; steps: number; description: string }>
+  proposalTemplates: Array<{ id: string; name: string; description: string; price: number; setupPrice: number; period: string; currency: string }>
+  objectionHandlers: Array<{ objection: string; response: string }>
+}
+
+export async function generatePlaybookTemplates(params: {
+  companyName: string
+  companyDesc: string
+  playbookType: string
+  currency: string
+}): Promise<PlaybookTemplatesResult> {
+  const prompt = `You are an expert AI sales growth and proposal engineering assistant.
+Generate custom target niches, discovery channels, campaign outreach sequences, proposal packages, and objection handlers tailored specifically for this business:
+
+BUSINESS NAME: ${params.companyName}
+BUSINESS DESCRIPTION: ${params.companyDesc}
+PLAYBOOK CATEGORY: ${params.playbookType}
+CURRENCY: ${params.currency}
+
+Instructions:
+1. Generate a list of 4-6 "targetVerticals" (ideal customer niches/verticals in lowercase, e.g. ["spas", "dental clinics", "law firms"]).
+2. Generate a list of 3-4 "platformOptions" (the best platforms or directories to discover these leads, e.g. ["Yelp", "Google Maps", "LinkedIn"]).
+3. Generate exactly 2-3 outbound "sequenceTemplates" (outreach campaigns). Each template must include:
+   - "id": a unique string (e.g. "s1", "s2")
+   - "name": a short, punchy strategy name (e.g. "Direct Value Hook", "Competitor Strategy")
+   - "steps": an integer (e.g., 3 or 4 steps)
+   - "description": a brief, high-level summary of the outreach campaign angle.
+4. Generate exactly 2-3 "proposalTemplates" (pricing tiers/packages). Each template must include:
+   - "id": a unique string (e.g. "p1", "p2")
+   - "name": package name (e.g. "Starter Management", "Growth Plan", "Enterprise Suite")
+   - "description": clear summary of deliverables (e.g. "3 posts a week + community management")
+   - "price": integer amount representing the recurring monthly rate or one-off rate in ${params.currency} (e.g. 750, 1500)
+   - "setupPrice": integer amount representing the setup or implementation fee in ${params.currency} (e.g. 250, 500)
+   - "period": "monthly" or "one-off"
+   - "currency": "${params.currency}"
+5. Generate exactly 2-3 "objectionHandlers" (AI handling rules) mapping common objections for this niche:
+   - "objection": a common sales hurdle for this category (e.g. "We already do this in-house")
+   - "response": a brief, high-conversion response strategy showing how to counter it.
+
+Return ONLY a valid JSON object matching this structure:
+{
+  "targetVerticals": [...],
+  "platformOptions": [...],
+  "sequenceTemplates": [...],
+  "proposalTemplates": [...],
+  "objectionHandlers": [...]
+}
+No additional explanations, no markdown styling, just pure JSON.`
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "deepseek-v4-pro",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 6000,
+      // @ts-expect-error — AI thinking mode
+      thinking: { type: "enabled" },
+      reasoning_effort: "high",
+    })
+    const text = response.choices[0]?.message?.content || "{}"
+    const parsed = JSON.parse(text.replace(/```json|```/g, "").trim())
+    return {
+      targetVerticals: Array.isArray(parsed.targetVerticals) ? parsed.targetVerticals.map((v: string) => v.toLowerCase()) : [],
+      platformOptions: Array.isArray(parsed.platformOptions) ? parsed.platformOptions : [],
+      sequenceTemplates: Array.isArray(parsed.sequenceTemplates) ? parsed.sequenceTemplates : [],
+      proposalTemplates: Array.isArray(parsed.proposalTemplates) ? parsed.proposalTemplates : [],
+      objectionHandlers: Array.isArray(parsed.objectionHandlers) ? parsed.objectionHandlers : [],
+    }
+  } catch (err) {
+    console.error("AI template generation failed, falling back to defaults:", err)
+    return {
+      targetVerticals: ["spas", "dental clinics", "gyms"],
+      platformOptions: ["Google Maps", "Yelp", "Instagram"],
+      sequenceTemplates: [
+        { id: "s1", name: "Direct Value Hook", steps: 3, description: "Lead with a free visual mockup audit." },
+        { id: "s2", name: "Competitor Strategy", steps: 3, description: "Mention what their competitor is doing better." }
+      ],
+      proposalTemplates: [
+        { id: "p1", name: "Starter Management", description: "3 posts a week + community management", price: 750, setupPrice: 250, period: "monthly", currency: params.currency },
+        { id: "p2", name: "Growth + Ads", description: "5 posts + $1k ad spend management", price: 1500, setupPrice: 500, period: "monthly", currency: params.currency }
+      ],
+      objectionHandlers: [
+        { objection: "We do it in-house", response: "Acknowledge their effort, ask if their in-house team has time to keep up with the latest algorithm changes, offer a quick free audit to give them ideas." }
+      ]
+    }
+  }
+}
+
 export interface CaseStudySummaryParams {
   clientName: string
   industry: string
@@ -712,3 +802,117 @@ Return JSON ONLY:
     return null
   }
 }
+
+export interface GeneratedSequenceStep {
+  stepNumber: number
+  delayDays: number
+  label: string
+  bodyTemplate: string
+  stepType: "EMAIL" | "LINKEDIN_CONNECT" | "LINKEDIN_MESSAGE" | "WAIT"
+}
+
+export async function generateSequenceFromPreset(params: {
+  companyName: string
+  companyDesc: string
+  playbookType: string
+  tone: string
+  presetName: string
+  presetDescription: string
+  stepsCount: number
+}): Promise<GeneratedSequenceStep[]> {
+  const prompt = `You are a world-class outbound sales copywriter and AI email strategist.
+Generate a structured, high-conversion outbound sequence based on this playbook outreach preset:
+
+PRESET NAME: ${params.presetName}
+PRESET STRATEGY: ${params.presetDescription}
+STEPS COUNT: ${params.stepsCount}
+
+AGENCY NAME: ${params.companyName}
+AGENCY VALUE PROP: ${params.companyDesc}
+AGENCY NICHE: ${params.playbookType}
+TONE: ${params.tone}
+
+Instructions:
+Generate exactly ${params.stepsCount} steps matching this sequence strategy.
+Each step should connect logically to the next, building momentum.
+- Step 1 delay must be 0.
+- For each step, define:
+  - "stepNumber": integer starting from 1
+  - "delayDays": integer delay since the previous step (typically 3-4 days for follow-ups, wait steps, or LinkedIn connection steps)
+  - "label": a short title describing the step's angle (e.g. "Mockup Audit Hook", "Case Study Proof", "LinkedIn Connection Request")
+  - "stepType": one of "EMAIL", "LINKEDIN_CONNECT", "LINKEDIN_MESSAGE", "WAIT"
+  - "bodyTemplate": an AI generation guide and strategic directive for this step. DO NOT write a static email template or a rigid message with placeholders. Instead, write clear instructions and guidelines for the AI to dynamically draft a unique message for each lead (e.g., "Draft a short, direct cold outreach email. Start by mentioning a specific content gap on their Instagram reels or feed. Transition to how our agency can fix it, citing a case study of a similar brand. Close with a call to action offering a free content calendar."). The guide should define the specific angle, proof points, value proposition, and call-to-action for this step.
+
+Return ONLY a valid JSON array matching this structure:
+[
+  {
+    "stepNumber": 1,
+    "delayDays": 0,
+    "label": "Spotted a content gap",
+    "stepType": "EMAIL",
+    "bodyTemplate": "Draft a short cold outreach email. Start by identifying a specific, visible content gap on their Instagram profile. Transition to a reels strategy, citing results from a similar brand. Offer a free 2-week content calendar."
+  },
+  ...
+]
+No other text, explanations, or markdown formatting.`
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "deepseek-v4-pro",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 6000,
+      // @ts-expect-error — AI thinking mode
+      thinking: { type: "enabled" },
+      reasoning_effort: "high",
+    })
+    const text = response.choices[0]?.message?.content || "[]"
+    const parsed = JSON.parse(text.replace(/```json|```/g, "").trim())
+    return Array.isArray(parsed) ? (parsed as GeneratedSequenceStep[]) : []
+  } catch (err) {
+    console.error("AI sequence preset generation failed:", err)
+    return []
+  }
+}
+
+export async function suggestTargeting(params: {
+  companyName: string
+  companyDesc: string
+  playbookType: string
+}): Promise<{ verticals: string[]; platformOptions: string[] }> {
+  const prompt = `You are an expert lead generation strategist.
+Based on the agency details below, suggest:
+1. 4-6 ideal target customer niches/verticals (e.g. ["spas", "dental clinics", "real estate agents"]).
+2. 3-4 best discovery platforms/channels/mediums to search for these leads (e.g. ["Yelp", "Google Maps", "Instagram", "LinkedIn"]).
+
+AGENCY NAME: ${params.companyName}
+AGENCY DESCRIPTION: ${params.companyDesc}
+AGENCY NICHE/PLAYBOOK: ${params.playbookType}
+
+Return ONLY a valid JSON object matching this structure:
+{
+  "verticals": ["niche1", "niche2", ...],
+  "platformOptions": ["platform1", "platform2", ...]
+}
+No other text, explanations, or markdown formatting.`
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "deepseek-v4-flash",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+      max_tokens: 350,
+      // @ts-expect-error
+      thinking: { type: "disabled" },
+    })
+    const text = response.choices[0]?.message?.content || "{}"
+    const parsed = JSON.parse(text.replace(/```json|```/g, "").trim())
+    return {
+      verticals: Array.isArray(parsed.verticals) ? parsed.verticals.map((v: string) => v.toLowerCase()) : [],
+      platformOptions: Array.isArray(parsed.platformOptions) ? parsed.platformOptions : [],
+    }
+  } catch (err) {
+    console.error("Failed to suggest targeting via AI:", err)
+    return { verticals: [], platformOptions: [] }
+  }
+}
+
