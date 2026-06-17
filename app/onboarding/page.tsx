@@ -287,7 +287,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="absolute inset-0 overflow-hidden" style={{ background: "#05060a" }}>
+    <div className="relative min-h-screen w-full flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden bg-[#05060a]">
       <style>{`
         @keyframes bot-float {
           0%, 100% { transform: translateY(0) rotate(0deg); }
@@ -393,395 +393,402 @@ export default function OnboardingPage() {
         WebkitMaskImage: "radial-gradient(ellipse 80% 80% at 50% 40%, black 30%, transparent 100%)",
       }} />
 
-      <div className="absolute inset-0">
-        <OnboardingRobot3D animationState={animationState} />
+      {/* ── LEFT COLUMN: 3D Robot Viewport ── */}
+      <div className="flex-1 w-full h-[40vh] sm:h-[45vh] lg:h-screen relative min-h-[280px]">
+        <div className="absolute inset-0">
+          <OnboardingRobot3D animationState={animationState} />
+        </div>
+
+        {/* Bottom gradient vignette — fades robot into dark background */}
+        <div
+          className="absolute inset-x-0 bottom-0 pointer-events-none"
+          style={{
+            height: "40%",
+            background: "linear-gradient(to top, rgba(5,6,10,1) 0%, rgba(5,6,10,0.4) 50%, transparent 100%)",
+          }}
+        />
+        {/* Subtle top vignette */}
+        <div
+          className="absolute inset-x-0 top-0 pointer-events-none"
+          style={{
+            height: "20%",
+            background: "linear-gradient(to bottom, rgba(5,6,10,0.8) 0%, transparent 100%)",
+          }}
+        />
       </div>
 
-      {/* Bottom gradient vignette — fades robot into the card area */}
-      <div
-        className="absolute inset-x-0 bottom-0 pointer-events-none"
-        style={{
-          height: "50%",
-          background: "linear-gradient(to top, rgba(10,11,15,0.97) 30%, rgba(10,11,15,0.4) 65%, transparent 100%)",
-        }}
-      />
-      {/* Subtle top vignette only */}
-      <div
-        className="absolute inset-x-0 top-0 pointer-events-none"
-        style={{
-          height: "15%",
-          background: "linear-gradient(to bottom, rgba(10,11,15,0.5) 0%, transparent 100%)",
-        }}
-      />
-
-      {/* ── TOP HUD — step progress only (logo is in layout navbar above) ── */}
-      {!done && (
-        <div
-          className="absolute top-0 inset-x-0 z-20 flex items-center justify-center gap-3 py-3"
-          style={{ animation: "hud-in 0.6s ease-out both" }}
-        >
-          {STEP_ORDER.map((k, i) => (
-            <div
-              key={k}
-              className="h-[3px] rounded-full transition-all duration-500 ease-out"
-              style={{
-                width: i === step ? 24 : 5,
-                background:
-                  i < step
-                    ? "rgba(124,131,253,0.65)"
-                    : i === step
-                    ? "#9ca3ff"
-                    : "rgba(255,255,255,0.12)",
-                boxShadow: i === step ? "0 0 10px rgba(124,131,253,1)" : "none",
-              }}
-            />
-          ))}
-          <span className="ml-2 text-[10px] font-bold tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.25)" }}>
-            {step + 1}/{STEP_ORDER.length}
-          </span>
-        </div>
-      )}
-
-      {/* ── BOTTOM FLOATING CARD ── */}
-      <div className="absolute bottom-0 inset-x-0 z-20 flex justify-center px-4 pb-8 sm:pb-10">
-        {done ? (
-          /* ── Done screen ── */
+      {/* ── RIGHT COLUMN: Onboarding Steps & HUD ── */}
+      <div className="w-full lg:w-[500px] xl:w-[540px] shrink-0 flex flex-col lg:h-screen lg:justify-center items-center px-4 pb-8 lg:pb-0 relative z-20">
+        
+        {/* Progress HUD at the top of the right column (only when not done) */}
+        {!done && (
           <div
-            className="w-full max-w-md rounded-3xl p-8 text-center"
-            style={{ ...cardStyle, animation: "card-rise 0.5s cubic-bezier(0.34,1.56,0.64,1) both" }}
+            className="flex items-center justify-center gap-3 py-3 mb-6"
+            style={{ animation: "hud-in 0.6s ease-out both" }}
           >
-            <div className="relative inline-block mb-5">
+            {STEP_ORDER.map((k, i) => (
               <div
-                className="flex size-16 items-center justify-center rounded-3xl mx-auto"
-                style={{ background: "rgba(52,211,153,.08)", border: "1px solid rgba(52,211,153,.18)" }}
-              >
-                <Check className="size-8 text-emerald-400" />
-              </div>
-              <div
-                className="absolute -inset-3 rounded-full opacity-25 animate-ping"
-                style={{ background: "radial-gradient(circle,rgba(52,211,153,.4) 0%,transparent 70%)" }}
-              />
-            </div>
-
-            <h2 className="text-[20px] font-black tracking-tight text-white/90">
-              {agencyName || "Your agency"} is ready 🎉
-            </h2>
-            <p className="text-[13px] text-white/35 mt-2 max-w-xs mx-auto">
-              Your AI is configured. Taking you to Sequences in&hellip;
-            </p>
-
-            <div className="mt-5 flex items-center justify-center gap-2">
-              <span
-                className="flex size-10 items-center justify-center rounded-full text-[20px] font-black text-white/80"
-                style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)" }}
-              >
-                {Math.max(0, countdown)}
-              </span>
-            </div>
-            <div className="mt-3 h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,.07)" }}>
-              <div
-                className="h-full rounded-full transition-all duration-1000"
+                key={k}
+                className="h-[3px] rounded-full transition-all duration-500 ease-out"
                 style={{
-                  width: `${((3 - countdown) / 3) * 100}%`,
-                  background: "linear-gradient(90deg,rgba(52,211,153,.5),rgba(52,211,153,.8))",
+                  width: i === step ? 24 : 5,
+                  background:
+                    i < step
+                      ? "rgba(124,131,253,0.65)"
+                      : i === step
+                      ? "#9ca3ff"
+                      : "rgba(255,255,255,0.12)",
+                  boxShadow: i === step ? "0 0 10px rgba(124,131,253,1)" : "none",
                 }}
               />
-            </div>
-
-            <div className="mt-6 space-y-2.5">
-              <button
-                onClick={() => router.push("/dashboard")}
-                className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-[13px] font-black text-black transition-all hover:scale-[1.02] active:scale-[0.98]"
-                style={{ background: "linear-gradient(135deg,#e2e5ed,#c8cdd8)", boxShadow: "0 2px 12px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.5)" }}
-              >
-                Go Now <ArrowRight className="size-4" />
-              </button>
-            </div>
+            ))}
+            <span className="ml-2 text-[10px] font-bold tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.25)" }}>
+              {step + 1}/{STEP_ORDER.length}
+            </span>
           </div>
-        ) : (
-          /* ── Active step card ── */
-          <div
-            key={step}
-            className="w-full max-w-lg rounded-3xl p-5 sm:p-7"
-            style={{ ...cardStyle, animation: "card-rise 0.48s cubic-bezier(0.34,1.56,0.64,1) both" }}
-          >
-            {/* AI question header */}
-            <div className="flex items-start gap-3 mb-5">
-              <AiAvatar active={typing} />
-              <div className="flex-1 min-w-0 pt-0.5">
-                {typing ? (
-                  <TypingDots />
-                ) : (
-                  <p className="text-[13.5px] leading-relaxed text-white/70">
-                    {STEP_QUESTIONS[currentStepKey]}
-                  </p>
-                )}
+        )}
+
+        {/* Onboarding steps card / done screen container */}
+        <div className="w-full flex justify-center">
+          {done ? (
+            /* ── Done screen ── */
+            <div
+              className="w-full max-w-md rounded-3xl p-8 text-center"
+              style={{ ...cardStyle, animation: "card-rise 0.5s cubic-bezier(0.34,1.56,0.64,1) both" }}
+            >
+              <div className="relative inline-block mb-5">
+                <div
+                  className="flex size-16 items-center justify-center rounded-3xl mx-auto"
+                  style={{ background: "rgba(52,211,153,.08)", border: "1px solid rgba(52,211,153,.18)" }}
+                >
+                  <Check className="size-8 text-emerald-400" />
+                </div>
+                <div
+                  className="absolute -inset-3 rounded-full opacity-25 animate-ping"
+                  style={{ background: "radial-gradient(circle,rgba(52,211,153,.4) 0%,transparent 70%)" }}
+                />
+              </div>
+
+              <h2 className="text-[20px] font-black tracking-tight text-white/90">
+                {agencyName || "Your agency"} is ready 🎉
+              </h2>
+              <p className="text-[13px] text-white/35 mt-2 max-w-xs mx-auto">
+                Your AI is configured. Taking you to Sequences in&hellip;
+              </p>
+
+              <div className="mt-5 flex items-center justify-center gap-2">
+                <span
+                  className="flex size-10 items-center justify-center rounded-full text-[20px] font-black text-white/80"
+                  style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)" }}
+                >
+                  {Math.max(0, countdown)}
+                </span>
+              </div>
+              <div className="mt-3 h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,.07)" }}>
+                <div
+                  className="h-full rounded-full transition-all duration-1000"
+                  style={{
+                    width: `${((3 - countdown) / 3) * 100}%`,
+                    background: "linear-gradient(90deg,rgba(52,211,153,.5),rgba(52,211,153,.8))",
+                  }}
+                />
+              </div>
+
+              <div className="mt-6 space-y-2.5">
+                <button
+                  onClick={() => router.push("/dashboard")}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-[13px] font-black text-black transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  style={{ background: "linear-gradient(135deg,#e2e5ed,#c8cdd8)", boxShadow: "0 2px 12px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.5)" }}
+                >
+                  Go Now <ArrowRight className="size-4" />
+                </button>
               </div>
             </div>
+          ) : (
+            /* ── Active step card ── */
+            <div
+              key={step}
+              className="w-full max-w-lg rounded-3xl p-5 sm:p-7"
+              style={{ ...cardStyle, animation: "card-rise 0.48s cubic-bezier(0.34,1.56,0.64,1) both" }}
+            >
+              {/* AI question header */}
+              <div className="flex items-start gap-3 mb-5">
+                <AiAvatar active={typing} />
+                <div className="flex-1 min-w-0 pt-0.5">
+                  {typing ? (
+                    <TypingDots />
+                  ) : (
+                    <p className="text-[13.5px] leading-relaxed text-white/70">
+                      {STEP_QUESTIONS[currentStepKey]}
+                    </p>
+                  )}
+                </div>
+              </div>
 
-            {/* Step-specific input — only shown after typing animation */}
-            {!typing && (
-              <div>
-                {/* Agency name */}
-                {currentStepKey === "agencyName" && (
-                  <div className="flex items-center gap-2">
-                    <input
-                      autoFocus
-                      value={draft}
-                      onChange={e => setDraft(e.target.value)}
-                      onKeyDown={e => e.key === "Enter" && submitAgencyName()}
-                      placeholder="e.g. Acme Marketing"
-                      className="flex-1 rounded-xl px-4 py-3 text-[13px] text-white/85 outline-none placeholder:text-white/20"
-                      style={fieldStyle}
-                    />
-                    <button
-                      onClick={submitAgencyName}
-                      className="flex size-11 shrink-0 items-center justify-center rounded-xl transition-all hover:brightness-110 active:scale-95"
-                      style={{ background: "linear-gradient(135deg,#7c83fd,#5a61d6)" }}
-                    >
-                      <Send className="size-4 text-white" />
-                    </button>
-                  </div>
-                )}
-
-                {/* Title */}
-                {currentStepKey === "title" && (
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 min-w-0">
-                      <ComboSelect value={title} onChange={setTitle} options={TITLES} placeholder="Select or type your role…" dropUp />
-                    </div>
-                    <button
-                      onClick={submitTitle}
-                      className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl px-4 text-[12px] font-bold text-white/70 transition-all hover:brightness-110"
-                      style={{ background: "rgba(255,255,255,.07)", border: "1px solid rgba(255,255,255,.1)" }}
-                    >
-                      Continue <ArrowRight className="size-3.5" />
-                    </button>
-                  </div>
-                )}
-
-                {/* Playbook */}
-                {currentStepKey === "playbook" && (
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 min-w-0">
-                      <ComboSelect
-                        value={playbookName}
-                        onChange={setPlaybookName}
-                        options={PLAYBOOK_OPTIONS.map(p => p.name)}
-                        placeholder="Select or type your agency type…"
-                        dropUp
-                      />
-                    </div>
-                    <button
-                      onClick={submitPlaybook}
-                      className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl px-4 text-[12px] font-bold text-white/70 transition-all hover:brightness-110"
-                      style={{ background: "rgba(255,255,255,.07)", border: "1px solid rgba(255,255,255,.1)" }}
-                    >
-                      Continue <ArrowRight className="size-3.5" />
-                    </button>
-                  </div>
-                )}
-
-                {/* Company description — write mode */}
-                {currentStepKey === "companyDesc" && descMode === "write" && (
-                  <div className="space-y-2.5">
-                    <textarea
-                      autoFocus
-                      value={draft}
-                      onChange={e => setDraft(e.target.value)}
-                      rows={3}
-                      placeholder="We help dental practices grow their patient base through SEO and paid ads. We typically get clients 15–30 new patients per month."
-                      className="w-full rounded-xl px-4 py-3 text-[13px] text-white/85 outline-none placeholder:text-white/20 resize-none"
-                      style={fieldStyle}
-                    />
-                    <div className="flex items-center justify-between gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setDescMode("url")}
-                        className="text-[11px] font-semibold text-white/30 hover:text-white/55 transition-colors text-left"
-                      >
-                        ✨ Paste your website URL — let AI write it
-                      </button>
-                      <button
-                        onClick={submitCompanyDesc}
-                        className="flex shrink-0 items-center gap-1.5 rounded-xl px-4 py-2.5 text-[12px] font-bold text-white transition-all hover:brightness-110"
-                        style={{ background: "linear-gradient(135deg,#7c83fd,#5a61d6)" }}
-                      >
-                        Continue <ArrowRight className="size-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Company description — URL mode */}
-                {currentStepKey === "companyDesc" && descMode === "url" && (
-                  <div className="space-y-2.5">
+              {/* Step-specific input — only shown after typing animation */}
+              {!typing && (
+                <div>
+                  {/* Agency name */}
+                  {currentStepKey === "agencyName" && (
                     <div className="flex items-center gap-2">
                       <input
                         autoFocus
-                        type="url"
-                        value={descUrl}
-                        onChange={e => setDescUrl(e.target.value)}
-                        onKeyDown={e => e.key === "Enter" && !descGenerating && generateDescFromUrl()}
-                        placeholder="https://youragency.com"
+                        value={draft}
+                        onChange={e => setDraft(e.target.value)}
+                        onKeyDown={e => e.key === "Enter" && submitAgencyName()}
+                        placeholder="e.g. Acme Marketing"
                         className="flex-1 rounded-xl px-4 py-3 text-[13px] text-white/85 outline-none placeholder:text-white/20"
                         style={fieldStyle}
                       />
                       <button
-                        onClick={generateDescFromUrl}
-                        disabled={descGenerating}
-                        className="flex shrink-0 items-center gap-1.5 rounded-xl px-4 py-3 text-[12px] font-bold text-white transition-all hover:brightness-110 disabled:opacity-50"
+                        onClick={submitAgencyName}
+                        className="flex size-11 shrink-0 items-center justify-center rounded-xl transition-all hover:brightness-110 active:scale-95"
                         style={{ background: "linear-gradient(135deg,#7c83fd,#5a61d6)" }}
                       >
-                        {descGenerating ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
-                        {descGenerating ? "Reading…" : "Write it"}
+                        <Send className="size-4 text-white" />
                       </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setDescMode("write")}
-                      className="text-[11px] font-semibold text-white/30 hover:text-white/55 transition-colors"
-                    >
-                      ← I&apos;ll write it myself
-                    </button>
-                  </div>
-                )}
+                  )}
 
-                {/* Tone */}
-                {currentStepKey === "tone" && (
-                  <div className="grid grid-cols-2 gap-2">
-                    {TONES.map(t => (
+                  {/* Title */}
+                  {currentStepKey === "title" && (
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 min-w-0">
+                        <ComboSelect value={title} onChange={setTitle} options={TITLES} placeholder="Select or type your role…" dropUp />
+                      </div>
                       <button
-                        key={t}
-                        type="button"
-                        onClick={() => selectTone(t)}
-                        className="rounded-xl py-3 text-[12px] font-bold transition-all hover:scale-[1.02] active:scale-95"
-                        style={tone === t
-                          ? { background: "rgba(124,131,253,.18)", border: "1px solid rgba(124,131,253,.4)", color: "rgba(255,255,255,.9)" }
-                          : { background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", color: "rgba(255,255,255,.5)" }
-                        }
+                        onClick={submitTitle}
+                        className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl px-4 text-[12px] font-bold text-white/70 transition-all hover:brightness-110"
+                        style={{ background: "rgba(255,255,255,.07)", border: "1px solid rgba(255,255,255,.1)" }}
                       >
-                        {t}
+                        Continue <ArrowRight className="size-3.5" />
                       </button>
-                    ))}
-                  </div>
-                )}
+                    </div>
+                  )}
 
-                {/* Calendar link */}
-                {currentStepKey === "calendarLink" && (
-                  <div className="flex items-center gap-2">
-                    <input
-                      autoFocus
-                      type="url"
-                      value={draft}
-                      onChange={e => setDraft(e.target.value)}
-                      onKeyDown={e => e.key === "Enter" && submitCalendarLink()}
-                      placeholder="https://calendly.com/your-slug"
-                      className="flex-1 rounded-xl px-4 py-3 text-[13px] text-white/85 outline-none placeholder:text-white/20"
-                      style={fieldStyle}
-                    />
-                    <button
-                      onClick={() => submitCalendarLink(true)}
-                      className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl px-3 text-[12px] font-bold text-white/40 transition-all hover:text-white/60"
-                      style={{ background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.07)" }}
-                    >
-                      <SkipForward className="size-3.5" /> Skip
-                    </button>
-                    <button
-                      onClick={() => submitCalendarLink(false)}
-                      className="flex size-11 shrink-0 items-center justify-center rounded-xl transition-all hover:brightness-110 active:scale-95"
-                      style={{ background: "linear-gradient(135deg,#7c83fd,#5a61d6)" }}
-                    >
-                      <Send className="size-4 text-white" />
-                    </button>
-                  </div>
-                )}
-
-                {/* Logo */}
-                {currentStepKey === "logo" && (
-                  <div className="flex items-center gap-3">
-                    <Avatar className="size-11 rounded-xl shrink-0" style={{ boxShadow: "0 0 0 2px rgba(255,255,255,.08)" }}>
-                      <AvatarImage src={logoUrl ?? undefined} />
-                      <AvatarFallback
-                        className="rounded-xl text-[13px] font-black text-white/50"
-                        style={{ background: "linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.03))" }}
-                      >
-                        {initials(agencyName || "?")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <label
-                      className="inline-flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2.5 text-[12px] font-bold text-white/60 transition-all hover:text-white/80"
-                      style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.09)" }}
-                    >
-                      {logoUploading ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
-                      {logoUploading ? "Uploading…" : logoUrl ? "Change" : "Upload Logo"}
-                      <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={logoUploading} />
-                    </label>
-                    <div className="flex-1" />
-                    {!logoUrl && (
+                  {/* Playbook */}
+                  {currentStepKey === "playbook" && (
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 min-w-0">
+                        <ComboSelect
+                          value={playbookName}
+                          onChange={setPlaybookName}
+                          options={PLAYBOOK_OPTIONS.map(p => p.name)}
+                          placeholder="Select or type your agency type…"
+                          dropUp
+                        />
+                      </div>
                       <button
-                        onClick={continueFromLogo}
-                        className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl px-3 text-[12px] font-bold text-white/35 transition-all hover:text-white/55"
-                        style={{ background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.06)" }}
+                        onClick={submitPlaybook}
+                        className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl px-4 text-[12px] font-bold text-white/70 transition-all hover:brightness-110"
+                        style={{ background: "rgba(255,255,255,.07)", border: "1px solid rgba(255,255,255,.1)" }}
                       >
-                        <SkipForward className="size-3.5" /> Skip
+                        Continue <ArrowRight className="size-3.5" />
                       </button>
-                    )}
-                    <button
-                      onClick={continueFromLogo}
-                      disabled={logoUploading}
-                      className="flex size-11 shrink-0 items-center justify-center rounded-xl transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
-                      style={{ background: "linear-gradient(135deg,#7c83fd,#5a61d6)" }}
-                    >
-                      <ArrowRight className="size-4 text-white" />
-                    </button>
-                  </div>
-                )}
+                    </div>
+                  )}
 
-                {/* Review */}
-                {currentStepKey === "review" && (
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-2 max-h-[30vh] overflow-y-auto pr-1 pb-1 scrollbar-thin scrollbar-thumb-white/10">
-                      {[
-                        { label: "Agency",        value: agencyName,                    idx: 0 },
-                        { label: "Role",           value: title || "Decision Maker",     idx: 1 },
-                        { label: "Focus",          value: playbookName,                  idx: 2 },
-                        { label: "Sending email",  value: fromEmail,                     idx: -1 },
-                        { label: "About",          value: companyDesc,                   idx: 3, colSpan: 2 },
-                        { label: "Tone",           value: tone,                          idx: 4 },
-                        { label: "Calendar link",  value: calendarLink || "Not set",     idx: 5 },
-                        { label: "Logo",           value: logoUrl ? "Uploaded" : "Not set", idx: 6, colSpan: 2 },
-                      ].map((row: any) => (
+                  {/* Company description — write mode */}
+                  {currentStepKey === "companyDesc" && descMode === "write" && (
+                    <div className="space-y-2.5">
+                      <textarea
+                        autoFocus
+                        value={draft}
+                        onChange={e => setDraft(e.target.value)}
+                        rows={3}
+                        placeholder="We help dental practices grow their patient base through SEO and paid ads. We typically get clients 15–30 new patients per month."
+                        className="w-full rounded-xl px-4 py-3 text-[13px] text-white/85 outline-none placeholder:text-white/20 resize-none"
+                        style={fieldStyle}
+                      />
+                      <div className="flex items-center justify-between gap-3">
                         <button
-                          key={row.label}
                           type="button"
-                          disabled={row.idx === -1}
-                          onClick={() => row.idx !== -1 && editStep(row.idx)}
-                          className={`w-full flex items-start justify-between gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-white/[.04] disabled:cursor-default ${row.colSpan ? "col-span-2" : ""}`}
-                          style={{ background: "rgba(255,255,255,.02)", border: "1px solid rgba(255,255,255,.05)" }}
+                          onClick={() => setDescMode("url")}
+                          className="text-[11px] font-semibold text-white/30 hover:text-white/55 transition-colors text-left"
                         >
-                          <div className="min-w-0">
-                            <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">{row.label}</p>
-                            <p className="text-[11.5px] text-white/70 mt-0.5 line-clamp-2">{row.value}</p>
-                          </div>
-                          {row.idx !== -1 && <Pencil className="size-3 shrink-0 text-white/20 mt-0.5" />}
+                          ✨ Paste your website URL — let AI write it
+                        </button>
+                        <button
+                          onClick={submitCompanyDesc}
+                          className="flex shrink-0 items-center gap-1.5 rounded-xl px-4 py-2.5 text-[12px] font-bold text-white transition-all hover:brightness-110"
+                          style={{ background: "linear-gradient(135deg,#7c83fd,#5a61d6)" }}
+                        >
+                          Continue <ArrowRight className="size-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Company description — URL mode */}
+                  {currentStepKey === "companyDesc" && descMode === "url" && (
+                    <div className="space-y-2.5">
+                      <div className="flex items-center gap-2">
+                        <input
+                          autoFocus
+                          type="url"
+                          value={descUrl}
+                          onChange={e => setDescUrl(e.target.value)}
+                          onKeyDown={e => e.key === "Enter" && !descGenerating && generateDescFromUrl()}
+                          placeholder="https://youragency.com"
+                          className="flex-1 rounded-xl px-4 py-3 text-[13px] text-white/85 outline-none placeholder:text-white/20"
+                          style={fieldStyle}
+                        />
+                        <button
+                          onClick={generateDescFromUrl}
+                          disabled={descGenerating}
+                          className="flex shrink-0 items-center gap-1.5 rounded-xl px-4 py-3 text-[12px] font-bold text-white transition-all hover:brightness-110 disabled:opacity-50"
+                          style={{ background: "linear-gradient(135deg,#7c83fd,#5a61d6)" }}
+                        >
+                          {descGenerating ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+                          {descGenerating ? "Reading…" : "Write it"}
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setDescMode("write")}
+                        className="text-[11px] font-semibold text-white/30 hover:text-white/55 transition-colors"
+                      >
+                        ← I&apos;ll write it myself
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Tone */}
+                  {currentStepKey === "tone" && (
+                    <div className="grid grid-cols-2 gap-2">
+                      {TONES.map(t => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => selectTone(t)}
+                          className="rounded-xl py-3 text-[12px] font-bold transition-all hover:scale-[1.02] active:scale-95"
+                          style={tone === t
+                            ? { background: "rgba(124,131,253,.18)", border: "1px solid rgba(124,131,253,.4)", color: "rgba(255,255,255,.9)" }
+                            : { background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", color: "rgba(255,255,255,.5)" }
+                          }
+                        >
+                          {t}
                         </button>
                       ))}
                     </div>
-                    <button
-                      onClick={handleSave}
-                      disabled={saving}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-[13px] font-black text-black transition-all hover:brightness-110 active:scale-[.99] disabled:opacity-50"
-                      style={{ background: "linear-gradient(135deg,#e2e5ed,#c8cdd8)", boxShadow: "0 2px 12px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.5)" }}
-                    >
-                      {saving ? <Loader2 className="size-4 animate-spin" /> : <><Sparkles className="size-4" /> Launch Agnelix</>}
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+                  )}
+
+                  {/* Calendar link */}
+                  {currentStepKey === "calendarLink" && (
+                    <div className="flex items-center gap-2">
+                      <input
+                        autoFocus
+                        type="url"
+                        value={draft}
+                        onChange={e => setDraft(e.target.value)}
+                        onKeyDown={e => e.key === "Enter" && submitCalendarLink()}
+                        placeholder="https://calendly.com/your-slug"
+                        className="flex-1 rounded-xl px-4 py-3 text-[13px] text-white/85 outline-none placeholder:text-white/20"
+                        style={fieldStyle}
+                      />
+                      <button
+                        onClick={() => submitCalendarLink(true)}
+                        className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl px-3 text-[12px] font-bold text-white/40 transition-all hover:text-white/60"
+                        style={{ background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.07)" }}
+                      >
+                        <SkipForward className="size-3.5" /> Skip
+                      </button>
+                      <button
+                        onClick={() => submitCalendarLink(false)}
+                        className="flex size-11 shrink-0 items-center justify-center rounded-xl transition-all hover:brightness-110 active:scale-95"
+                        style={{ background: "linear-gradient(135deg,#7c83fd,#5a61d6)" }}
+                      >
+                        <Send className="size-4 text-white" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Logo */}
+                  {currentStepKey === "logo" && (
+                    <div className="flex items-center gap-3">
+                      <Avatar className="size-11 rounded-xl shrink-0" style={{ boxShadow: "0 0 0 2px rgba(255,255,255,.08)" }}>
+                        <AvatarImage src={logoUrl ?? undefined} />
+                        <AvatarFallback
+                          className="rounded-xl text-[13px] font-black text-white/50"
+                          style={{ background: "linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.03))" }}
+                        >
+                          {initials(agencyName || "?")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <label
+                        className="inline-flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2.5 text-[12px] font-bold text-white/60 transition-all hover:text-white/80"
+                        style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.09)" }}
+                      >
+                        {logoUploading ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+                        {logoUploading ? "Uploading…" : logoUrl ? "Change" : "Upload Logo"}
+                        <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={logoUploading} />
+                      </label>
+                      <div className="flex-1" />
+                      {!logoUrl && (
+                        <button
+                          onClick={continueFromLogo}
+                          className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl px-3 text-[12px] font-bold text-white/35 transition-all hover:text-white/55"
+                          style={{ background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.06)" }}
+                        >
+                          <SkipForward className="size-3.5" /> Skip
+                        </button>
+                      )}
+                      <button
+                        onClick={continueFromLogo}
+                        disabled={logoUploading}
+                        className="flex size-11 shrink-0 items-center justify-center rounded-xl transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
+                        style={{ background: "linear-gradient(135deg,#7c83fd,#5a61d6)" }}
+                      >
+                        <ArrowRight className="size-4 text-white" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Review */}
+                  {currentStepKey === "review" && (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-2 max-h-[30vh] overflow-y-auto pr-1 pb-1 scrollbar-thin scrollbar-thumb-white/10">
+                        {[
+                          { label: "Agency",        value: agencyName,                    idx: 0 },
+                          { label: "Role",           value: title || "Decision Maker",     idx: 1 },
+                          { label: "Focus",          value: playbookName,                  idx: 2 },
+                          { label: "Sending email",  value: fromEmail,                     idx: -1 },
+                          { label: "About",          value: companyDesc,                   idx: 3, colSpan: 2 },
+                          { label: "Tone",           value: tone,                          idx: 4 },
+                          { label: "Calendar link",  value: calendarLink || "Not set",     idx: 5 },
+                          { label: "Logo",           value: logoUrl ? "Uploaded" : "Not set", idx: 6, colSpan: 2 },
+                        ].map((row: any) => (
+                          <button
+                            key={row.label}
+                            type="button"
+                            disabled={row.idx === -1}
+                            onClick={() => row.idx !== -1 && editStep(row.idx)}
+                            className={`w-full flex items-start justify-between gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-white/[.04] disabled:cursor-default ${row.colSpan ? "col-span-2" : ""}`}
+                            style={{ background: "rgba(255,255,255,.02)", border: "1px solid rgba(255,255,255,.05)" }}
+                          >
+                            <div className="min-w-0">
+                              <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">{row.label}</p>
+                              <p className="text-[11.5px] text-white/70 mt-0.5 line-clamp-2">{row.value}</p>
+                            </div>
+                            {row.idx !== -1 && <Pencil className="size-3 shrink-0 text-white/20 mt-0.5" />}
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        onClick={handleSave}
+                        disabled={saving}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-[13px] font-black text-black transition-all hover:brightness-110 active:scale-[.99] disabled:opacity-50"
+                        style={{ background: "linear-gradient(135deg,#e2e5ed,#c8cdd8)", boxShadow: "0 2px 12px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.5)" }}
+                      >
+                        {saving ? <Loader2 className="size-4 animate-spin" /> : <><Sparkles className="size-4" /> Launch Agnelix</>}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
