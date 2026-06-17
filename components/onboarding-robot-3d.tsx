@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef, useMemo } from "react"
 import { Canvas, useFrame } from "@react-three/fiber"
-import { useFBX, Stage, ContactShadows } from "@react-three/drei"
+import { useFBX, Environment, ContactShadows } from "@react-three/drei"
 import * as THREE from "three"
 import * as SkeletonUtils from "three/examples/jsm/utils/SkeletonUtils.js"
 
@@ -588,11 +588,11 @@ export default function OnboardingRobot3D({
   useContinuousWaving = false 
 }: OnboardingRobot3DProps) {
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full relative" style={{ minHeight: "inherit" }}>
       <Canvas
         shadows={{ type: THREE.PCFShadowMap }}
         camera={{ position: [0, 0.2, cameraZ], fov: 46 }}
-        className="w-full h-full"
+        style={{ width: "100%", height: "100%", position: "absolute", inset: 0 }}
       >
         {/* Atmospheric fog for depth */}
         {!hideBackground && <fog attach="fog" args={["#05060a", 12, 24]} />}
@@ -618,17 +618,16 @@ export default function OnboardingRobot3D({
         {!hideBackground && <ParticleField />}
 
         <Suspense fallback={<WireframeRobotLoader posY={posY} />}>
-          <Stage environment="city" intensity={0.45} adjustCamera={false}>
-            <RobotModel 
-              animationState={animationState} 
-              posY={posY} 
-              posX={posX}
-              rotY={rotY} 
-              scale={scale} 
-              loopWaving={loopWaving} 
-              useContinuousWaving={useContinuousWaving}
-            />
-          </Stage>
+          <Environment preset="city" />
+          <RobotModel 
+            animationState={animationState} 
+            posY={posY} 
+            posX={posX}
+            rotY={rotY} 
+            scale={scale} 
+            loopWaving={loopWaving} 
+            useContinuousWaving={useContinuousWaving}
+          />
         </Suspense>
         <ContactShadows position={[0, -1.5, 0]} opacity={0.45} scale={12} blur={2.5} far={0} />
       </Canvas>
