@@ -1,12 +1,13 @@
 "use client"
 
-import { Suspense, useEffect, useRef } from "react"
+import { Suspense, useEffect, useRef, useMemo } from "react"
 import { Canvas, useFrame } from "@react-three/fiber"
 import { useFBX, Stage, ContactShadows } from "@react-three/drei"
 import * as THREE from "three"
+import * as SkeletonUtils from "three/examples/jsm/utils/SkeletonUtils.js"
 
 interface OnboardingRobot3DProps {
-  animationState: "idle" | "thinking" | "waving" | "dancing"
+  animationState: "idle" | "thinking" | "waving" | "dancing" | "looking"
   posY?: number
   rotY?: number
   scale?: number
@@ -25,7 +26,11 @@ function RobotModel({ animationState, posY = 0.6, posX = 0, rotY = 0, scale = 0.
   // Use the idle action FBX as the persistent rendered model.
   // This guarantees bone name matching when we apply clips from the other action files,
   // since all Mixamo exports share the same skeleton hierarchy.
-  const model = useFBX("/actions/Breathing Idle.fbx")
+  const fbx = useFBX("/actions/Breathing Idle.fbx")
+
+  // Safely clone the skinned mesh model using SkeletonUtils so multiple concurrent
+  // instances can render on the same page without render-stealing or animation bugs.
+  const model = useMemo(() => SkeletonUtils.clone(fbx), [fbx])
 
   const wavingPath = useContinuousWaving ? "/actions/Waving.fbx" : "/actions/Waving Gesture.fbx"
 
@@ -57,8 +62,8 @@ function RobotModel({ animationState, posY = 0.6, posX = 0, rotY = 0, scale = 0.
     const mixer = new THREE.AnimationMixer(model)
     mixerRef.current = mixer
 
-    // Register idle clip
-    const idleClip = model.animations[0].clone()
+    // Register idle clip from original loaded FBX animations array
+    const idleClip = fbx.animations[0].clone()
     idleClip.name = "idle"
     // Strip root-motion position tracks from clip.
     idleClip.tracks = idleClip.tracks.filter(
@@ -78,14 +83,17 @@ function RobotModel({ animationState, posY = 0.6, posX = 0, rotY = 0, scale = 0.
     }
 
     // Register already cached clips immediately
-    if (clipCache["thinking"]) {
-      registerClipFromData("thinking", clipCache["thinking"])
+    if (clipCache["/actions/Thinking.fbx"]) {
+      registerClipFromData("thinking", clipCache["/actions/Thinking.fbx"])
     }
     if (clipCache[wavingPath]) {
       registerClipFromData("waving", clipCache[wavingPath])
     }
     if (clipCache["/actions/Hip Hop Dancing.fbx"]) {
       registerClipFromData("dancing", clipCache["/actions/Hip Hop Dancing.fbx"])
+    }
+    if (clipCache["/actions/looking idle.fbx"]) {
+      registerClipFromData("looking", clipCache["/actions/looking idle.fbx"])
     }
 
     // Play whichever state is desired right now if it's already registered, otherwise play idle
@@ -107,7 +115,7 @@ function RobotModel({ animationState, posY = 0.6, posX = 0, rotY = 0, scale = 0.
       mixerRef.current = null
       actionsRef.current = {}
     }
-  }, [model, wavingPath])
+  }, [model, wavingPath, fbx.animations])
 
   // Load animations in the background
   useEffect(() => {
@@ -203,6 +211,23 @@ function RobotModel({ animationState, posY = 0.6, posX = 0, rotY = 0, scale = 0.
           },
           undefined,
           (err) => console.error("Error loading Hip Hop Dancing.fbx:", err)
+        )
+      }
+
+      // Load looking idle animation
+      const lookingPath = "/actions/looking idle.fbx"
+      if (clipCache[lookingPath]) {
+        registerLoadedClip("looking", lookingPath, clipCache[lookingPath])
+      } else {
+        loader.load(
+          lookingPath,
+          (fbx) => {
+            if (fbx.animations && fbx.animations.length > 0) {
+              registerLoadedClip("looking", lookingPath, fbx.animations[0])
+            }
+          },
+          undefined,
+          (err) => console.error("Error loading looking idle.fbx:", err)
         )
       }
     })

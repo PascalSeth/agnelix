@@ -1,6 +1,14 @@
+"use client"
+
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Mail, Bot, MapPin, Workflow, ArrowRight, CheckCircle2, Zap } from "lucide-react"
 import { CtaLink } from "@/components/landing/cta-link"
+import dynamic from "next/dynamic"
+
+const OnboardingRobot3D = dynamic(
+  () => import("@/components/onboarding-robot-3d"),
+  { ssr: false }
+)
 
 export function FinalCTA() {
   return (
@@ -12,78 +20,102 @@ export function FinalCTA() {
         <div className="absolute h-[400px] w-[400px] rounded-full bg-[#c5a880]/15 blur-[100px]" />
       </div>
 
-      <div className="relative mx-auto max-w-5xl px-6">
+      <div className="relative mx-auto max-w-6xl px-6">
         
         {/* The Glass Capsule */}
-        <div className="relative overflow-hidden rounded-[3rem] border border-white/10 bg-[#16181D]/60 backdrop-blur-2xl p-10 py-20 lg:p-24 text-center shadow-[0_0_80px_rgba(197,168,128,0.05)] transition-all duration-700 hover:border-[#c5a880]/30 hover:shadow-[0_0_100px_rgba(197,168,128,0.1)]">
+        <div className="relative overflow-hidden rounded-[3rem] border border-white/10 bg-[#16181D]/60 backdrop-blur-2xl p-8 py-16 lg:p-16 shadow-[0_0_80px_rgba(197,168,128,0.05)] transition-all duration-700 hover:border-[#c5a880]/30 hover:shadow-[0_0_100px_rgba(197,168,128,0.1)]">
           
           {/* Internal Top Glow */}
           <div className="absolute top-0 inset-x-0 h-px w-full bg-gradient-to-r from-transparent via-[#c5a880]/50 to-transparent" />
           <div className="absolute -top-24 left-1/2 -translate-x-1/2 h-48 w-[80%] rounded-full bg-[#c5a880]/10 blur-3xl" />
 
-          {/* Status Badge */}
-          <div className="anim-fade-up inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-slate-300 mb-8" style={{ animationDelay: "0.1s" }}>
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-            </span>
-            Ready when you are
-          </div>
-
-          {/* Headline */}
-          <h2 className="anim-fade-up text-5xl font-bold tracking-tight text-white md:text-6xl lg:text-7xl font-luxury-sans" style={{ animationDelay: "0.2s" }}>
-            Ready to put your
-            <br />
-            <span className="font-luxury-serif italic text-transparent bg-clip-text bg-gradient-to-r from-[#c5a880] to-[#e6d5b8] font-normal">
-              sales on autopilot?
-            </span>
-          </h2>
-
-          {/* Subheadline */}
-          <p className="anim-fade-up mx-auto mt-8 max-w-2xl text-lg lg:text-xl text-slate-400 font-medium leading-relaxed" style={{ animationDelay: "0.3s" }}>
-            Stop searching for leads and writing emails by hand. Galien finds businesses, writes the emails, and replies to interested leads — <span className="text-white">you just wake up to a full calendar.</span>
-          </p>
-
-          <div className="anim-fade-up mt-12 flex flex-col items-center gap-6" style={{ animationDelay: "0.4s" }}>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             
-            {/* The Ultimate CTA Button */}
-            <div className="relative group">
-              {/* Outer Button Glow */}
-              <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-[#c5a880] via-[#e6d5b8] to-[#c5a880] opacity-40 blur-lg transition-all duration-500 group-hover:opacity-70 group-hover:blur-xl group-hover:duration-200" />
-              
-              <CtaLink
-                className="relative flex items-center justify-center gap-3 rounded-2xl bg-white px-8 py-4 text-base font-bold text-[#0A0B0E] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-[inset_0_-2px_10px_rgba(0,0,0,0.1)]"
-                authedChildren={<><Zap className="h-5 w-5 fill-current" /> Go to Dashboard <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" /></>}
-              >
-                <Zap className="h-5 w-5 fill-current" />
-                Start Free Trial
-                <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-              </CtaLink>
+            {/* Left Column (Content) */}
+            <div className="lg:col-span-7 flex flex-col items-center lg:items-start text-center lg:text-left">
+              {/* Status Badge */}
+              <div className="anim-fade-up inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-slate-300 mb-8" style={{ animationDelay: "0.1s" }}>
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                </span>
+                Ready when you are
+              </div>
+
+              {/* Headline */}
+              <h2 className="anim-fade-up text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-6xl font-luxury-sans leading-tight" style={{ animationDelay: "0.2s" }}>
+                Ready to put your
+                <br />
+                <span className="font-luxury-serif italic text-transparent bg-clip-text bg-gradient-to-r from-[#c5a880] to-[#e6d5b8] font-normal">
+                  sales on autopilot?
+                </span>
+              </h2>
+
+              {/* Subheadline */}
+              <p className="anim-fade-up mt-6 max-w-2xl text-base lg:text-lg text-slate-400 font-medium leading-relaxed" style={{ animationDelay: "0.3s" }}>
+                Stop searching for leads and writing emails by hand. Galien finds businesses, writes the emails, and replies to interested leads — <span className="text-white">you just wake up to a full calendar.</span>
+              </p>
+
+              <div className="anim-fade-up mt-10 flex flex-col items-center lg:items-start gap-6 w-full" style={{ animationDelay: "0.4s" }}>
+                
+                {/* The Ultimate CTA Button */}
+                <div className="relative group">
+                  {/* Outer Button Glow */}
+                  <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-[#c5a880] via-[#e6d5b8] to-[#c5a880] opacity-40 blur-lg transition-all duration-500 group-hover:opacity-70 group-hover:blur-xl group-hover:duration-200" />
+                  
+                  <CtaLink
+                    className="relative flex items-center justify-center gap-3 rounded-2xl bg-white px-8 py-4 text-base font-bold text-[#0A0B0E] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-[inset_0_-2px_10px_rgba(0,0,0,0.1)]"
+                    authedChildren={<><Zap className="h-5 w-5 fill-current" /> Go to Dashboard <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" /></>}
+                  >
+                    <Zap className="h-5 w-5 fill-current" />
+                    Start Free Trial
+                    <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                  </CtaLink>
+                </div>
+
+                {/* Micro Trust Copy */}
+                <p className="text-xs font-semibold text-slate-500">
+                  Free 7-day trial. <span className="text-slate-400">No credit card required.</span>
+                </p>
+
+                {/* Trust/Feature Checkmarks */}
+                <div className="mt-8 flex flex-wrap items-center justify-center lg:justify-start gap-x-6 gap-y-4 pt-6 border-t border-white/5 w-full">
+                  {[
+                    { icon: MapPin, text: "Finds leads automatically" },
+                    { icon: Mail, text: "Connects to Gmail & Outlook" },
+                    { icon: Bot, text: "Replies & books meetings" },
+                    { icon: Workflow, text: "Tracks every deal" }
+                  ].map(({ icon: Icon, text }) => (
+                    <span key={text} className="flex items-center gap-2 text-sm font-semibold text-slate-400 transition-colors hover:text-white">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/5 border border-white/10">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-[#c5a880]" />
+                      </div>
+                      {text}
+                    </span>
+                  ))}
+                </div>
+
+              </div>
             </div>
 
-            {/* Micro Trust Copy */}
-            <p className="text-xs font-semibold text-slate-500">
-              Free 7-day trial. <span className="text-slate-400">No credit card required.</span>
-            </p>
-
-            {/* Trust/Feature Checkmarks */}
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 pt-8 border-t border-white/5">
-              {[
-                { icon: MapPin, text: "Finds leads automatically" },
-                { icon: Mail, text: "Connects to Gmail & Outlook" },
-                { icon: Bot, text: "Replies & books meetings" },
-                { icon: Workflow, text: "Tracks every deal" }
-              ].map(({ icon: Icon, text }) => (
-                <span key={text} className="flex items-center gap-2 text-sm font-semibold text-slate-400 transition-colors hover:text-white">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/5 border border-white/10">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-[#c5a880]" />
-                  </div>
-                  {text}
-                </span>
-              ))}
+            {/* Right Column (3D Robot) */}
+            <div className="lg:col-span-5 w-full h-[350px] lg:h-[480px] relative flex items-center justify-center">
+              {/* 3D Model */}
+              <div className="absolute inset-0">
+                <OnboardingRobot3D 
+                  animationState="looking" 
+                  hideBackground={true} 
+                  loopWaving={true}
+                  useContinuousWaving={true}
+                  scale={0.032} // Large and impressive!
+                  posY={-0.6} // Center the body
+                  cameraZ={4.6} // Tight view
+                />
+              </div>
             </div>
 
           </div>
+
         </div>
       </div>
     </section>
