@@ -8,10 +8,10 @@ export function LandingFooter() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#101e35] border border-[#c5a880]/30 shadow-sm">
             <Zap className="h-4 w-4 text-[#c5a880]" />
           </div>
-          <span className="text-lg font-bold tracking-tight text-neutral-900 font-luxury-sans">Agnelix</span>
+          <span className="text-lg font-bold tracking-tight text-neutral-900 font-luxury-sans">Galien</span>
         </div>
         <p className="text-sm text-neutral-400 font-medium">
-          © 2026 Agnelix. All rights reserved.
+          © 2026 Galien. All rights reserved.
         </p>
         <div className="flex items-center gap-6 text-sm text-neutral-400 font-semibold">
           <span className="hover:text-neutral-700 transition-colors cursor-pointer">Privacy</span>

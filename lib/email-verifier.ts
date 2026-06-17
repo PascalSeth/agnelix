@@ -77,7 +77,7 @@ export async function testEmailsSmtp(
     let isCatchAll = false
     let currentEmailIndex = -1
     const emailsToCheck = [...emails]
-    const catchAllTestEmail = `agnelix_chk_${Math.floor(Math.random() * 100000)}@${domain}`
+    const catchAllTestEmail = `galien_chk_${Math.floor(Math.random() * 100000)}@${domain}`
 
     function send(cmd: string) {
       if (socket.writable) {
@@ -121,7 +121,7 @@ export async function testEmailsSmtp(
       if (stage === 0) {
         if (code === 220) {
           stage = 1
-          send("HELO agnelix.com")
+          send("HELO galien.com")
         } else {
           cleanupAndResolve()
         }

@@ -69,7 +69,7 @@ function SignInForm() {
         {/* Logo */}
         <div className="mb-8 flex justify-center">
           <Link href="/" className="transition-opacity hover:opacity-80">
-            <Image src="/logo-hq.png" alt="Agnelix" width={130} height={52} className="object-contain" loading="eager" priority />
+            <Image src="/logo-hq.png" alt="Galien" width={130} height={52} className="object-contain" loading="eager" priority />
           </Link>
         </div>
 
@@ -101,7 +101,7 @@ function SignInForm() {
             </h1>
             <p className="mt-1.5 text-sm text-white/35">
               {isSignIn
-                ? "Sign in to continue to Agnelix"
+                ? "Sign in to continue to Galien"
                 : "Start sending AI-powered emails in minutes"}
             </p>
           </div>

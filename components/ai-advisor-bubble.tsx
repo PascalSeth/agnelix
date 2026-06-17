@@ -231,7 +231,7 @@ export function AiAdvisorBubble() {
                   {/* Solid Center Orb */}
                   <img
                     src="/logo.png"
-                    alt="Agnelix"
+                    alt="Galien"
                     className="relative size-7 rounded-xl object-contain bg-black/20"
                     style={{
                       border: "1px solid rgba(255, 255, 255, .2)",
@@ -315,7 +315,7 @@ export function AiAdvisorBubble() {
                   {msg.role === "assistant" && (
                     <img
                       src="/logo.png"
-                      alt="Agnelix"
+                      alt="Galien"
                       className="size-6 rounded-full shrink-0 mb-0.5 object-contain bg-black/20"
                       style={{
                         border: "1px solid rgba(255, 255, 255, 0.15)",
@@ -354,7 +354,7 @@ export function AiAdvisorBubble() {
                 <div className="flex items-end gap-2.5 msg-appear">
                   <img
                     src="/logo.png"
-                    alt="Agnelix"
+                    alt="Galien"
                     className="size-6 rounded-full shrink-0 mb-0.5 object-contain bg-black/20"
                     style={{
                       border: "1px solid rgba(255, 255, 255, 0.15)",
@@ -463,7 +463,7 @@ export function AiAdvisorBubble() {
           ) : (
             <img
               src="/logo.png"
-              alt="Agnelix"
+              alt="Galien"
               className="relative z-10 size-7 object-contain"
             />
           )}

@@ -16,7 +16,7 @@ export function BentoFeatures() {
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#c5a880] to-[#e6d5b8]">in one place.</span>
           </h2>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-400 font-medium">
-            No more juggling five different tools. Agnelix finds leads, writes emails, manages your deals, and follows up — all by itself.
+            No more juggling five different tools. Galien finds leads, writes emails, manages your deals, and follows up — all by itself.
           </p>
         </div>
 
@@ -63,7 +63,7 @@ export function BentoFeatures() {
               </div>
               <h3 className="text-2xl font-bold text-white font-luxury-sans">Lead Discovery</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-400 font-medium max-w-md">
-                Tell Agnelix the type of business and the city. It pulls their name, website, phone number, and ratings — then finds a direct email address for each one.
+                Tell Galien the type of business and the city. It pulls their name, website, phone number, and ratings — then finds a direct email address for each one.
               </p>
             </div>
           </div>
@@ -93,7 +93,7 @@ export function BentoFeatures() {
               </div>
               <h3 className="font-bold text-white font-luxury-sans text-lg">Autonomous Agent</h3>
               <p className="mt-2 text-xs leading-relaxed text-slate-400 font-medium">
-                When a prospect replies, Agnelix reads it, responds, and can book the meeting — no extra work from you.
+                When a prospect replies, Galien reads it, responds, and can book the meeting — no extra work from you.
               </p>
             </div>
           </div>
@@ -144,7 +144,7 @@ export function BentoFeatures() {
               </div>
               <h3 className="font-bold text-lg text-white font-luxury-sans">Battle Cards</h3>
               <p className="mt-2 text-xs leading-relaxed text-slate-400 font-medium">
-                When a prospect replies, Agnelix instantly gives you a one-page cheat sheet — what to say, how to handle objections, and what to do next.
+                When a prospect replies, Galien instantly gives you a one-page cheat sheet — what to say, how to handle objections, and what to do next.
               </p>
             </div>
           </div>

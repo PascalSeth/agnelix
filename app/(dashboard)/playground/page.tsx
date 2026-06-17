@@ -28,8 +28,8 @@ const LEAD = {
 const SENDER = {
   name:    "Pascal",
   title:   "Founder",
-  agency:  "Agnelix",
-  email:   "pascal@agnelix.com",
+  agency:  "Galien",
+  email:   "pascal@galien.com",
 }
 
 const MOCK_EMAIL = `I had a look at Apex Dental Practice ahead of sending this — the site is loading in around 4 seconds on mobile, which for a practice where most patients search on their phone, is typically where you lose them before they see your availability.
@@ -333,7 +333,7 @@ function NurtureScheduled() {
       <div className="rounded-xl p-3.5" style={{ border: "1px solid rgba(125,211,252,.2)", background: "rgba(125,211,252,.06)" }}>
         <p className="text-[10px] font-black text-sky-400/60 uppercase tracking-widest mb-2">Nurture Sequence Enrolled</p>
         <p className="text-[11px] text-white/55 leading-relaxed">
-          {LEAD.company} has been enrolled in the 60-day nurture sequence. Agnelix will automatically re-engage with a case study, tip, and check-in — no manual effort required.
+          {LEAD.company} has been enrolled in the 60-day nurture sequence. Galien will automatically re-engage with a case study, tip, and check-in — no manual effort required.
         </p>
       </div>
       <div className="rounded-xl p-3 space-y-2" style={{ border: "1px solid rgba(255,255,255,.07)", background: "rgba(255,255,255,.03)" }}>
@@ -389,7 +389,7 @@ const scenarios: { id: string; label: string; emoji: string; color: string; tagl
       {
         tag: "Discovery",
         title: "Lead Found on Google Maps",
-        desc: "Agnelix searches Google Maps for dental practices in Leeds. Apex Dental surfaces with a 4.1★ rating, website, and phone number. The audit starts automatically.",
+        desc: "Galien searches Google Maps for dental practices in Leeds. Apex Dental surfaces with a 4.1★ rating, website, and phone number. The audit starts automatically.",
         sender: <BusinessCard />,
         prospect: (
           <div className="rounded-xl overflow-hidden" style={{ background: "#fff", border: "1px solid rgba(0,0,0,.08)" }}>
@@ -430,14 +430,14 @@ const scenarios: { id: string; label: string; emoji: string; color: string; tagl
       {
         tag: "Outreach",
         title: "AI Writes & Sends Personalised Email",
-        desc: "Agnelix AI uses the audit findings (4.2s load, no analytics) + James's name + the dental context to write a specific, non-generic opener. Email sent from your Gmail.",
+        desc: "Galien AI uses the audit findings (4.2s load, no analytics) + James's name + the dental context to write a specific, non-generic opener. Email sent from your Gmail.",
         sender: <EmailComposer />,
         prospect: <GmailInbox />,
       },
       {
         tag: "Reply",
         title: "James Replies — Interested",
-        desc: "James opens the email within 2 hours and replies. Agnelix detects the reply via IMAP, classifies it as INTERESTED (high confidence), and immediately generates a Battle Card.",
+        desc: "James opens the email within 2 hours and replies. Galien detects the reply via IMAP, classifies it as INTERESTED (high confidence), and immediately generates a Battle Card.",
         sender: (
           <div className="space-y-3">
             <div className="rounded-xl px-4 py-3 flex items-center gap-3" style={{ border: "1px solid rgba(52,211,153,.25)", background: "rgba(52,211,153,.07)" }}>
@@ -459,7 +459,7 @@ const scenarios: { id: string; label: string; emoji: string; color: string; tagl
         sender: (
           <EmailComposer
             subject="Re: Apex Dental — quick one on your site"
-            body={`James — good to hear from you. The 'Not Secure' flag is a trust issue at exactly the moment someone's deciding whether to book.\n\nHappy to walk you through what we'd do in a short call — typically takes 20 minutes and I'll bring the numbers on what it's likely costing you in missed bookings.\n\nCould do Tue 11am or Thu 2pm — which works better?\n\nPascal\nFounder, Agnelix`}
+            body={`James — good to hear from you. The 'Not Secure' flag is a trust issue at exactly the moment someone's deciding whether to book.\n\nHappy to walk you through what we'd do in a short call — typically takes 20 minutes and I'll bring the numbers on what it's likely costing you in missed bookings.\n\nCould do Tue 11am or Thu 2pm — which works better?\n\nPascal\nFounder, Galien`}
           />
         ),
         prospect: <GmailReply text={`Pascal,\n\nTuesday at 11am works great. Looking forward to it.\n\nJames`} />,
@@ -467,7 +467,7 @@ const scenarios: { id: string; label: string; emoji: string; color: string; tagl
       {
         tag: "Outcome",
         title: "Meeting Booked — Pipeline Updated",
-        desc: "Meeting confirmed. Pipeline moves to MEETING_BOOKED. Agnelix schedules a pre-call brief and sends a calendar invite to James automatically.",
+        desc: "Meeting confirmed. Pipeline moves to MEETING_BOOKED. Galien schedules a pre-call brief and sends a calendar invite to James automatically.",
         sender: <PipelineBoard stage="MEETING_BOOKED" />,
         prospect: <CalendarInvite />,
       },
@@ -490,14 +490,14 @@ const scenarios: { id: string; label: string; emoji: string; color: string; tagl
       {
         tag: "Outreach",
         title: "Email Sent & Opened",
-        desc: "James opens the email. Agnelix records the open event. The sequence continues automatically.",
+        desc: "James opens the email. Galien records the open event. The sequence continues automatically.",
         sender: <EmailComposer />,
         prospect: <GmailOpen />,
       },
       {
         tag: "Objection",
         title: "James Objects — Already Has a Provider",
-        desc: "James replies with a classic objection. Agnelix classifies it as OBJECTION, detects the specific type (existing vendor), and queues an AI-drafted counter.",
+        desc: "James replies with a classic objection. Galien classifies it as OBJECTION, detects the specific type (existing vendor), and queues an AI-drafted counter.",
         sender: (
           <div className="space-y-3">
             <div className="rounded-xl px-4 py-3 flex items-center gap-3" style={{ border: "1px solid rgba(251,191,36,.25)", background: "rgba(251,191,36,.07)" }}>
@@ -555,7 +555,7 @@ const scenarios: { id: string; label: string; emoji: string; color: string; tagl
       {
         tag: "Rejection",
         title: "James Unsubscribes",
-        desc: "James asks to be removed. Agnelix detects the unsubscribe intent instantly, cancels all queued follow-ups, and updates his status — no manual action needed.",
+        desc: "James asks to be removed. Galien detects the unsubscribe intent instantly, cancels all queued follow-ups, and updates his status — no manual action needed.",
         sender: (
           <div className="space-y-3">
             <div className="rounded-xl px-4 py-3 flex items-center gap-3" style={{ border: "1px solid rgba(248,113,113,.25)", background: "rgba(248,113,113,.07)" }}>
@@ -573,7 +573,7 @@ const scenarios: { id: string; label: string; emoji: string; color: string; tagl
       {
         tag: "Nurture",
         title: "60-Day Nurture Sequence Starts",
-        desc: "James is enrolled in the passive nurture track. Agnelix sends a light-touch case study, a useful tip, and a check-in over 60 days. No pressure, no pitch. At day 90, the site is re-audited automatically for a resurrection hook.",
+        desc: "James is enrolled in the passive nurture track. Galien sends a light-touch case study, a useful tip, and a check-in over 60 days. No pressure, no pitch. At day 90, the site is re-audited automatically for a resurrection hook.",
         sender: <NurtureScheduled />,
         prospect: (
           <div className="space-y-2">
@@ -608,14 +608,14 @@ const scenarios: { id: string; label: string; emoji: string; color: string; tagl
       {
         tag: "Reply",
         title: "James Replies — Wants a Proposal",
-        desc: "James asks for pricing and a proposal. Agnelix detects INTERESTED intent with proposal request, generates a battle card, and auto-drafts a proposal.",
+        desc: "James asks for pricing and a proposal. Galien detects INTERESTED intent with proposal request, generates a battle card, and auto-drafts a proposal.",
         sender: <BattleCardView />,
         prospect: <GmailReply text={`Pascal,\n\nThis looks relevant. Could you send over a proposal with what you'd do and what it would cost? We're reviewing a few options at the moment.\n\nJames`} />,
       },
       {
         tag: "Proposal",
         title: "One-Page Proposal Auto-Generated",
-        desc: "Agnelix generates a tailored one-page proposal using the audit data, James's company info, and your agency details. Sent in the next reply automatically.",
+        desc: "Galien generates a tailored one-page proposal using the audit data, James's company info, and your agency details. Sent in the next reply automatically.",
         sender: (
           <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(167,139,250,.2)", background: "rgba(167,139,250,.06)" }}>
             <div className="px-4 py-3 border-b flex items-center gap-2" style={{ borderColor: "rgba(167,139,250,.15)" }}>
@@ -795,7 +795,7 @@ export default function PlaygroundPage() {
                 <div className="size-5 rounded-full flex items-center justify-center text-[10px]" style={{ background: "rgba(167,139,250,.15)", border: "1px solid rgba(167,139,250,.25)" }}>
                   👤
                 </div>
-                <p className="text-[11px] font-black text-white/40 uppercase tracking-wide">Your View — Inside Agnelix</p>
+                <p className="text-[11px] font-black text-white/40 uppercase tracking-wide">Your View — Inside Galien</p>
               </div>
               <div className="rounded-xl p-4" style={{ background: "rgba(255,255,255,.02)", border: "1px solid rgba(255,255,255,.06)", minHeight: "240px" }}>
                 {step.sender}
@@ -840,7 +840,7 @@ export default function PlaygroundPage() {
                 />
                 <img
                   src="/logo.png"
-                  alt="Agnelix"
+                  alt="Galien"
                   className="relative size-8 rounded-xl object-contain bg-black/30"
                   style={{
                     border: "1px solid rgba(255, 255, 255, 0.15)",

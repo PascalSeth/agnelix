@@ -113,7 +113,7 @@ export function DashboardLayout({ children, session, inboxCount = 0 }: Dashboard
               </button>
               
               <div className="hidden sm:flex items-center gap-2 text-[13px] font-semibold text-white/50">
-                <span className="text-white/80">Agnelix</span>
+                <span className="text-white/80">Galien</span>
                 <span className="text-white/20">/</span>
                 <span className="text-white/80">{activePlaybook?.name || "Dashboard"}</span>
               </div>

@@ -82,7 +82,7 @@ export function Pricing() {
             Pick the plan that fits your agency
           </h2>
           <p className="mt-4 text-lg text-slate-400 font-medium">
-            Start small and upgrade as you grow — or pay based on the meetings and deals Agnelix brings in.
+            Start small and upgrade as you grow — or pay based on the meetings and deals Galien brings in.
           </p>
         </div>
 
@@ -127,7 +127,7 @@ export function Pricing() {
 
               {tier.name === "Enterprise" ? (
                 <a
-                  href="mailto:hello@agnelix.com"
+                  href="mailto:hello@galien.com"
                   className="w-full py-2.5 rounded-xl text-center text-xs font-bold transition-all duration-200 bg-white/5 text-white hover:bg-white/10 border border-white/10"
                 >
                   Contact Sales
@@ -165,10 +165,10 @@ export function Pricing() {
                 <Zap className="h-3 w-3" /> Pay For Results
               </div>
               <h3 className="text-2xl font-bold tracking-tight text-white md:text-3xl font-luxury-sans">
-                Prefer to pay based on what Agnelix actually delivers?
+                Prefer to pay based on what Galien actually delivers?
               </h3>
               <p className="mt-3 text-sm text-slate-400 leading-relaxed font-medium">
-                On top of your plan, you can add performance-based pricing — pay extra only when Agnelix books you a meeting or helps you close a deal.
+                On top of your plan, you can add performance-based pricing — pay extra only when Galien books you a meeting or helps you close a deal.
               </p>
             </div>
 

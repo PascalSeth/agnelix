@@ -5,9 +5,8 @@ import { Canvas, useFrame } from "@react-three/fiber"
 import { useFBX, Stage, ContactShadows } from "@react-three/drei"
 import * as THREE from "three"
 
-// Interface for props
 interface OnboardingRobot3DProps {
-  animationState: "idle" | "thinking" | "waving"
+  animationState: "idle" | "thinking" | "waving" | "dancing"
   posY?: number
   rotY?: number
   scale?: number
@@ -15,13 +14,14 @@ interface OnboardingRobot3DProps {
   hideBackground?: boolean
   loopWaving?: boolean
   useContinuousWaving?: boolean
+  posX?: number
 }
 
 // Module-level cache to keep loaded animation clips across mounts
 const clipCache: Record<string, THREE.AnimationClip> = {}
 
 // ── ROBOT MODEL SUB-COMPONENT ──────────────────────────────────────────────
-function RobotModel({ animationState, posY = 0.6, rotY = 0, scale = 0.019, loopWaving = false, useContinuousWaving = false }: OnboardingRobot3DProps) {
+function RobotModel({ animationState, posY = 0.6, posX = 0, rotY = 0, scale = 0.019, loopWaving = false, useContinuousWaving = false }: OnboardingRobot3DProps) {
   // Use the idle action FBX as the persistent rendered model.
   // This guarantees bone name matching when we apply clips from the other action files,
   // since all Mixamo exports share the same skeleton hierarchy.
@@ -83,6 +83,9 @@ function RobotModel({ animationState, posY = 0.6, rotY = 0, scale = 0.019, loopW
     }
     if (clipCache[wavingPath]) {
       registerClipFromData("waving", clipCache[wavingPath])
+    }
+    if (clipCache["/actions/Hip Hop Dancing.fbx"]) {
+      registerClipFromData("dancing", clipCache["/actions/Hip Hop Dancing.fbx"])
     }
 
     // Play whichever state is desired right now if it's already registered, otherwise play idle
@@ -185,6 +188,23 @@ function RobotModel({ animationState, posY = 0.6, rotY = 0, scale = 0.019, loopW
           (err) => console.error(`Error loading ${wavingPath}:`, err)
         )
       }
+
+      // Load dancing animation
+      const dancingPath = "/actions/Hip Hop Dancing.fbx"
+      if (clipCache[dancingPath]) {
+        registerLoadedClip("dancing", dancingPath, clipCache[dancingPath])
+      } else {
+        loader.load(
+          dancingPath,
+          (fbx) => {
+            if (fbx.animations && fbx.animations.length > 0) {
+              registerLoadedClip("dancing", dancingPath, fbx.animations[0])
+            }
+          },
+          undefined,
+          (err) => console.error("Error loading Hip Hop Dancing.fbx:", err)
+        )
+      }
     })
   }, [wavingPath, loopWaving])
 
@@ -220,20 +240,34 @@ function RobotModel({ animationState, posY = 0.6, rotY = 0, scale = 0.019, loopW
     next.reset().fadeIn(0.3).play()
   }, [animationState, loopWaving])
 
+  // Keep track of the current values using refs so we can lerp them smoothly
+  const posXRef = useRef(posX)
+  const scaleRef = useRef(scale)
+  const posYRef = useRef(posY)
+
   // Advance the mixer each frame + apply floating animation on the outer group
   useFrame((state, delta) => {
     mixerRef.current?.update(delta)
     if (groupRef.current) {
       const t = state.clock.getElapsedTime()
-      // Shifted up to leave room for the bottom UI cards
-      groupRef.current.position.y = posY + Math.sin(t * 1.5) * 0.06
+      
+      // Smoothly lerp X, Y, and Scale inside WebGL for maximum performance (no layout shifts)
+      posXRef.current = THREE.MathUtils.lerp(posXRef.current, posX, 0.05)
+      posYRef.current = THREE.MathUtils.lerp(posYRef.current, posY, 0.05)
+      scaleRef.current = THREE.MathUtils.lerp(scaleRef.current, scale, 0.05)
+
+      groupRef.current.position.x = posXRef.current
+      groupRef.current.position.y = posYRef.current + Math.sin(t * 1.5) * 0.06
       groupRef.current.rotation.y = rotY + Math.sin(t * 0.4) * 0.15
+      
+      // Apply the animated scale to the parent group
+      groupRef.current.scale.setScalar(scaleRef.current)
     }
   })
 
   return (
     <group ref={groupRef}>
-      <primitive object={model} scale={scale} />
+      <primitive object={model} scale={1} />
     </group>
   )
 }
@@ -520,6 +554,7 @@ function ParticleField() {
 export default function OnboardingRobot3D({ 
   animationState, 
   posY = 0.6, 
+  posX = 0,
   rotY = 0, 
   scale = 0.019, 
   cameraZ = 5.5, 
@@ -530,7 +565,7 @@ export default function OnboardingRobot3D({
   return (
     <div className="w-full h-full">
       <Canvas
-        shadows
+        shadows={{ type: THREE.PCFShadowMap }}
         camera={{ position: [0, 0.2, cameraZ], fov: 46 }}
         className="w-full h-full"
       >
@@ -562,6 +597,7 @@ export default function OnboardingRobot3D({
             <RobotModel 
               animationState={animationState} 
               posY={posY} 
+              posX={posX}
               rotY={rotY} 
               scale={scale} 
               loopWaving={loopWaving} 

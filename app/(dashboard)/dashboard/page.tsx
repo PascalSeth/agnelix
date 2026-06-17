@@ -286,7 +286,7 @@ export default async function DashboardPage() {
     {
       key: "campaign",
       label: "Launch a campaign",
-      desc: "Combine your leads and sequence so Agnelix can start reaching out automatically.",
+      desc: "Combine your leads and sequence so Galien can start reaching out automatically.",
       href: "/campaigns/new",
       cta: "Create campaign",
       icon: "Megaphone",
@@ -303,7 +303,7 @@ export default async function DashboardPage() {
       icon: ShieldAlert,
       color: "text-red-400 bg-red-500/10 border-red-500/20",
       title: "Deliverability Risk Detected",
-      text: "SMTP Gmail is not connected. Agnelix cannot execute outbound sequences. Configure credentials now.",
+      text: "SMTP Gmail is not connected. Galien cannot execute outbound sequences. Configure credentials now.",
       href: "/settings/agency"
     })
   } else {
@@ -796,7 +796,7 @@ export default async function DashboardPage() {
                   <span className="size-2 rounded-full bg-amber-500/60" />
                   <span className="size-2 rounded-full bg-emerald-500/60" />
                 </div>
-                <span className="text-[9px] font-mono text-white/20 tracking-wider">agnelix-system.log</span>
+                <span className="text-[9px] font-mono text-white/20 tracking-wider">galien-system.log</span>
                 <Terminal className="size-3 text-white/20" />
               </div>
 

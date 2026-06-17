@@ -72,7 +72,7 @@ export async function sendEmailImmediately(emailId: string): Promise<boolean> {
       {
         to: lead.email,
         from: smtp.user,
-        fromName: lead.user.agencyName || lead.user.name || "Agnelix",
+        fromName: lead.user.agencyName || lead.user.name || "Galien",
         replyTo: lead.user.email,
         subject: email.subject,
         body: email.body,

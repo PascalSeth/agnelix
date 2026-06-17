@@ -102,7 +102,7 @@ export async function POST() {
         challenge: "BrightSmile Dental had less than 200 followers on Instagram and zero patient bookings from social media.",
         solution: "We implemented an Instagram Growth strategy creating 15 local Reels and running geo-targeted engagement campaigns.",
         results: "Followers increased by 1,200% in 90 days. Generated 24 high-value implant consultations directly from Instagram DMs.",
-        testimonialQuote: "Agnelix completely transformed our social presence. We now get daily patient enquiries from Instagram.",
+        testimonialQuote: "Galien completely transformed our social presence. We now get daily patient enquiries from Instagram.",
         metrics: [{ label: "New Consultations", value: "24" }, { label: "Follower Growth", value: "+1,200%" }]
       },
       proposalPackage: {

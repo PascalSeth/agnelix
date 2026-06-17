@@ -47,7 +47,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ rep
     const sendResult = await sendEmail({
       to:         lead.email,
       from:       smtp.user,
-      fromName:   user.agencyName || user.name || "Agnelix",
+      fromName:   user.agencyName || user.name || "Galien",
       replyTo:    user.email,
       subject,
       body,

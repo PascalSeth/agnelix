@@ -7,7 +7,7 @@ import { Providers } from "@/components/providers"
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" })
 
 export const metadata: Metadata = {
-  title: "Agnelix | AI-Powered Email Outreach",
+  title: "Galien | AI-Powered Email Outreach",
   description: "Automated 3-step email sequences that book meetings on autopilot.",
   icons: {
     icon: "/logo.png",

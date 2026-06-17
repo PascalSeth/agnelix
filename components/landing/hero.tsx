@@ -35,7 +35,7 @@ export function Hero() {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#728972]/60 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-[#728972]" />
               </span>
-              Meet Agnelix — Your AI Sales Assistant
+              Meet Galien — Your AI Sales Assistant
               <Sparkles className="h-3.5 w-3.5 text-[#c5a880]" />
             </div>
 
@@ -50,7 +50,7 @@ export function Hero() {
 
             {/* Description */}
             <p className="anim-fade-up mt-3.5 max-w-md text-slate-400 font-medium text-sm leading-relaxed" style={{ animationDelay: "0.2s" }}>
-              Agnelix finds local businesses, writes a personal email for each one, and follows up when they reply. <span className="text-white font-semibold">You just show up to the meetings.</span>
+              Galien finds local businesses, writes a personal email for each one, and follows up when they reply. <span className="text-white font-semibold">You just show up to the meetings.</span>
             </p>
 
             {/* CTA Buttons */}
@@ -139,7 +139,7 @@ export function Hero() {
                         <CalendarCheck className="h-4 w-4" />
                       </div>
                       <div>
-                        <div className="text-[9px] font-bold text-[#728972] uppercase tracking-wider">Agnelix Result</div>
+                        <div className="text-[9px] font-bold text-[#728972] uppercase tracking-wider">Galien Result</div>
                         <div className="text-[12px] font-semibold mt-0.5 text-white">Meeting Booked!</div>
                       </div>
                     </div>

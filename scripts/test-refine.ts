@@ -31,7 +31,7 @@ Return ONLY the refined text.`
 
 async function main() {
   const tests = [
-    { name: "Agnelix", title: "Founder", raw: "we do marketing for local businesses, mainly dentists and plumbers, help them get more leads online, we use ai" },
+    { name: "Galien", title: "Founder", raw: "we do marketing for local businesses, mainly dentists and plumbers, help them get more leads online, we use ai" },
     { name: "Webb Digital", title: "Director", raw: "web design and seo for small businesses, mostly in the uk, we usually triple their leads in 3 months" },
     { name: "Clarity Finance", title: "CEO", raw: "bookkeeping and accounting for startups and small businesses, fixed monthly fee, xero experts" },
   ]

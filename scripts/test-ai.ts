@@ -20,7 +20,7 @@ async function main() {
     {
       senderName: "Pascal",
       senderTitle: "Founder",
-      senderCompany: "Agnelix",
+      senderCompany: "Galien",
       senderCompanyDesc: "AI-powered lead generation",
       prospectFirstName: "John",
       prospectLastName: "Smith",
@@ -50,7 +50,7 @@ async function main() {
     originalEmailBody: "Hi John, I noticed your site has no SSL and loads in 3s.",
     replyBody: "What does it cost? We've been with our current vendor for 2 years.",
     senderName: "Pascal",
-    senderCompany: "Agnelix",
+    senderCompany: "Galien",
     senderService: "AI-powered lead generation & web fixes",
   })
   console.log("   Battle Card:", JSON.stringify(card, null, 2))

@@ -79,7 +79,7 @@ export async function sendEmail(params: SendEmailParams, smtp: SmtpConfig) {
     ? `<img src="${agencyLogo}" alt="${agencyName || "Agency"}" style="max-height:40px;margin-bottom:16px" /><br>`
     : ""
 
-  const html = `${logoHtml}${htmlBody}${trackingPixel}<br><br><small style="color:#999">Sent via Agnelix</small>`
+  const html = `${logoHtml}${htmlBody}${trackingPixel}<br><br><small style="color:#999">Sent via Galien</small>`
 
   const info = await buildTransporter(smtp).sendMail({
     from: `"${fromName}" <${from}>`,

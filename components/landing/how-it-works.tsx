@@ -6,28 +6,28 @@ export function HowItWorks() {
       step: "01",
       icon: MapPin,
       title: "Find Leads",
-      desc: "Tell Agnelix what kind of business you want and where. It searches the web and builds a list with names, websites, phone numbers, and reviews.",
+      desc: "Tell Galien what kind of business you want and where. It searches the web and builds a list with names, websites, phone numbers, and reviews.",
       badge: "Search"
     },
     {
       step: "02",
       icon: Search,
       title: "Research Each One",
-      desc: "Agnelix visits each website, finds the best email address, and writes a short summary of what the business does.",
+      desc: "Galien visits each website, finds the best email address, and writes a short summary of what the business does.",
       badge: "AI Research"
     },
     {
       step: "03",
       icon: Mail,
       title: "Send Personal Emails",
-      desc: "Set up a series of emails. Agnelix writes each one using what it learned about the business, then sends them on schedule.",
+      desc: "Set up a series of emails. Galien writes each one using what it learned about the business, then sends them on schedule.",
       badge: "Outreach"
     },
     {
       step: "04",
       icon: Bot,
       title: "Follow Up Automatically",
-      desc: "When someone replies, Agnelix reads the message, writes a reply, and can book the meeting straight onto your calendar.",
+      desc: "When someone replies, Galien reads the message, writes a reply, and can book the meeting straight onto your calendar.",
       badge: "Closing"
     },
   ]

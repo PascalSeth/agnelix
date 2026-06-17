@@ -7,7 +7,7 @@ export function ProblemSolution() {
       id: "prospecting",
       image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=800&auto=format&fit=crop",
       uiOverlay: (
-        <div className="absolute inset-0 flex items-center justifyng-center p-6">
+        <div className="absolute inset-0 flex items-center justify-center p-6">
           <div className="w-full max-w-[200px] rounded-xl border border-white/60 bg-white/75 backdrop-blur-md p-3 shadow-lg">
             <div className="flex items-center gap-2 border-b border-black/5 pb-2 mb-2">
               <Search className="h-3 w-3 text-slate-400" />
@@ -26,7 +26,7 @@ export function ProblemSolution() {
         </div>
       ),
       problem: "Right now you spend hours on Google Maps, buy outdated lists, and guess at email addresses.",
-      solution: "Tell Agnelix the type of business and the city. It finds real local businesses with verified emails and phone numbers — in seconds."
+      solution: "Tell Galien the type of business and the city. It finds real local businesses with verified emails and phone numbers — in seconds."
     },
     {
       id: "writing",
@@ -53,7 +53,7 @@ export function ProblemSolution() {
         </div>
       ),
       problem: "Copy-paste templates get ignored or land in spam. People can spot a generic email instantly.",
-      solution: "Agnelix reads each prospect's website and writes a personal email that mentions their actual business — not a template."
+      solution: "Galien reads each prospect's website and writes a personal email that mentions their actual business — not a template."
     },
     {
       id: "closing",
@@ -77,7 +77,7 @@ export function ProblemSolution() {
         </div>
       ),
       problem: "When a lead finally replies, you're busy. By the time you respond, they've gone cold.",
-      solution: "Agnelix reads the reply, answers questions, handles objections, and books the meeting on your calendar — automatically."
+      solution: "Galien reads the reply, answers questions, handles objections, and books the meeting on your calendar — automatically."
     }
   ]
 
@@ -93,7 +93,7 @@ export function ProblemSolution() {
             Stop chasing leads <span className="text-slate-500 line-through decoration-rose-400/60 font-medium">by hand</span>.
           </h2>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-slate-400 font-semibold leading-relaxed">
-            No more digging for emails or updating spreadsheets. Agnelix does the busywork so you can spend your time closing deals.
+            No more digging for emails or updating spreadsheets. Galien does the busywork so you can spend your time closing deals.
           </p>
         </div>
 
@@ -137,11 +137,11 @@ export function ProblemSolution() {
                 {/* Divider */}
                 <div className="my-2 h-px w-full bg-gradient-to-r from-transparent via-white/5 to-transparent" />
 
-                {/* Solution (The Agnelix Way) */}
+                {/* Solution (The Galien Way) */}
                 <div className="mt-6 border-l-2 border-[#728972] pl-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Sparkles className="h-4 w-4 text-[#c5a880]" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-[#728972]">With Agnelix</span>
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#728972]">With Galien</span>
                   </div>
                   <p className="text-sm font-bold leading-relaxed text-slate-200">
                     {card.solution}

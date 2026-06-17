@@ -71,20 +71,20 @@ Write the opening referencing the company by name. Use the research — emergenc
 Write the opening now:`)
 
   // With sender company
-  await gen("Website — with sender company (LeadGenZ)", `${buildPersona("Agnelix", "AI-powered lead generation for local service businesses")}
+  await gen("Website — with sender company (LeadGenZ)", `${buildPersona("Galien", "AI-powered lead generation for local service businesses")}
 
 ${ctx}
 Technical finding: the site is showing as 'Not Secure' in Chrome — for a service where someone needs to trust you quickly, that's a credibility problem before they've read a word
 
-Write the opening referencing the company by name. Use the research. End with a natural mention of Agnelix.
+Write the opening referencing the company by name. Use the research. End with a natural mention of Galien.
 
 Write the opening now:`)
 
   // Social proof with sender
-  await gen("Social Proof — with sender company", `${buildPersona("Agnelix", "AI-powered lead generation for local service businesses")}
+  await gen("Social Proof — with sender company", `${buildPersona("Galien", "AI-powered lead generation for local service businesses")}
 
 ${ctx}
-Write the opening referencing a result from a similar trades business. Make it relevant to their situation (emergency plumbing, invoicing, landlord clients). End with a natural mention of Agnelix.
+Write the opening referencing a result from a similar trades business. Make it relevant to their situation (emergency plumbing, invoicing, landlord clients). End with a natural mention of Galien.
 
 Write the opening now:`)
 }

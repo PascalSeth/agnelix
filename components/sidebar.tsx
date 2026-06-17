@@ -109,9 +109,9 @@ export function Sidebar({ session, collapsed, mobileOpen, inboxCount = 0, onMobi
       <div className="relative z-10 flex h-16 shrink-0 items-center border-b border-white/[0.07] px-4">
         <Link href="/dashboard" className="flex items-center">
           {collapsed ? (
-            <Image src="/logo.png" alt="Agnelix" width={36} height={36} className="object-contain" />
+            <Image src="/logo.png" alt="Galien" width={36} height={36} className="object-contain" />
           ) : (
-            <Image src="/logo-hq.png" alt="Agnelix" width={130} height={30} className="object-contain object-left" />
+            <Image src="/logo-hq.png" alt="Galien" width={130} height={30} className="object-contain object-left" />
           )}
         </Link>
 

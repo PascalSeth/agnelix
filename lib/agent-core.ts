@@ -125,7 +125,7 @@ export async function executePendingAction(action: PendingActionWithLead, mode: 
         {
           to: action.lead.email,
           from: smtp.user,
-          fromName: user.agencyName || user.name || "Agnelix",
+          fromName: user.agencyName || user.name || "Galien",
           replyTo: user.fromEmail || smtp.user,
           subject: action.draftSubject ?? "Following up",
           body: action.draftBody,

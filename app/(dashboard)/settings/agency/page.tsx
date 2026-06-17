@@ -530,7 +530,7 @@ export default function AgencySettingsPage() {
                   </button>
                   {showHelp && (
                     <div className="mt-2.5 rounded-lg p-3.5 text-[11px] text-white/45 leading-relaxed bg-white/[0.01] border border-white/[0.04]">
-                      Google blocks direct SMTP access with your primary password for security reasons. App Passwords provide a revocable 16-digit token to allow Agnelix to safely route campaign messages.
+                      Google blocks direct SMTP access with your primary password for security reasons. App Passwords provide a revocable 16-digit token to allow Galien to safely route campaign messages.
                     </div>
                   )}
                 </div>

@@ -7,7 +7,7 @@ export function Verticals() {
       id: "agencies",
       icon: Users,
       title: "Digital Marketing Agencies",
-      desc: "Find dentists, roofers, salons — anyone. Search by niche and city, send personal emails, and let Agnelix handle the follow-ups.",
+      desc: "Find dentists, roofers, salons — anyone. Search by niche and city, send personal emails, and let Galien handle the follow-ups.",
       image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=800&auto=format&fit=crop",
       prompt: "Find 50 plumbers in Dallas without SEO...",
       tags: ["Local Search", "Personal Emails", "Auto Follow-Up"],
@@ -16,7 +16,7 @@ export function Verticals() {
       id: "b2b",
       icon: Briefcase,
       title: "B2B Service Providers",
-      desc: "Agnelix checks each prospect's website, writes a tailored pitch, and tracks every deal from first email to booked meeting.",
+      desc: "Galien checks each prospect's website, writes a tailored pitch, and tracks every deal from first email to booked meeting.",
       image: "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=800&auto=format&fit=crop",
       prompt: "Pitch our HR software to local tech firms...",
       tags: ["Company Research", "AI Sequences", "Pipeline CRM"],
@@ -25,7 +25,7 @@ export function Verticals() {
       id: "solo",
       icon: User,
       title: "Consultants & Freelancers",
-      desc: "Working alone? Agnelix becomes your sales team. It finds businesses, replies to leads, and fills your calendar — so you can focus on the work.",
+      desc: "Working alone? Galien becomes your sales team. It finds businesses, replies to leads, and fills your calendar — so you can focus on the work.",
       image: "https://images.unsplash.com/photo-1499951360447-b19be8fe80f5?q=80&w=800&auto=format&fit=crop",
       prompt: "Book 3 meetings for my design service...",
       tags: ["Autopilot Mode", "Battle Cards", "Meeting Booking"],
@@ -51,7 +51,7 @@ export function Verticals() {
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#c5a880] to-[#e6d5b8]">local businesses.</span>
           </h2>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-400 font-medium">
-            Whether you run an agency, a small team, or work alone — Agnelix is your extra salesperson, working around the clock.
+            Whether you run an agency, a small team, or work alone — Galien is your extra salesperson, working around the clock.
           </p>
         </div>
 

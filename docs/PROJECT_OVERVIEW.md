@@ -1,14 +1,14 @@
-# Agnelix — Complete Project Overview
+# Galien — Complete Project Overview
 
 > **Purpose:** Single reference document for AI-assisted research, product strategy, and feature exploration.  
-> **Product name:** Agnelix (repo folder: `leadgenz`)  
+> **Product name:** Galien (repo folder: `leadgenz`)  
 > **Tagline:** Your AI Sales Concierge — find prospects, write emails, book meetings.
 
 ---
 
-## 1. What Agnelix Is
+## 1. What Galien Is
 
-Agnelix is an **AI-powered outbound sales platform** aimed at people who sell to **local businesses** (dentists, plumbers, salons, hotels, trades, etc.). It combines:
+Galien is an **AI-powered outbound sales platform** aimed at people who sell to **local businesses** (dentists, plumbers, salons, hotels, trades, etc.). It combines:
 
 - **Lead discovery** (Google Maps / Places search by niche + city)
 - **Research & enrichment** (website scraping, audits, contact finding, LinkedIn)
@@ -18,13 +18,13 @@ Agnelix is an **AI-powered outbound sales platform** aimed at people who sell to
 - **Autonomous agent** (auto-send with review windows, meeting booking, proposals, nurture)
 - **Pipeline CRM** (kanban stages, deal values, revenue attribution)
 
-Everything above is **built into Agnelix** — not bolted on from a separate SaaS stack. The product is a single app from search → send → reply → pipeline → meetings.
+Everything above is **built into Galien** — not bolted on from a separate SaaS stack. The product is a single app from search → send → reply → pipeline → meetings.
 
 ### Standalone product (no third-party tool stack)
 
-Agnelix does **not** integrate with, depend on, or replace specific tools like HubSpot, Instantly, AgencyAnalytics, ClickUp, SuiteDash, or similar “agency stack” products. Those are irrelevant to how the product actually runs.
+Galien does **not** integrate with, depend on, or replace specific tools like HubSpot, Instantly, AgencyAnalytics, ClickUp, SuiteDash, or similar “agency stack” products. Those are irrelevant to how the product actually runs.
 
-| Typical agency stack (others) | What Agnelix uses instead (native) |
+| Typical agency stack (others) | What Galien uses instead (native) |
 |------------------------------|-------------------------------------|
 | Outreach sequencer (e.g. Instantly) | Built-in sequences + campaigns + SMTP send |
 | CRM (e.g. HubSpot) | Built-in pipeline, lead records, deal values |
@@ -41,11 +41,11 @@ Agnelix does **not** integrate with, depend on, or replace specific tools like H
 
 No mandatory CRM, sequencer, or reporting SaaS. The in-app workflow (Find Leads → Campaigns → Inbox → Pipeline → Dashboard) is the full loop and it works as one system.
 
-**Note on agency market research:** Charts about agency profit margins, manual reporting hours, retention rates, or “$205/mo tool stack” costs describe **industry pain** for the ICP (marketing agencies), not Agnelix architecture or integrations. Do not assume Agnelix uses or competes feature-by-feature with those products — it is an all-in-one outbound engine for booking meetings with local businesses.
+**Note on agency market research:** Charts about agency profit margins, manual reporting hours, retention rates, or “$205/mo tool stack” costs describe **industry pain** for the ICP (marketing agencies), not Galien architecture or integrations. Do not assume Galien uses or competes feature-by-feature with those products — it is an all-in-one outbound engine for booking meetings with local businesses.
 
 ### Core value proposition (landing page)
 
-| Problem | Agnelix solution |
+| Problem | Galien solution |
 |--------|------------------|
 | Hours scraping Maps, buying lists, guessing emails | Find local businesses by niche/city; extract verified contact info |
 | Generic templates → spam / ignored | AI reads their website and writes human, specific outreach |
@@ -61,7 +61,7 @@ No mandatory CRM, sequencer, or reporting SaaS. The in-app workflow (Find Leads 
 
 ## 2. UK Market Focus
 
-Agnelix is **not UK-only**, but the product and demos are heavily tuned for **UK local B2B**:
+Galien is **not UK-only**, but the product and demos are heavily tuned for **UK local B2B**:
 
 - **Playground demo** uses Apex Dental Practice in **Leeds** (`apexdental.co.uk`, LS1 postcode, +44 phone)
 - **AI email personas** in tests/scripts target “UK business owners” with UK trades examples (plumbing in Leeds, `.co.uk` domains)
@@ -275,7 +275,7 @@ Shown in Inbox Copilot, lead detail, and Playground demos.
 3. **Rejection → Nurtured** — unsubscribe → sequences stopped → 60-day nurture  
 4. **Full Journey → Won** — proposal request → auto proposal → deal won (£1,200 + £350/mo)
 
-Split UI: **Your view (inside Agnelix)** vs **Prospect’s view (Gmail)**. Auto-play mode. Promotes **Ask Agnel** AI advisor.
+Split UI: **Your view (inside Galien)** vs **Prospect’s view (Gmail)**. Auto-play mode. Promotes **Ask Agnel** AI advisor.
 
 ### 5.9 AI Advisor (“Agnel”)
 
@@ -369,7 +369,7 @@ Import leads via PapaParse; map columns to lead fields; bulk add to pipeline/cam
 - HTML emails with optional agency logo  
 - Open tracking pixel (`/api/track/open`)  
 - Click tracking redirect (`/api/track/click`)  
-- “Sent via Agnelix” footer
+- “Sent via Galien” footer
 
 **Receiving:**
 
@@ -498,7 +498,7 @@ Sign in (Google)
 
 | Term | Meaning |
 |------|---------|
-| **Agnelix** | Product brand |
+| **Galien** | Product brand |
 | **Agnel** | In-app AI business advisor (chat bubble) |
 | **Battle card** | AI-generated reply strategy sheet |
 | **Autonomous / Autopilot** | Campaign or agent mode with auto-send |

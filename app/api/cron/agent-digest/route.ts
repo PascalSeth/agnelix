@@ -31,9 +31,9 @@ export async function GET(req: Request) {
         {
           to: digest.user.email,
           from: smtp.user,
-          fromName: digest.user.agencyName || digest.user.name || "Agnelix",
+          fromName: digest.user.agencyName || digest.user.name || "Galien",
           replyTo: digest.user.fromEmail || smtp.user,
-          subject: "Your Agnelix daily agent digest",
+          subject: "Your Galien daily agent digest",
           body:
             `Daily digest:\n` +
             `- Actions sent: ${digest.sentCount}\n` +

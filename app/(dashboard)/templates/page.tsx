@@ -311,7 +311,7 @@ export default function TemplatesPage() {
                 <Target className="size-4 text-emerald-400" />
                 <span>Targeting &amp; Lead Discovery</span>
               </h2>
-              <p className="text-[11px] text-white/30 mt-1">Define which niches and channels Agnelix targets during lead discovery.</p>
+              <p className="text-[11px] text-white/30 mt-1">Define which niches and channels Galien targets during lead discovery.</p>
             </div>
 
             {/* AI Targeting Copilot Box */}

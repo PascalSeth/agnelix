@@ -608,7 +608,7 @@ export default function InboxPage() {
         <div className="shrink-0 px-8 py-6 border-b border-white/[0.04] bg-black/10 backdrop-blur-md">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-xl font-black tracking-tight text-white/90">Agnelix Command Stream</h1>
+              <h1 className="text-xl font-black tracking-tight text-white/90">Galien Command Stream</h1>
               <p className="text-sm text-white/40 mt-1">AI has categorized your inbox. {triageItems.length} items need review.</p>
             </div>
             <button onClick={() => syncInbox()} disabled={syncing} className="flex items-center gap-2 rounded-xl px-4 py-2 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] transition-all text-xs font-bold text-white/60 active:scale-95 cursor-pointer">
@@ -798,7 +798,7 @@ export default function InboxPage() {
                 {generating && (
                   <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#0a0c13]/80 backdrop-blur-sm rounded-3xl border border-white/[0.05]">
                     <Loader2 className="size-8 text-violet-500 animate-spin mb-4" />
-                    <p className="text-sm font-bold text-white/60 tracking-wider">Agnelix is rewriting...</p>
+                    <p className="text-sm font-bold text-white/60 tracking-wider">Galien is rewriting...</p>
                   </div>
                 )}
                 

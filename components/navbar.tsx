@@ -151,7 +151,7 @@ export function Navbar() {
           <Link href="/" className="shrink-0 opacity-90 transition-opacity hover:opacity-100">
             <Image
               src="/logo-hq.png"
-              alt="Agnelix"
+              alt="Galien"
               width={120}
               height={80}
               className="rounded-lg object-contain filter brightness-110 contrast-125"
