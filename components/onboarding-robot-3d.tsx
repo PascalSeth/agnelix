@@ -17,6 +17,9 @@ interface OnboardingRobot3DProps {
   useContinuousWaving?: boolean
 }
 
+// Module-level cache to keep loaded animation clips across mounts
+const clipCache: Record<string, THREE.AnimationClip> = {}
+
 // ── ROBOT MODEL SUB-COMPONENT ──────────────────────────────────────────────
 function RobotModel({ animationState, posY = 0.6, rotY = 0, scale = 0.019, loopWaving = false, useContinuousWaving = false }: OnboardingRobot3DProps) {
   // Use the idle action FBX as the persistent rendered model.
@@ -24,26 +27,20 @@ function RobotModel({ animationState, posY = 0.6, rotY = 0, scale = 0.019, loopW
   // since all Mixamo exports share the same skeleton hierarchy.
   const model = useFBX("/actions/Breathing Idle.fbx")
 
-  // Load other action files for their animation clips only
-  const thinkingFbx = useFBX("/actions/Thinking.fbx")
-  const wavingGestureFbx = useFBX("/actions/Waving Gesture.fbx")
-  const wavingContinuousFbx = useFBX("/actions/Waving.fbx")
-
-  const wavingFbx = useContinuousWaving ? wavingContinuousFbx : wavingGestureFbx
+  const wavingPath = useContinuousWaving ? "/actions/Waving.fbx" : "/actions/Waving Gesture.fbx"
 
   const groupRef = useRef<THREE.Group>(null)
   const mixerRef = useRef<THREE.AnimationMixer | null>(null)
   const actionsRef = useRef<Record<string, THREE.AnimationAction>>({})
-  // Track latest desired state so mixer setup can play the right initial clip
+  
+  // Track latest desired state so loading callbacks can play the correct clip
   const desiredStateRef = useRef(animationState)
   useEffect(() => {
     desiredStateRef.current = animationState
-  })
+  }, [animationState])
 
   // Apply orientation fix + materials, then set up the animation mixer
   useEffect(() => {
-    // Enhance materials — clone the original so all texture maps are preserved,
-    // then only patch metalness / roughness / emissive on top.
     model.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh
@@ -60,36 +57,37 @@ function RobotModel({ animationState, posY = 0.6, rotY = 0, scale = 0.019, loopW
     const mixer = new THREE.AnimationMixer(model)
     mixerRef.current = mixer
 
-    // Clone clips from each file — all from the same Mixamo rig so bone names match
-    const clips = [
-      model.animations[0].clone(),
-      thinkingFbx.animations[0].clone(),
-      wavingFbx.animations[0].clone(),
-    ]
-    clips[0].name = "idle"
-    clips[1].name = "thinking"
-    clips[2].name = "waving"
+    // Register idle clip
+    const idleClip = model.animations[0].clone()
+    idleClip.name = "idle"
+    // Strip root-motion position tracks from clip.
+    idleClip.tracks = idleClip.tracks.filter(
+      (track) => !track.name.toLowerCase().endsWith(".position")
+    )
+    const idleAction = mixer.clipAction(idleClip)
+    actionsRef.current["idle"] = idleAction
 
-    // Strip root-motion position tracks from every clip.
-    // Mixamo bakes hip translation into the root bone's .position track.
-    // When clips switch, these different root translations cause the model
-    // to visibly jump in world space. Removing them keeps the model anchored.
-    clips.forEach((clip) => {
-      clip.tracks = clip.tracks.filter(
+    // Helper to register a clip on the active mixer
+    const registerClipFromData = (name: string, clip: THREE.AnimationClip) => {
+      const cloned = clip.clone()
+      cloned.name = name
+      cloned.tracks = cloned.tracks.filter(
         (track) => !track.name.toLowerCase().endsWith(".position")
       )
-    })
+      actionsRef.current[name] = mixer.clipAction(cloned)
+    }
 
-    // Register all clips and build action map
-    const actions: Record<string, THREE.AnimationAction> = {}
-    clips.forEach((clip) => {
-      actions[clip.name] = mixer.clipAction(clip)
-    })
-    actionsRef.current = actions
+    // Register already cached clips immediately
+    if (clipCache["thinking"]) {
+      registerClipFromData("thinking", clipCache["thinking"])
+    }
+    if (clipCache[wavingPath]) {
+      registerClipFromData("waving", clipCache[wavingPath])
+    }
 
-    // Play whichever state is desired right now
+    // Play whichever state is desired right now if it's already registered, otherwise play idle
     const desired = desiredStateRef.current
-    const start = actions[desired] ?? actions.idle
+    const start = actionsRef.current[desired] ?? actionsRef.current.idle
     if (start) {
       if (desired === "waving") {
         start.setLoop(THREE.LoopOnce, 1)
@@ -106,15 +104,107 @@ function RobotModel({ animationState, posY = 0.6, rotY = 0, scale = 0.019, loopW
       mixerRef.current = null
       actionsRef.current = {}
     }
-  }, [model, thinkingFbx, wavingFbx])
+  }, [model, wavingPath])
+
+  // Load animations in the background
+  useEffect(() => {
+    // Helper to register a loaded clip on the active mixer and potentially switch to it
+    const registerLoadedClip = (clipName: string, path: string, clip: THREE.AnimationClip) => {
+      clipCache[path] = clip
+      
+      const mixer = mixerRef.current
+      if (!mixer) return
+
+      // Register the clip if it's not already in the actions
+      if (!actionsRef.current[clipName]) {
+        const cloned = clip.clone()
+        cloned.name = clipName
+        cloned.tracks = cloned.tracks.filter(
+          (track) => !track.name.toLowerCase().endsWith(".position")
+        )
+        const action = mixer.clipAction(cloned)
+        actionsRef.current[clipName] = action
+      }
+
+      // If the current desired state is this animation, play it now
+      if (desiredStateRef.current === clipName) {
+        const action = actionsRef.current[clipName]
+        if (action) {
+          if (clipName === "waving" && !loopWaving) {
+            action.setLoop(THREE.LoopOnce, 1)
+            action.clampWhenFinished = true
+          } else {
+            action.setLoop(THREE.LoopRepeat, Infinity)
+          }
+
+          // Fade out all other running actions
+          Object.entries(actionsRef.current).forEach(([name, act]) => {
+            if (name !== clipName && act.isRunning()) {
+              act.fadeOut(0.3)
+            }
+          })
+
+          action.reset().fadeIn(0.3).play()
+        }
+      }
+    }
+
+    // Dynamic import of FBXLoader so it only runs on the client side
+    import("three/examples/jsm/loaders/FBXLoader.js").then(({ FBXLoader }) => {
+      const loader = new FBXLoader()
+
+      // Load thinking animation
+      const thinkingPath = "/actions/Thinking.fbx"
+      if (clipCache[thinkingPath]) {
+        registerLoadedClip("thinking", thinkingPath, clipCache[thinkingPath])
+      } else {
+        loader.load(
+          thinkingPath,
+          (fbx) => {
+            if (fbx.animations && fbx.animations.length > 0) {
+              registerLoadedClip("thinking", thinkingPath, fbx.animations[0])
+            }
+          },
+          undefined,
+          (err) => console.error("Error loading Thinking.fbx:", err)
+        )
+      }
+
+      // Load waving animation
+      if (clipCache[wavingPath]) {
+        registerLoadedClip("waving", wavingPath, clipCache[wavingPath])
+      } else {
+        loader.load(
+          wavingPath,
+          (fbx) => {
+            if (fbx.animations && fbx.animations.length > 0) {
+              registerLoadedClip("waving", wavingPath, fbx.animations[0])
+            }
+          },
+          undefined,
+          (err) => console.error(`Error loading ${wavingPath}:`, err)
+        )
+      }
+    })
+  }, [wavingPath, loopWaving])
 
   // Cross-fade to a new animation whenever animationState changes
   useEffect(() => {
     const actions = actionsRef.current
-    if (!Object.keys(actions).length) return  // mixer not ready yet
+    if (!Object.keys(actions).length) return  // mixer/idle action not ready yet
 
     const next = actions[animationState]
-    if (!next) return
+    if (!next) {
+      // If the target action is not loaded yet, fallback to playing idle
+      const idleAction = actions["idle"]
+      if (idleAction && !idleAction.isRunning()) {
+        Object.entries(actions).forEach(([name, action]) => {
+          if (name !== "idle" && action.isRunning()) action.fadeOut(0.3)
+        })
+        idleAction.reset().fadeIn(0.3).play()
+      }
+      return
+    }
 
     if (animationState === "waving" && !loopWaving) {
       next.setLoop(THREE.LoopOnce, 1)

@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import {
@@ -242,7 +242,34 @@ export default function OnboardingPage() {
   }
 
   function selectTone(t: string) { setTone(t); setTimeout(goNext, 250) }
-  function submitCalendarLink(skip = false) { setCalendarLink(skip ? "" : draft.trim()); setDraft(""); goNext() }
+  function submitCalendarLink(skip = false) {
+    if (skip) {
+      setCalendarLink("")
+      setDraft("")
+      goNext()
+      return
+    }
+    const val = draft.trim()
+    if (!val) {
+      setCalendarLink("")
+      setDraft("")
+      goNext()
+      return
+    }
+    try {
+      const hasProtocol = val.startsWith("http://") || val.startsWith("https://")
+      const urlStr = hasProtocol ? val : `https://${val}`
+      const parsed = new URL(urlStr)
+      if (!parsed.hostname.includes(".")) {
+        throw new Error("Invalid domain")
+      }
+      setCalendarLink(urlStr)
+      setDraft("")
+      goNext()
+    } catch {
+      toast.error("Please enter a valid calendar link (e.g. https://calendly.com/your-name). The link must include a valid domain name like '.com' or '.co'.")
+    }
+  }
   function continueFromLogo() { goNext() }
 
   const currentStepKey = STEP_ORDER[step]

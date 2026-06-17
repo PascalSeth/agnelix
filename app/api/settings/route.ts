@@ -33,6 +33,27 @@ export async function PATCH(req: NextRequest) {
   if (!session?.user?.id) return new NextResponse("Unauthorized", { status: 401 })
 
   const body = await req.json()
+
+  // Validate calendar link if provided
+  if ("calendarLink" in body) {
+    const val = body.calendarLink ? String(body.calendarLink).trim() : ""
+    if (val) {
+      try {
+        const hasProtocol = val.startsWith("http://") || val.startsWith("https://")
+        const urlStr = hasProtocol ? val : `https://${val}`
+        const parsed = new URL(urlStr)
+        if (!parsed.hostname.includes(".")) {
+          throw new Error("Invalid domain")
+        }
+        body.calendarLink = urlStr
+      } catch {
+        return new NextResponse("Please enter a valid calendar link (e.g. https://calendly.com/your-name). The link must include a valid domain name like '.com' or '.co'.", { status: 400 })
+      }
+    } else {
+      body.calendarLink = null
+    }
+  }
+
   const allowed = ["agencyName", "fromEmail", "smtpPass", "smtpHost", "smtpPort", "companyDesc", "title", "tone", "agencyLogo", "onboardingDone", "calendarLink", "playbookType"]
   const data: Record<string, unknown> = {}
   for (const key of allowed) {

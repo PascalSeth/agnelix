@@ -41,5 +41,22 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(decodeURIComponent(url))
+  let redirectUrl = "/"
+  try {
+    const decodedUrl = decodeURIComponent(url)
+    if (decodedUrl.startsWith("/")) {
+      redirectUrl = new URL(decodedUrl, req.nextUrl.origin).toString()
+    } else {
+      const hasProtocol = decodedUrl.startsWith("http://") || decodedUrl.startsWith("https://")
+      const fullUrl = hasProtocol ? decodedUrl : `https://${decodedUrl}`
+      const parsed = new URL(fullUrl)
+      if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+        redirectUrl = parsed.toString()
+      }
+    }
+  } catch (e) {
+    console.error("Failed to parse redirect URL:", e)
+  }
+
+  return NextResponse.redirect(redirectUrl)
 }

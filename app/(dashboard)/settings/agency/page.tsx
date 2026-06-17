@@ -83,10 +83,27 @@ export default function AgencySettingsPage() {
   }
 
   async function handleSave() {
+    let formattedCalendarLink = profile.calendarLink ? profile.calendarLink.trim() : ""
+    if (formattedCalendarLink) {
+      try {
+        const hasProtocol = formattedCalendarLink.startsWith("http://") || formattedCalendarLink.startsWith("https://")
+        const urlStr = hasProtocol ? formattedCalendarLink : `https://${formattedCalendarLink}`
+        const parsed = new URL(urlStr)
+        if (!parsed.hostname.includes(".")) {
+          throw new Error("Invalid domain")
+        }
+        formattedCalendarLink = urlStr
+      } catch {
+        toast.error("Please enter a valid calendar link (e.g. https://calendly.com/your-name). The link must include a valid domain name like '.com' or '.co'.")
+        return
+      }
+    }
+
     setSaving(true)
     try {
       const payload = {
         ...profile,
+        calendarLink: formattedCalendarLink || null,
         smtpHost: "smtp.gmail.com",
         smtpPort: 465,
       }
@@ -96,6 +113,8 @@ export default function AgencySettingsPage() {
         body: JSON.stringify(payload),
       })
       if (!res.ok) throw new Error(await res.text())
+      
+      setProfile(p => ({ ...p, calendarLink: payload.calendarLink }))
       toast.success("Settings saved")
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Save failed")
