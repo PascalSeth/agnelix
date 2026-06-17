@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef } from "react"
 import { Canvas, useFrame } from "@react-three/fiber"
-import { useFBX, Environment, ContactShadows } from "@react-three/drei"
+import { useFBX, Stage, ContactShadows } from "@react-three/drei"
 import * as THREE from "three"
 
 // Interface for props
@@ -143,9 +143,7 @@ function RobotModel({ animationState, posY = 0.6, rotY = 0, scale = 0.019, loopW
 
   return (
     <group ref={groupRef}>
-      <group scale={scale} position={[0, -90 * scale, 0]}>
-        <primitive object={model} />
-      </group>
+      <primitive object={model} scale={scale} />
     </group>
   )
 }
@@ -190,64 +188,57 @@ function enhanceMaterial(
 
 
 // ── 3D WIREFRAME SKELETON LOADER ──────────────────────────────────────────
-function WireframeRobotLoader({ scale = 0.019, posY = 0.6, rotY = 0 }: { scale?: number; posY?: number; rotY?: number }) {
+function WireframeRobotLoader({ scale = 2.1, posY = 0.6 }: { scale?: number; posY?: number }) {
   const groupRef = useRef<THREE.Group>(null)
   
   useFrame((state) => {
     if (groupRef.current) {
-      const t = state.clock.getElapsedTime()
-      // Match the exact y positioning, sway rotation, and floating speed of the actual model
-      groupRef.current.position.y = posY + Math.sin(t * 1.5) * 0.06
-      groupRef.current.rotation.y = rotY + Math.sin(t * 0.4) * 0.15 + Math.sin(t * 1.8) * 0.04
-      
-      const pulse = 1 + Math.sin(t * 4) * 0.03
-      // Mixamo model is ~180cm, our skeleton loader base height is ~1.5m.
-      // Scaling it by scale * 120 matches the Mixamo model's physical size perfectly.
-      const s = scale * 120 * pulse
-      groupRef.current.scale.set(s, s, s)
+      groupRef.current.rotation.y = state.clock.getElapsedTime() * 1.8
+      const pulse = 1 + Math.sin(state.clock.getElapsedTime() * 4) * 0.04
+      const currentScale = scale * pulse
+      groupRef.current.scale.set(currentScale, currentScale, currentScale)
     }
   })
 
   return (
-    <group ref={groupRef}>
-      <group position={[0, -0.73, 0]}>
-        {/* ── HEAD ASSEMBLY ── */}
+    <group ref={groupRef} position={[0, posY - 0.7, 0]}>
+      {/* ── HEAD ASSEMBLY ── */}
       {/* Head Sphere */}
-      <mesh position={[0, 1.24, 0]}>
+      <mesh position={[0, 0.74, 0]}>
         <sphereGeometry args={[0.18, 12, 12]} />
         <meshBasicMaterial color="#7c83fd" wireframe />
       </mesh>
       
       {/* Visor / Eyes */}
-      <mesh position={[0, 1.26, 0.14]}>
+      <mesh position={[0, 0.76, 0.14]}>
         <boxGeometry args={[0.22, 0.05, 0.05]} />
         <meshBasicMaterial color="#ffffff" wireframe />
       </mesh>
 
       {/* Left Antenna */}
-      <mesh position={[-0.15, 1.4, 0]} rotation={[0, 0, 0.2]}>
+      <mesh position={[-0.15, 0.9, 0]} rotation={[0, 0, 0.2]}>
         <cylinderGeometry args={[0.015, 0.015, 0.1, 6]} />
         <meshBasicMaterial color="#7c83fd" wireframe />
       </mesh>
       {/* Left Antenna Tip */}
-      <mesh position={[-0.17, 1.46, 0]}>
+      <mesh position={[-0.17, 0.96, 0]}>
         <sphereGeometry args={[0.02, 6, 6]} />
         <meshBasicMaterial color="#ffffff" wireframe />
       </mesh>
 
       {/* Right Antenna */}
-      <mesh position={[0.15, 1.4, 0]} rotation={[0, 0, -0.2]}>
+      <mesh position={[0.15, 0.9, 0]} rotation={[0, 0, -0.2]}>
         <cylinderGeometry args={[0.015, 0.015, 0.1, 6]} />
         <meshBasicMaterial color="#7c83fd" wireframe />
       </mesh>
       {/* Right Antenna Tip */}
-      <mesh position={[0.17, 1.46, 0]}>
+      <mesh position={[0.17, 0.96, 0]}>
         <sphereGeometry args={[0.02, 6, 6]} />
         <meshBasicMaterial color="#ffffff" wireframe />
       </mesh>
 
       {/* Neck */}
-      <mesh position={[0, 1.08, 0]}>
+      <mesh position={[0, 0.58, 0]}>
         <cylinderGeometry args={[0.05, 0.05, 0.08, 8]} />
         <meshBasicMaterial color="#7c83fd" wireframe />
       </mesh>
@@ -255,19 +246,19 @@ function WireframeRobotLoader({ scale = 0.019, posY = 0.6, rotY = 0 }: { scale?:
 
       {/* ── TORSO ASSEMBLY ── */}
       {/* Upper Chest */}
-      <mesh position={[0, 0.92, 0]}>
+      <mesh position={[0, 0.42, 0]}>
         <boxGeometry args={[0.34, 0.22, 0.2]} />
         <meshBasicMaterial color="#7c83fd" wireframe />
       </mesh>
 
       {/* Waist Joint */}
-      <mesh position={[0, 0.78, 0]}>
+      <mesh position={[0, 0.28, 0]}>
         <cylinderGeometry args={[0.06, 0.06, 0.08, 8]} />
         <meshBasicMaterial color="#7c83fd" wireframe />
       </mesh>
 
       {/* Pelvis */}
-      <mesh position={[0, 0.65, 0]}>
+      <mesh position={[0, 0.15, 0]}>
         <boxGeometry args={[0.28, 0.12, 0.18]} />
         <meshBasicMaterial color="#7c83fd" wireframe />
       </mesh>
@@ -275,27 +266,27 @@ function WireframeRobotLoader({ scale = 0.019, posY = 0.6, rotY = 0 }: { scale?:
 
       {/* ── LEFT ARM (DOWN) ── */}
       {/* Left Shoulder */}
-      <mesh position={[-0.21, 0.98, 0]}>
+      <mesh position={[-0.21, 0.48, 0]}>
         <sphereGeometry args={[0.06, 6, 6]} />
         <meshBasicMaterial color="#7c83fd" wireframe />
       </mesh>
       {/* Left Upper Arm */}
-      <mesh position={[-0.26, 0.86, 0]}>
+      <mesh position={[-0.26, 0.36, 0]}>
         <cylinderGeometry args={[0.03, 0.025, 0.16, 6]} />
         <meshBasicMaterial color="#7c83fd" wireframe />
       </mesh>
       {/* Left Elbow */}
-      <mesh position={[-0.29, 0.76, 0]}>
+      <mesh position={[-0.29, 0.26, 0]}>
         <sphereGeometry args={[0.04, 6, 6]} />
         <meshBasicMaterial color="#7c83fd" wireframe />
       </mesh>
       {/* Left Forearm */}
-      <mesh position={[-0.32, 0.66, 0]}>
+      <mesh position={[-0.32, 0.16, 0]}>
         <cylinderGeometry args={[0.025, 0.02, 0.16, 6]} />
         <meshBasicMaterial color="#7c83fd" wireframe />
       </mesh>
       {/* Left Hand */}
-      <mesh position={[-0.35, 0.56, 0]}>
+      <mesh position={[-0.35, 0.06, 0]}>
         <sphereGeometry args={[0.035, 6, 6]} />
         <meshBasicMaterial color="#7c83fd" wireframe />
       </mesh>
@@ -303,27 +294,27 @@ function WireframeRobotLoader({ scale = 0.019, posY = 0.6, rotY = 0 }: { scale?:
 
       {/* ── RIGHT ARM (RAISED WAVING) ── */}
       {/* Right Shoulder */}
-      <mesh position={[0.21, 0.98, 0]}>
+      <mesh position={[0.21, 0.48, 0]}>
         <sphereGeometry args={[0.06, 6, 6]} />
         <meshBasicMaterial color="#7c83fd" wireframe />
       </mesh>
       {/* Right Upper Arm */}
-      <mesh position={[0.27, 1.08, 0]} rotation={[0, 0, -0.6]}>
+      <mesh position={[0.27, 0.58, 0]} rotation={[0, 0, -0.6]}>
         <cylinderGeometry args={[0.03, 0.025, 0.16, 6]} />
         <meshBasicMaterial color="#7c83fd" wireframe />
       </mesh>
       {/* Right Elbow */}
-      <mesh position={[0.33, 1.18, 0]}>
+      <mesh position={[0.33, 0.68, 0]}>
         <sphereGeometry args={[0.04, 6, 6]} />
         <meshBasicMaterial color="#7c83fd" wireframe />
       </mesh>
       {/* Right Forearm */}
-      <mesh position={[0.37, 1.3, 0]} rotation={[0, 0, -0.3]}>
+      <mesh position={[0.37, 0.8, 0]} rotation={[0, 0, -0.3]}>
         <cylinderGeometry args={[0.025, 0.02, 0.16, 6]} />
         <meshBasicMaterial color="#7c83fd" wireframe />
       </mesh>
       {/* Right Hand */}
-      <mesh position={[0.4, 1.4, 0]}>
+      <mesh position={[0.4, 0.9, 0]}>
         <sphereGeometry args={[0.035, 6, 6]} />
         <meshBasicMaterial color="#ffffff" wireframe />
       </mesh>
@@ -331,57 +322,56 @@ function WireframeRobotLoader({ scale = 0.019, posY = 0.6, rotY = 0 }: { scale?:
 
       {/* ── LEGS ASSEMBLY ── */}
       {/* Left Hip Joint */}
-      <mesh position={[-0.1, 0.56, 0]}>
+      <mesh position={[-0.1, 0.06, 0]}>
         <sphereGeometry args={[0.05, 6, 6]} />
         <meshBasicMaterial color="#7c83fd" wireframe />
       </mesh>
       {/* Left Thigh */}
-      <mesh position={[-0.1, 0.42, 0]}>
+      <mesh position={[-0.1, -0.08, 0]}>
         <cylinderGeometry args={[0.035, 0.03, 0.2, 6]} />
         <meshBasicMaterial color="#7c83fd" wireframe />
       </mesh>
       {/* Left Knee */}
-      <mesh position={[-0.1, 0.3, 0]}>
+      <mesh position={[-0.1, -0.2, 0]}>
         <sphereGeometry args={[0.04, 6, 6]} />
         <meshBasicMaterial color="#7c83fd" wireframe />
       </mesh>
       {/* Left Shin */}
-      <mesh position={[-0.1, 0.16, 0]}>
+      <mesh position={[-0.1, -0.34, 0]}>
         <cylinderGeometry args={[0.03, 0.025, 0.22, 6]} />
         <meshBasicMaterial color="#7c83fd" wireframe />
       </mesh>
       {/* Left Foot */}
-      <mesh position={[-0.1, 0.03, 0.03]}>
+      <mesh position={[-0.1, -0.47, 0.03]}>
         <boxGeometry args={[0.07, 0.04, 0.14]} />
         <meshBasicMaterial color="#7c83fd" wireframe />
       </mesh>
 
       {/* Right Hip Joint */}
-      <mesh position={[0.1, 0.56, 0]}>
+      <mesh position={[0.1, 0.06, 0]}>
         <sphereGeometry args={[0.05, 6, 6]} />
         <meshBasicMaterial color="#7c83fd" wireframe />
       </mesh>
       {/* Right Thigh */}
-      <mesh position={[0.1, 0.42, 0]}>
+      <mesh position={[0.1, -0.08, 0]}>
         <cylinderGeometry args={[0.035, 0.03, 0.2, 6]} />
         <meshBasicMaterial color="#7c83fd" wireframe />
       </mesh>
       {/* Right Knee */}
-      <mesh position={[0.1, 0.3, 0]}>
+      <mesh position={[0.1, -0.2, 0]}>
         <sphereGeometry args={[0.04, 6, 6]} />
         <meshBasicMaterial color="#7c83fd" wireframe />
       </mesh>
       {/* Right Shin */}
-      <mesh position={[0.1, 0.16, 0]}>
+      <mesh position={[0.1, -0.34, 0]}>
         <cylinderGeometry args={[0.03, 0.025, 0.22, 6]} />
         <meshBasicMaterial color="#7c83fd" wireframe />
       </mesh>
       {/* Right Foot */}
-      <mesh position={[0.1, 0.03, 0.03]}>
+      <mesh position={[0.1, -0.47, 0.03]}>
         <boxGeometry args={[0.07, 0.04, 0.14]} />
         <meshBasicMaterial color="#7c83fd" wireframe />
       </mesh>
-      </group>
     </group>
   )
 }
@@ -477,18 +467,19 @@ export default function OnboardingRobot3D({
         {/* Floating particle stars */}
         {!hideBackground && <ParticleField />}
 
-        <Suspense fallback={<WireframeRobotLoader scale={scale} posY={posY} rotY={rotY} />}>
-          <Environment preset="city" />
-          <RobotModel 
-            animationState={animationState} 
-            posY={posY} 
-            rotY={rotY} 
-            scale={scale} 
-            loopWaving={loopWaving} 
-            useContinuousWaving={useContinuousWaving}
-          />
+        <Suspense fallback={<WireframeRobotLoader posY={posY} />}>
+          <Stage environment="city" intensity={0.45} adjustCamera={false}>
+            <RobotModel 
+              animationState={animationState} 
+              posY={posY} 
+              rotY={rotY} 
+              scale={scale} 
+              loopWaving={loopWaving} 
+              useContinuousWaving={useContinuousWaving}
+            />
+          </Stage>
         </Suspense>
-        <ContactShadows position={[0, posY - 90 * scale - 0.1, 0]} opacity={0.45} scale={12} blur={2.5} far={2} />
+        <ContactShadows position={[0, -1.5, 0]} opacity={0.45} scale={12} blur={2.5} far={0} />
       </Canvas>
     </div>
   )
