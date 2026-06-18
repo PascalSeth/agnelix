@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { generatePlaybookTemplates } from "@/lib/ai"
-import { Prisma } from "@prisma/client"
 
 export async function GET() {
   const session = await auth()
@@ -96,9 +95,9 @@ export async function PATCH(req: NextRequest) {
         update: {
           targetVerticals: generated.targetVerticals || [],
           platformOptions: generated.platformOptions || [],
-          sequenceTemplates: generated.sequenceTemplates as unknown as Prisma.InputJsonValue,
-          proposalTemplates: generated.proposalTemplates as unknown as Prisma.InputJsonValue,
-          objectionHandlers: generated.objectionHandlers as unknown as Prisma.InputJsonValue,
+          sequenceTemplates: generated.sequenceTemplates as any,
+          proposalTemplates: generated.proposalTemplates as any,
+          objectionHandlers: generated.objectionHandlers as any,
         },
         create: {
           type: playbookType,
@@ -112,9 +111,9 @@ export async function PATCH(req: NextRequest) {
           discoveryMethod: playbookType === "linkedin" || playbookType === "sales" || playbookType === "finance" ? "linkedin" : "maps",
           targetVerticals: generated.targetVerticals || [],
           platformOptions: generated.platformOptions || [],
-          sequenceTemplates: generated.sequenceTemplates as unknown as Prisma.InputJsonValue,
-          proposalTemplates: generated.proposalTemplates as unknown as Prisma.InputJsonValue,
-          objectionHandlers: generated.objectionHandlers as unknown as Prisma.InputJsonValue,
+          sequenceTemplates: generated.sequenceTemplates as any,
+          proposalTemplates: generated.proposalTemplates as any,
+          objectionHandlers: generated.objectionHandlers as any,
           reportMetrics: [],
           reportTemplates: [],
           portalTemplates: [],
