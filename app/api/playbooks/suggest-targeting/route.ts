@@ -37,10 +37,11 @@ export async function POST() {
     })
 
     return NextResponse.json(suggested)
-  } catch (err: any) {
+  } catch (err) {
     console.error("Failed to suggest targeting via AI:", err)
+    const msg = err instanceof Error ? err.message : "An error occurred."
     return NextResponse.json(
-      { error: err.message || "An error occurred." },
+      { error: msg },
       { status: 500 }
     )
   }

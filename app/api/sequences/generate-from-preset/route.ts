@@ -53,10 +53,11 @@ export async function POST(req: Request) {
     })
 
     return NextResponse.json(steps)
-  } catch (err: any) {
+  } catch (err) {
     console.error("Failed to generate sequence from preset via AI:", err)
+    const msg = err instanceof Error ? err.message : "An error occurred while generating the sequence."
     return NextResponse.json(
-      { error: err.message || "An error occurred while generating the sequence." },
+      { error: msg },
       { status: 500 }
     )
   }

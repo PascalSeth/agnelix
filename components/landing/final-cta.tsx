@@ -1,12 +1,15 @@
 "use client"
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { Mail, Bot, MapPin, Workflow, ArrowRight, CheckCircle2, Zap } from "lucide-react"
+import { Mail, Bot, MapPin, Workflow, ArrowRight, CheckCircle2, Zap, Calendar, Clock, Check } from "lucide-react"
 import { CtaLink } from "@/components/landing/cta-link"
 import dynamic from "next/dynamic"
 
-const OnboardingRobot3D = dynamic(
-  () => import("@/components/onboarding-robot-3d"),
+const CtaRobot3D = dynamic(
+  () => import("@/components/hero-robot-3d").then((mod) => {
+    const { RobotScene } = mod
+    return { default: () => <RobotScene modelPath="/animations/Looking Around.fbx.glb" height="100%" rotate={false} scale={0.0363} positionY={-3.63} /> }
+  }),
   { ssr: false }
 )
 
@@ -98,19 +101,16 @@ export function FinalCTA() {
               </div>
             </div>
 
-            {/* Right Column (3D Robot) */}
-            <div className="lg:col-span-5 w-full h-[350px] lg:h-[480px] relative flex items-center justify-center">
-              {/* 3D Model */}
-              <div className="absolute inset-0">
-                <OnboardingRobot3D 
-                  animationState="looking" 
-                  hideBackground={true} 
-                  loopWaving={true}
-                  useContinuousWaving={true}
-                  scale={0.032} // Large and impressive!
-                  posY={-0.6} // Center the body
-                  cameraZ={4.6} // Tight view
-                />
+            {/* Right Column: 3D Robot — Looking Around */}
+            <div className="lg:col-span-5 w-full flex items-end justify-center">
+              <div className="relative w-full max-w-[550px] h-[480px] lg:h-[600px]">
+                {/* Ambient glow behind the robot */}
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[10%] w-[300px] h-[300px] bg-[#c5a880]/[0.06] rounded-full blur-[100px] pointer-events-none z-0" />
+
+                {/* 3D Robot Canvas (transparent, no bg, no cards) */}
+                <div className="relative w-full h-full z-10">
+                  <CtaRobot3D />
+                </div>
               </div>
             </div>
 

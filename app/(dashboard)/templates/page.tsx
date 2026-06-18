@@ -1,9 +1,10 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client"
 
 import { useState, useEffect } from "react"
 import { usePlaybook } from "@/lib/playbook-context"
 import { 
-  FileText, CheckCircle2, Sparkles, Loader2, Target, Briefcase, 
+  FileText, CheckCircle2, Sparkles, Loader2, Target, 
   MessageSquare, Plus, Trash2, X, Save 
 } from "lucide-react"
 import { toast } from "sonner"
@@ -80,8 +81,9 @@ export default function TemplatesPage() {
       if (!res.ok) throw new Error("Save failed")
       toast.success("Pipeline configuration saved successfully!")
       router.refresh()
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save settings")
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to save settings"
+      toast.error(msg)
     } finally {
       setSaving(false)
     }
@@ -113,8 +115,9 @@ export default function TemplatesPage() {
       setProposals(data.proposalTemplates || [])
       
       router.refresh()
-    } catch (err: any) {
-      toast.error(err.message || "Template generation failed.", { id: toastId })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Template generation failed."
+      toast.error(msg, { id: toastId })
     } finally {
       setGenerating(false)
     }
@@ -157,8 +160,9 @@ export default function TemplatesPage() {
       }
       
       toast.success("AI suggested targeting options added!", { id: toastId })
-    } catch (err: any) {
-      toast.error(err.message || "Failed to suggest targeting options.", { id: toastId })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to suggest targeting options."
+      toast.error(msg, { id: toastId })
     } finally {
       setSuggestingTargeting(false)
     }

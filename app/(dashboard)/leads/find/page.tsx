@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
   ArrowLeft, Search, MapPin, Globe, Phone,
-  Check, Loader2, Download, Megaphone, Plus, GitBranch,
+  Check, Loader2, Download,
   Filter, Star, Globe2, MessageSquare,
   Shield, Gauge, ChevronDown, Sparkles, Layers, Target,
 } from "lucide-react"

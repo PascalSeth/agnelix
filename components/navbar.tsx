@@ -6,6 +6,7 @@ import {
   Mail, BarChart2, Users, TrendingUp, Target,
   MessageSquare, AtSign, Zap, Phone, Send,
   UserPlus, Inbox, Megaphone, Calendar,
+  LucideProps,
 } from "lucide-react"
 import { NavbarCTA } from "@/components/navbar-cta"
 import Link from "next/link"
@@ -36,7 +37,7 @@ const SPECTRUM = [
 ]
 
 const BG_ICONS: {
-  Icon: any
+  Icon: React.ComponentType<LucideProps>
   left: string
   top: string
   size: number

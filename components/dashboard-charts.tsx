@@ -67,7 +67,7 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                     }}
                   >
                     <p className="font-bold text-white/40 mb-1">{payload[0].payload.date}</p>
-                    {payload.map((p: any) => (
+                    {payload.map((p) => (
                       <div key={p.name} className="flex items-center justify-between gap-6">
                         <div className="flex items-center gap-1.5">
                           <span className="size-1.5 rounded-full" style={{ backgroundColor: p.stroke || p.color }} />

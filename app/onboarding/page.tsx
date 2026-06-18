@@ -12,12 +12,7 @@ import { toast } from "sonner"
 import { initials } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ComboSelect } from "@/components/ui/combo-select"
-import dynamic from "next/dynamic"
 
-const OnboardingRobot3D = dynamic(
-  () => import("@/components/onboarding-robot-3d"),
-  { ssr: false }
-)
 
 const TONES = ["Professional", "Friendly", "Direct", "Consultative"]
 const TITLES = [
@@ -117,27 +112,7 @@ export default function OnboardingPage() {
   const [descUrl, setDescUrl]             = useState("")
   const [descGenerating, setDescGenerating] = useState(false)
 
-  const [animationState, setAnimationState] = useState<"idle" | "thinking" | "waving">("idle")
-  const [isDesktop, setIsDesktop] = useState(false)
-  useEffect(() => {
-    setIsDesktop(window.innerWidth >= 768)
-    const handleResize = () => setIsDesktop(window.innerWidth >= 768)
-    window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
-  }, [])
 
-  // When 'done' is true, switch to waving permanently.
-  useEffect(() => {
-    if (done) setAnimationState("waving")
-  }, [done])
-
-  // When user is actively typing in text inputs, switch to thinking temporarily.
-  useEffect(() => {
-    if (done) return
-    setAnimationState("thinking")
-    const t = setTimeout(() => setAnimationState("idle"), 1500)
-    return () => clearTimeout(t)
-  }, [draft, descUrl, done])
 
   useEffect(() => {
     setTyping(true)
@@ -400,14 +375,7 @@ export default function OnboardingPage() {
         WebkitMaskImage: "radial-gradient(ellipse 80% 80% at 50% 40%, black 30%, transparent 100%)",
       }} />
 
-      <div className="absolute inset-0 z-10">
-        <OnboardingRobot3D
-          animationState={currentStepKey === "review" && animationState === "idle" ? "dancing" : animationState}
-          posX={(currentStepKey === "review" || done) && isDesktop ? 1.2 : 0}
-          posY={(currentStepKey === "review" || done) && isDesktop ? -0.05 : 0.6}
-          scale={(currentStepKey === "review" || done) && isDesktop ? 0.035 : 0.019}
-        />
-      </div>
+
 
       {/* Bottom gradient vignette — fades robot into the card area */}
       <div
@@ -454,10 +422,9 @@ export default function OnboardingPage() {
         </div>
       )}
 
-      {/* ── BOTTOM FLOATING CARD ── */}
+      {/* ── CENTERED FLOATING CARD ── */}
       <div
-        data-split={(currentStepKey === "review" || done) && isDesktop}
-        className="absolute z-20 md:transition-all md:duration-[1000ms] md:ease-in-out bottom-0 inset-x-0 flex justify-center px-4 pb-8 sm:pb-10 md:bottom-auto md:top-[78%] md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:inset-x-auto md:w-auto md:data-[split=true]:top-1/2 md:data-[split=true]:left-[32%] md:data-[split=true]:max-w-[430px] md:data-[split=true]:w-full"
+        className="absolute z-20 bottom-8 inset-x-4 flex justify-center md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:inset-x-auto md:max-w-lg md:w-full"
       >
         {done ? (
           /* ── Done screen ── */
@@ -766,7 +733,7 @@ export default function OnboardingPage() {
                         { label: "Tone",           value: tone,                          idx: 4 },
                         { label: "Calendar link",  value: calendarLink || "Not set",     idx: 5 },
                         { label: "Logo",           value: logoUrl ? "Uploaded" : "Not set", idx: 6, colSpan: 2 },
-                      ].map((row: any) => (
+                      ].map((row) => (
                         <button
                           key={row.label}
                           type="button"

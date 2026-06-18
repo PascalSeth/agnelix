@@ -89,6 +89,7 @@ export function DashboardFunnelChart({
             dataKey="value"
             radius={[0, 6, 6, 0]}
             barSize={14}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             label={(props: any) => {
               const { x, y, width, value, index } = props
               if (index === undefined || x === undefined || y === undefined || width === undefined) return null

@@ -291,7 +291,7 @@ export default function AgencySettingsPage() {
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id as "profile" | "smtp" | "dns")}
                 className={`flex-1 md:flex-initial flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all cursor-pointer whitespace-nowrap md:whitespace-normal ${
                   isActive 
                     ? "text-white bg-white/[0.04] border border-white/[0.07] shadow-[0_4px_12px_rgba(0,0,0,0.3)] border-l-2 md:border-l-indigo-400 pl-3 md:pl-3.5" 

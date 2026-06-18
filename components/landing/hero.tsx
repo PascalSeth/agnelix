@@ -1,3 +1,5 @@
+"use client"
+
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { 
   Sparkles, 
@@ -14,7 +16,16 @@ import {
 } from "lucide-react"
 import { CtaLink } from "@/components/landing/cta-link"
 import Link from "next/link"
-import OnboardingRobot3D from "@/components/onboarding-robot-3d"
+import dynamic from "next/dynamic"
+
+const HeroRobot3D = dynamic(
+  () => import("@/components/hero-robot-3d").then((mod) => {
+    const { RobotScene } = mod
+    return { default: () => <RobotScene modelPath="/animations/Waving.fbx.glb" height="100%" scale={0.0363} positionY={-3.63} /> }
+  }),
+  { ssr: false }
+)
+
 
 export function Hero() {
   return (
@@ -85,80 +96,70 @@ export function Hero() {
             </div>
           </div>
 
-          {/* Right Side: Unified AI Command Panel (6 cols) */}
-          <div className="anim-scale-in relative lg:col-span-6 flex items-center justify-center w-full" style={{ animationDelay: "0.5s" }}>
+          {/* Right Side: 3D Robot + Floating HUD Cards (6 cols) */}
+          <div className="anim-scale-in relative lg:col-span-6 flex items-end justify-center w-full" style={{ animationDelay: "0.5s" }}>
             
-            {/* The Unified Card Container */}
-            <div className="relative w-full max-w-[500px] rounded-3xl bg-[#14161f]/45 border border-white/[0.08] p-5 shadow-2xl overflow-hidden backdrop-blur-xl">
+            {/* Full-bleed robot canvas — NO card background */}
+            <div className="relative w-full max-w-[550px] h-[480px] lg:h-[600px] mt-8 lg:mt-0">
               
-              {/* Subtle pulsing background lighting to anchor the card content */}
-              <div className="absolute -right-10 -bottom-10 w-[240px] h-[240px] bg-[#c5a880]/15 rounded-full blur-[80px] pointer-events-none z-0 anim-pulse-slow" />
-              <div className="absolute -left-10 -top-10 w-[200px] h-[200px] bg-[#7c83fd]/10 rounded-full blur-[70px] pointer-events-none z-0 anim-pulse-slow" style={{ animationDelay: "2s" }} />
+              {/* Ambient glow behind the robot — anchored to bottom */}
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[10%] w-[360px] h-[360px] bg-[#c5a880]/[0.06] rounded-full blur-[100px] pointer-events-none z-0" />
 
-              <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-5 items-center">
-                
-                {/* Left side: HUD Widgets */}
-                <div className="space-y-3.5">
-                  {/* Widget 1: Concierge Execution Log */}
-                  <div className="rounded-2xl border border-white/[0.06] bg-white/[0.01] p-3.5">
-                    <div className="flex items-center gap-2 border-b border-white/[0.08] pb-1.5 mb-2.5">
-                      <div className="h-5.5 w-5.5 rounded-lg bg-white/5 flex items-center justify-center text-white border border-white/10">
-                        <Bot className="h-3 w-3 text-[#cbd5e1]" />
-                      </div>
-                      <div className="text-[10px] font-bold text-white tracking-tight">Concierge Execution</div>
-                      <span className="h-1.5 w-1.5 rounded-full bg-[#728972] animate-pulse ml-auto" />
+              {/* 3D Robot Canvas (transparent, no bg) */}
+              <div className="relative w-full h-full z-10 pointer-events-auto">
+                <HeroRobot3D />
+              </div>
+
+              {/* ─── Floating HUD Cards ─── */}
+
+              {/* Card 1: Concierge Execution Log — top-left */}
+              <div className="absolute top-0 sm:top-2 left-0 sm:-left-4 z-0 w-[180px] sm:w-[210px] anim-fade-up scale-90 sm:scale-100 origin-top-left" style={{ animationDelay: "0.7s" }}>
+                <div className="rounded-2xl border border-white/[0.08] bg-[#14161f]/80 backdrop-blur-xl p-3 sm:p-3.5 shadow-2xl">
+                  <div className="flex items-center gap-2 border-b border-white/[0.08] pb-1.5 mb-2.5">
+                    <div className="h-5.5 w-5.5 rounded-lg bg-white/5 flex items-center justify-center text-white border border-white/10">
+                      <Bot className="h-3 w-3 text-[#cbd5e1]" />
                     </div>
+                    <div className="text-[10px] font-bold text-white tracking-tight">Concierge Execution</div>
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#728972] animate-pulse ml-auto" />
+                  </div>
 
-                    <div className="space-y-2">
-                      <div className="rounded-lg bg-white/[0.02] border border-white/[0.05] p-2 text-[9.5px] font-medium leading-relaxed text-slate-300">
-                        &quot;Find <span className="text-[#c5a880] font-bold">boutique hotels in Austin</span>...&quot;
+                  <div className="space-y-2">
+                    <div className="rounded-lg bg-white/[0.02] border border-white/[0.05] p-2 text-[9.5px] font-medium leading-relaxed text-slate-300">
+                      &quot;Find <span className="text-[#c5a880] font-bold">boutique hotels in Austin</span>...&quot;
+                    </div>
+                    <div className="space-y-1 pl-1">
+                      <div className="flex items-center gap-2 text-[9px] text-slate-400">
+                        <Search className="h-2.5 w-2.5 text-[#728972]" />
+                        <span>Found 28 Austin hotels</span>
                       </div>
-                      <div className="space-y-1 pl-1">
-                        <div className="flex items-center gap-2 text-[9px] text-slate-400">
-                          <Search className="h-2.5 w-2.5 text-[#728972]" />
-                          <span>Found 28 Austin hotels</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-[9px] text-slate-200 font-bold">
-                          <Mail className="h-2.5 w-2.5 text-[#c5a880]" />
-                          <span className="flex items-center gap-1">
-                            Drafting pitches
-                            <span className="flex gap-0.5">
-                              <span className="h-0.5 w-0.5 bg-slate-400 rounded-full animate-bounce" />
-                              <span className="h-0.5 w-0.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                            </span>
+                      <div className="flex items-center gap-2 text-[9px] text-slate-200 font-bold">
+                        <Mail className="h-2.5 w-2.5 text-[#c5a880]" />
+                        <span className="flex items-center gap-1">
+                          Drafting pitches
+                          <span className="flex gap-0.5">
+                            <span className="h-0.5 w-0.5 bg-slate-400 rounded-full animate-bounce" />
+                            <span className="h-0.5 w-0.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
                           </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Widget 2: Meeting Booked Stat */}
-                  <div className="rounded-2xl border border-white/[0.06] bg-[#191a21]/90 p-3 text-white">
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-lg bg-[#728972]/15 border border-[#728972]/30 text-[#728972]">
-                        <CalendarCheck className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <div className="text-[9px] font-bold text-[#728972] uppercase tracking-wider">Galien Result</div>
-                        <div className="text-[12px] font-semibold mt-0.5 text-white">Meeting Booked!</div>
+                        </span>
                       </div>
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Right side: Giant Robot */}
-                <div className="h-[280px] w-full flex items-center justify-center relative">
-                  <OnboardingRobot3D 
-                    animationState="waving" 
-                    hideBackground={true} 
-                    loopWaving={true}
-                    useContinuousWaving={true}
-                    scale={0.027} // Make robot significantly larger
-                    posY={-0.55} // Adjusted slightly lower to offset larger scale
-                    cameraZ={4.4} // Focused camera closer
-                  />
+              {/* Card 2: Meeting Booked — bottom-right */}
+              <div className="absolute bottom-2 sm:bottom-6 right-0 sm:-right-4 z-0 w-[160px] sm:w-[200px] anim-fade-up scale-90 sm:scale-100 origin-bottom-right" style={{ animationDelay: "0.9s" }}>
+                <div className="rounded-2xl border border-white/[0.08] bg-[#14161f]/80 backdrop-blur-xl p-2.5 sm:p-3 shadow-2xl text-white">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-lg bg-[#728972]/15 border border-[#728972]/30 text-[#728972]">
+                      <CalendarCheck className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <div className="text-[9px] font-bold text-[#728972] uppercase tracking-wider">Galien Result</div>
+                      <div className="text-[12px] font-semibold mt-0.5 text-white">Meeting Booked!</div>
+                    </div>
+                  </div>
                 </div>
-
               </div>
 
             </div>

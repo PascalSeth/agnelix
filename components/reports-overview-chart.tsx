@@ -103,7 +103,7 @@ export function ReportsOverviewChart({ reports }: ReportsOverviewChartProps) {
                       }}
                     >
                       <p className="font-bold text-white/40 mb-1">{dataPoint.label}</p>
-                      {payload.map((p: any) => (
+                      {payload.map((p) => (
                         <div key={p.name} className="flex items-center justify-between gap-6">
                           <div className="flex items-center gap-1.5">
                             <span className="size-1.5 rounded-full" style={{ backgroundColor: p.fill }} />
@@ -126,7 +126,7 @@ export function ReportsOverviewChart({ reports }: ReportsOverviewChartProps) {
               content={({ payload }) => {
                 return (
                   <div className="flex items-center justify-end gap-4 text-[9px] font-extrabold uppercase tracking-wider mb-2">
-                    {payload?.map((entry: any, index: number) => (
+                    {payload?.map((entry, index) => (
                       <span key={`item-${index}`} className="flex items-center gap-1.5" style={{ color: entry.color }}>
                         <span className="size-1.5 rounded-full" style={{ backgroundColor: entry.color }} />
                         {entry.value === "sent" ? "Sent" : entry.value === "replies" ? "Replied" : "Booked"}
