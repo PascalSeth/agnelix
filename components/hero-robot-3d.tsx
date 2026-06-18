@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, Suspense } from "react"
 import { Canvas, useFrame } from "@react-three/fiber"
-import { useGLTF, useAnimations, Stage, OrbitControls } from "@react-three/drei"
+import { useGLTF, useAnimations, Stage, OrbitControls, Html } from "@react-three/drei"
 import * as THREE from "three"
 import { useRobotAnimation } from "@/lib/robot-animation-context"
 
@@ -104,16 +104,50 @@ function RobotModel({
 // ─── Loader Fallback ───────────────────────────────────────────────────────────
 function RobotLoader() {
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
-      <div className="relative flex items-center justify-center">
-        <div className="absolute w-14 h-14 rounded-full border border-[#c5a880]/20 animate-ping duration-1000" />
-        <div className="w-10 h-10 rounded-full border-2 border-white/5 border-t-[#c5a880] animate-spin" />
-        <div className="absolute w-2 h-2 rounded-full bg-[#c5a880] shadow-[0_0_10px_#c5a880]" />
+    <Html center zIndexRange={[100, 0]}>
+      <div className="flex flex-col items-center justify-center w-[200px]">
+        <div className="relative animate-pulse opacity-50 flex items-center justify-center">
+          <svg
+            width="100"
+            height="140"
+            viewBox="0 0 100 150"
+            fill="none"
+            stroke="#c5a880"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="drop-shadow-[0_0_15px_rgba(197,168,128,0.8)]"
+          >
+            {/* Head */}
+            <path d="M35 25 C 35 15, 65 15, 65 25 L 65 40 L 35 40 Z" />
+            {/* Eyes */}
+            <circle cx="45" cy="28" r="2" fill="#c5a880" />
+            <circle cx="55" cy="28" r="2" fill="#c5a880" />
+            {/* Neck */}
+            <line x1="50" y1="40" x2="50" y2="48" />
+            {/* Torso/Chassis */}
+            <path d="M30 48 L70 48 L60 95 L40 95 Z" />
+            {/* Spine detail */}
+            <line x1="50" y1="48" x2="50" y2="95" strokeWidth="1" strokeDasharray="4 4" />
+            {/* Arms */}
+            <path d="M30 50 L15 75 L20 105" />
+            <path d="M70 50 L85 75 L80 105" />
+            {/* Hands (claws) */}
+            <path d="M15 105 L20 115 L25 105" />
+            <path d="M75 105 L80 115 L85 105" />
+            {/* Legs */}
+            <path d="M40 95 L30 135" />
+            <path d="M60 95 L70 135" />
+            {/* Feet */}
+            <path d="M25 135 L35 135 L35 140 L25 140 Z" />
+            <path d="M65 135 L75 135 L75 140 L65 140 Z" />
+          </svg>
+        </div>
+        <span className="text-[10px] font-bold text-[#c5a880] tracking-widest uppercase mt-6 whitespace-nowrap animate-pulse drop-shadow-[0_0_8px_rgba(197,168,128,0.5)]">
+          Constructing Model...
+        </span>
       </div>
-      <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase mt-4">
-        Loading 3D Assistant...
-      </span>
-    </div>
+    </Html>
   )
 }
 
@@ -141,12 +175,12 @@ export function RobotScene({
 }: RobotSceneProps) {
   return (
     <div className="w-full relative bg-transparent" style={{ height }}>
-      <Suspense fallback={<RobotLoader />}>
-        <Canvas
-          gl={{ antialias: true, alpha: true }}
-          camera={{ position: [0, 0, 5], fov: 45 }}
-          style={{ width: "100%", height: "100%", touchAction: "auto" }}
-        >
+      <Canvas
+        gl={{ antialias: true, alpha: true }}
+        camera={{ position: [0, 0, 5], fov: 45 }}
+        style={{ width: "100%", height: "100%", touchAction: "auto" }}
+      >
+        <Suspense fallback={<RobotLoader />}>
           <Stage
             environment={environment}
             intensity={intensity}
@@ -173,8 +207,8 @@ export function RobotScene({
               maxPolarAngle={Math.PI / 1.8}
             />
           )}
-        </Canvas>
-      </Suspense>
+        </Suspense>
+      </Canvas>
     </div>
   )
 }
