@@ -21,7 +21,7 @@ import dynamic from "next/dynamic"
 const HeroRobot3D = dynamic(
   () => import("@/components/hero-robot-3d").then((mod) => {
     const { RobotScene } = mod
-    return { default: () => <RobotScene modelPath="/animations/Waving.draco.glb" height="100%" scale={0.0363} positionY={-5.5} /> }
+    return { default: () => <RobotScene modelPath="/model/robotmodel.draco.glb" animPath="/animations/low/Waving-low.fbx.glb" height="100%" scale={0.055} positionY={-3.0} /> }
   }),
   { ssr: false }
 )
@@ -97,7 +97,7 @@ export function Hero() {
           </div>
 
           {/* Right Side: 3D Robot + Floating HUD Cards (6 cols) */}
-          <div className="anim-scale-in relative lg:col-span-6 flex items-end justify-center w-full" style={{ animationDelay: "0.5s" }}>
+          <div className="anim-scale-in relative lg:col-span-6 flex items-end justify-center lg:justify-start lg:-ml-8 w-full" style={{ animationDelay: "0.5s" }}>
             
             {/* Full-bleed robot canvas — NO card background */}
             <div className="relative w-full max-w-[550px] h-[480px] lg:h-[600px] mt-8 lg:mt-0">

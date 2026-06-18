@@ -1,15 +1,18 @@
 "use client"
 
-import { useRef, useEffect, Suspense } from "react"
+import { useRef, useEffect, Suspense, useMemo } from "react"
 import { Canvas, useFrame } from "@react-three/fiber"
-import { useGLTF, useAnimations, Stage, OrbitControls, Html } from "@react-three/drei"
+import { useGLTF, useAnimations, Stage, OrbitControls, Html, Center } from "@react-three/drei"
 import * as THREE from "three"
+import { SkeletonUtils } from "three-stdlib"
 import { useRobotAnimation } from "@/lib/robot-animation-context"
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 export interface RobotSceneProps {
   /** Path to the GLB model file (relative to /public) */
   modelPath: string
+  /** Optional path to a separate GLB file containing only animations */
+  animPath?: string
   /** Enable idle floating animation (default: true) */
   float?: boolean
   /** Floating amplitude (default: 0.08) */
@@ -35,20 +38,27 @@ export interface RobotSceneProps {
 // ─── Inner Scene Model ─────────────────────────────────────────────────────────
 function RobotModel({
   modelPath,
+  animPath,
   float: enableFloat = true,
   floatAmplitude = 0.08,
   rotate: enableRotate = true,
   rotateSpeed = 0.12,
   scale = 1,
   positionY = 0,
-}: Pick<RobotSceneProps, "modelPath" | "float" | "floatAmplitude" | "rotate" | "rotateSpeed" | "scale" | "positionY">) {
+}: Pick<RobotSceneProps, "modelPath" | "animPath" | "float" | "floatAmplitude" | "rotate" | "rotateSpeed" | "scale" | "positionY">) {
   const group = useRef<THREE.Group>(null)
 
-  // Load the rigged robot model (Draco decoder enabled)
-  const { scene, animations } = useGLTF(modelPath, true)
+  // Load the rigged robot model skin (Draco decoder enabled)
+  const { scene } = useGLTF(modelPath, true)
+  
+  // Load animations (either from a separate animPath, or fallback to the master modelPath)
+  const { animations } = useGLTF(animPath || modelPath, true)
 
-  // Bind animations to the scene skeleton
-  const { actions, names } = useAnimations(animations, scene)
+  // Clone the scene so we can render it in multiple places simultaneously
+  const clone = useMemo(() => SkeletonUtils.clone(scene), [scene])
+
+  // Bind animations to the cloned scene skeleton
+  const { actions, names } = useAnimations(animations, clone)
 
   const { currentAnimation, fadeDuration } = useRobotAnimation()
   const activeActionRef = useRef<string | null>(null)
@@ -83,9 +93,9 @@ function RobotModel({
     if (group.current) {
       const time = state.clock.getElapsedTime()
       if (enableFloat) {
-        group.current.position.y = positionY + Math.sin(time * 1.5) * floatAmplitude
+        group.current.position.y = Math.sin(time * 1.5) * floatAmplitude
       } else {
-        group.current.position.y = positionY
+        group.current.position.y = 0
       }
       
       if (enableRotate) {
@@ -95,8 +105,10 @@ function RobotModel({
   })
 
   return (
-    <group ref={group} dispose={null} scale={scale} position={[0, positionY, 0]}>
-      <primitive object={scene} />
+    <group ref={group} dispose={null} scale={scale}>
+      <Center bottom>
+        <primitive object={clone} />
+      </Center>
     </group>
   )
 }
@@ -162,6 +174,7 @@ function RobotLoader() {
  */
 export function RobotScene({
   modelPath,
+  animPath,
   float = true,
   floatAmplitude = 0.08,
   rotate = true,
@@ -177,26 +190,29 @@ export function RobotScene({
     <div className="w-full relative bg-transparent" style={{ height }}>
       <Canvas
         gl={{ antialias: true, alpha: true }}
-        camera={{ position: [0, 0, 5], fov: 45 }}
+        camera={{ position: [0, 0, 8], fov: 45 }}
         style={{ width: "100%", height: "100%", touchAction: "auto" }}
       >
         <Suspense fallback={<RobotLoader />}>
-          <Stage
-            environment={environment}
-            intensity={intensity}
-            adjustCamera={false}
-            shadows={{ type: "contact", opacity: 0.4, blur: 2 }}
-          >
-            <RobotModel
-              modelPath={modelPath}
-              float={float}
-              floatAmplitude={floatAmplitude}
-              rotate={rotate}
-              rotateSpeed={rotateSpeed}
-              scale={scale}
-              positionY={positionY}
-            />
-          </Stage>
+          <group position={[0, positionY, 0]}>
+            <Stage
+              environment={environment}
+              intensity={intensity}
+              adjustCamera={false}
+              shadows={{ type: "contact", opacity: 0.4, blur: 2 }}
+            >
+              <RobotModel
+                modelPath={modelPath}
+                animPath={animPath}
+                float={float}
+                floatAmplitude={floatAmplitude}
+                rotate={rotate}
+                rotateSpeed={rotateSpeed}
+                scale={scale}
+                positionY={positionY}
+              />
+            </Stage>
+          </group>
 
           {orbitControls && (
             <OrbitControls
