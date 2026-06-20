@@ -10,6 +10,11 @@ export default async function OnboardingLayout({ children }: { children: React.R
   return (
     <>
       <style>{`
+        html, body {
+          background-color: #05060a !important;
+          overflow: hidden;
+          height: 100%;
+        }
         @keyframes silver-sheen {
           0%   { left: -80px; opacity: 0; }
           5%   { opacity: 1; }
