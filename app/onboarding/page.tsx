@@ -104,6 +104,35 @@ export default function OnboardingPage() {
   const [descUrl, setDescUrl]             = useState("")
   const [descGenerating, setDescGenerating] = useState(false)
 
+  const [isMobile, setIsMobile]           = useState(false)
+  const [isInputFocused, setIsInputFocused] = useState(false)
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener("resize", checkMobile)
+    return () => window.removeEventListener("resize", checkMobile)
+  }, [])
+
+  useEffect(() => {
+    const handleFocus = (e: FocusEvent) => {
+      const target = e.target as HTMLElement
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) {
+        setIsInputFocused(true)
+      }
+    }
+    const handleBlur = () => {
+      setIsInputFocused(false)
+    }
+
+    document.addEventListener("focusin", handleFocus)
+    document.addEventListener("focusout", handleBlur)
+    return () => {
+      document.removeEventListener("focusin", handleFocus)
+      document.removeEventListener("focusout", handleBlur)
+    }
+  }, [])
+
   useEffect(() => {
     setAiTyping(true)
     const t = setTimeout(() => setAiTyping(false), 550)
@@ -280,22 +309,34 @@ export default function OnboardingPage() {
           z-index: 20;
           display: flex;
           flex-direction: column;
-          justify-content: center;
+          justify-content: flex-start;
           width: 100%;
-          height: 55%;
-          padding: 3rem 1.5rem;
+          height: 65%;
+          padding: 4.5rem 1.5rem 1.5rem 1.5rem;
           overflow-y: auto;
           overflow-x: hidden;
           border-bottom: 1px solid rgba(255, 255, 255, 0.05);
           background-color: #05060a;
+          transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease;
+        }
+        .onboarding-left-pane.keyboard-active {
+          height: 100%;
+          border-bottom: none;
+          padding-top: 3.5rem;
         }
         .onboarding-right-pane {
           position: relative;
           z-index: 10;
           flex: 1;
-          height: 45%;
+          height: 35%;
           background-color: #05060a;
           overflow: hidden;
+          transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+        }
+        .onboarding-right-pane.keyboard-active {
+          height: 0%;
+          opacity: 0;
+          pointer-events: none;
         }
         @media (min-width: 768px) {
           .onboarding-split-container {
@@ -305,11 +346,49 @@ export default function OnboardingPage() {
             width: 45%;
             height: 100%;
             padding: 3rem 5rem;
+            justify-content: center;
             border-bottom: none;
             border-right: 1px solid rgba(255, 255, 255, 0.05);
           }
           .onboarding-right-pane {
             height: 100%;
+          }
+        }
+        .review-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 0.75rem;
+          max-height: 28vh;
+          overflow-y: auto;
+          padding-right: 0.5rem;
+          padding-bottom: 0.5rem;
+        }
+        .review-item-btn {
+          width: 100%;
+          display: flex;
+          align-items: start;
+          justify-content: space-between;
+          gap: 0.75rem;
+          border-radius: 1rem;
+          padding: 0.75rem 1rem;
+          text-align: left;
+          transition: background-color 0.2s;
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          color: rgba(255, 255, 255, 0.8);
+        }
+        .review-item-btn:hover:not(:disabled) {
+          background-color: rgba(255, 255, 255, 0.04);
+        }
+        .review-item-btn:disabled {
+          cursor: default;
+        }
+        @media (min-width: 768px) {
+          .review-grid {
+            max-height: 40vh;
+          }
+          .review-item-btn {
+            padding: 0.875rem 1.25rem;
           }
         }
         @keyframes bot-dot {
@@ -343,7 +422,7 @@ export default function OnboardingPage() {
       `}</style>
 
       {/* ── LEFT COLUMN (FORM PANE) ── */}
-      <div className="onboarding-left-pane scrollbar-none" style={{ backgroundColor: "#05060a" }}>
+      <div className={`onboarding-left-pane scrollbar-none ${isMobile && isInputFocused ? "keyboard-active" : ""}`} style={{ backgroundColor: "#05060a" }}>
         
         {/* Top HUD progress */}
         {!done && (
@@ -365,7 +444,7 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        <div className="w-full max-w-md mx-auto">
+        <div className="w-full max-w-md mx-auto my-auto">
           {done ? (
             /* ── Done screen ── */
             <div
@@ -663,7 +742,7 @@ export default function OnboardingPage() {
                   {/* Review */}
                   {currentStepKey === "review" && (
                     <div className="space-y-6">
-                      <div className="grid grid-cols-2 gap-3 max-h-[40vh] overflow-y-auto pr-2 pb-2 scrollbar-thin scrollbar-thumb-white/10">
+                      <div className="review-grid scrollbar-thin scrollbar-thumb-white/10">
                         {[
                           { label: "Agency",        value: agencyName,                    idx: 0 },
                           { label: "Role",           value: title || "Decision Maker",     idx: 1 },
@@ -679,8 +758,7 @@ export default function OnboardingPage() {
                             type="button"
                             disabled={row.idx === -1}
                             onClick={() => row.idx !== -1 && editStep(row.idx)}
-                            className={`w-full flex items-start justify-between gap-3 rounded-2xl px-4 py-3.5 text-left transition-colors hover:bg-white/[.04] disabled:cursor-default ${row.colSpan ? "col-span-2" : ""}`}
-                            style={{ background: "rgba(255,255,255,.02)", border: "1px solid rgba(255,255,255,.05)", color: "rgba(255,255,255,0.8)" }}
+                            className={`review-item-btn ${row.colSpan ? "col-span-2" : ""}`}
                           >
                             <div className="min-w-0">
                               <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-1">{row.label}</p>
@@ -708,7 +786,7 @@ export default function OnboardingPage() {
       </div>
 
       {/* ── RIGHT COLUMN (ROBOT STAGE) ── */}
-      <div className="onboarding-right-pane" style={{ backgroundColor: "#05060a" }}>
+      <div className={`onboarding-right-pane ${isMobile && isInputFocused ? "keyboard-active" : ""}`} style={{ backgroundColor: "#05060a" }}>
         {/* ── AURORA BACKGROUND ── */}
         <div className="absolute pointer-events-none" style={{
           top: "-15%", left: "-10%",
@@ -774,8 +852,8 @@ export default function OnboardingPage() {
               ? "looking"
               : "idle"
           } 
-          positionY={-4.6} 
-          scale={0.07}
+          positionY={isMobile ? -3.4 : -4.6} 
+          scale={isMobile ? 0.05 : 0.07}
         />
       </div>
 

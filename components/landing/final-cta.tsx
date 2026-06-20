@@ -8,7 +8,7 @@ import dynamic from "next/dynamic"
 const CtaRobot3D = dynamic(
   () => import("@/components/hero-robot-3d").then((mod) => {
     const { RobotScene } = mod
-    return { default: () => <RobotScene modelPath="/model/robotmodel.draco.glb" animPath="/animations/low/Looking Around-low.fbx.glb" height="100%" rotate={false} scale={0.055} positionY={-2.5} /> }
+    return { default: () => <RobotScene modelPath="/model/robotmodel.draco.glb" animPath="/animations/low/Looking Around-low.fbx.glb" height="100%" rotate={false} orbitControls={false} scale={0.055} positionY={-2.5} /> }
   }),
   { ssr: false }
 )

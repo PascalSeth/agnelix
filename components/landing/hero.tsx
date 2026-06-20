@@ -21,7 +21,7 @@ import dynamic from "next/dynamic"
 const HeroRobot3D = dynamic(
   () => import("@/components/hero-robot-3d").then((mod) => {
     const { RobotScene } = mod
-    return { default: () => <RobotScene modelPath="/model/robotmodel.draco.glb" animPath="/animations/low/Waving-low.fbx.glb" height="100%" scale={0.055} positionY={-3.0} /> }
+    return { default: () => <RobotScene modelPath="/model/robotmodel.draco.glb" animPath="/animations/low/Waving-low.fbx.glb" height="100%" scale={0.055} positionY={-3.0} rotate={false} orbitControls={false} /> }
   }),
   { ssr: false }
 )
