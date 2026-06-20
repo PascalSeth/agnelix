@@ -23,12 +23,12 @@ export default async function OnboardingLayout({ children }: { children: React.R
         .status-dot { animation: status-ping 2.5s ease-in-out infinite; }
       `}</style>
 
-      <div className="relative min-h-screen" style={{ background: "#1a1c24" }}>
+      <div className="relative h-screen flex flex-col bg-[#05060a]" style={{ backgroundColor: "#05060a", height: "100vh", overflow: "hidden" }}>
         <DashboardBg />
 
         {/* Top bar */}
         <header
-          className="relative z-20 flex h-14 items-center justify-between px-6 border-b"
+          className="relative z-20 flex h-14 shrink-0 items-center justify-between px-6 border-b"
           style={{
             background: "rgba(26,28,36,.85)",
             borderColor: "rgba(255,255,255,.06)",
@@ -46,7 +46,7 @@ export default async function OnboardingLayout({ children }: { children: React.R
         </header>
 
         {/* Content — full height below header */}
-        <main className="relative z-10 h-[calc(100vh-3.5rem)]">
+        <main className="relative z-10 flex-1 flex flex-col overflow-hidden" style={{ height: "calc(100vh - 3.5rem)" }}>
           {children}
         </main>
       </div>
