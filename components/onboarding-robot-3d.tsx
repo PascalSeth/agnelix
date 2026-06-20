@@ -7,7 +7,7 @@ import * as THREE from "three"
 import { SkeletonUtils } from "three-stdlib"
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
-export type OnboardingAnimation = "idle" | "looking" | "launch"
+export type OnboardingAnimation = "idle" | "looking" | "launch" | "waving"
 
 export interface OnboardingRobotProps {
   /** The current animation state */
@@ -25,10 +25,11 @@ function RobotModel({ animation, scale = 1 }: { animation: OnboardingAnimation, 
   // 1. Load the master skin (Draco enabled)
   const { scene } = useGLTF("/model/robotmodel.draco.glb", true)
 
-  // 2. Load all three lightweight animation skeletons
+  // 2. Load all four lightweight animation skeletons
   const { animations: animIdle } = useGLTF("/animations/low/Happy Idle-low.fbx.glb", true)
   const { animations: animLooking } = useGLTF("/animations/low/Looking-low.fbx.glb", true)
   const { animations: animLaunch } = useGLTF("/animations/low/Hip Hop Dancing-low.fbx.glb", true)
+  const { animations: animWaving } = useGLTF("/animations/low/Wavie Gesture.fbx.glb", true)
 
   // 3. Merge and rename the animations into a single array
   const mergedAnimations = useMemo(() => {
@@ -36,14 +37,16 @@ function RobotModel({ animation, scale = 1 }: { animation: OnboardingAnimation, 
     const idleClips = animIdle.map(a => a.clone())
     const lookingClips = animLooking.map(a => a.clone())
     const launchClips = animLaunch.map(a => a.clone())
+    const wavingClips = animWaving.map(a => a.clone())
 
     // Mixamo names everything "mixamo.com", so we MUST rename them
     idleClips.forEach(clip => { clip.name = "idle" })
     lookingClips.forEach(clip => { clip.name = "looking" })
     launchClips.forEach(clip => { clip.name = "launch" })
+    wavingClips.forEach(clip => { clip.name = "waving" })
 
-    return [...idleClips, ...lookingClips, ...launchClips]
-  }, [animIdle, animLooking, animLaunch])
+    return [...idleClips, ...lookingClips, ...launchClips, ...wavingClips]
+  }, [animIdle, animLooking, animLaunch, animWaving])
 
   // 4. Clone the scene for safety (allows rendering multiple robots if needed)
   const clone = useMemo(() => SkeletonUtils.clone(scene), [scene])
@@ -54,7 +57,15 @@ function RobotModel({ animation, scale = 1 }: { animation: OnboardingAnimation, 
 
   // 6. Handle state-driven crossfading
   useEffect(() => {
-    if (!actions || !actions[animation]) return
+    console.log("OnboardingRobot3D requested animation:", animation)
+    if (actions) {
+      console.log("OnboardingRobot3D available actions:", Object.keys(actions))
+    }
+
+    if (!actions || !actions[animation]) {
+      console.warn(`OnboardingRobot3D: action for "${animation}" not found or actions not ready yet.`)
+      return
+    }
 
     const action = actions[animation]!
     const fadeDuration = 0.5 // 500ms smooth crossfade

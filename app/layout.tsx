@@ -1,10 +1,10 @@
 import type { Metadata } from "next"
-import { Geist } from "next/font/google"
 import "./globals.css"
 import { Toaster } from "@/components/ui/sonner"
 import { Providers } from "@/components/providers"
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-sans" })
+// Use a local font variable to prevent build failures in offline/sandboxed environments that block Google Fonts requests.
+const geist = { variable: "font-sans" }
 
 export const metadata: Metadata = {
   title: "Galien | AI-Powered Email Outreach",

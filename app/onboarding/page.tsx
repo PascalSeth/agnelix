@@ -846,7 +846,9 @@ export default function OnboardingPage() {
         {/* ── 3D ROBOT ── */}
         <OnboardingRobot3D 
           animation={
-            done || currentStepKey === "review"
+            done
+              ? "waving"
+              : currentStepKey === "review"
               ? "launch"
               : userTyping
               ? "looking"
