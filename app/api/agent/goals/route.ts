@@ -2,18 +2,20 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
+import { getScopeId } from "@/lib/auth-helpers"
 
 export async function GET() {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   let goal = await prisma.agentGoal.findUnique({
-    where: { userId: session.user.id },
+    where: { userId: scopeId },
     include: { user: { select: { agencyName: true, companyDesc: true, title: true, tone: true, name: true, fromEmail: true } } }
   })
   if (!goal) {
     goal = await prisma.agentGoal.create({
-      data: { userId: session.user.id },
+      data: { userId: scopeId },
       include: { user: { select: { agencyName: true, companyDesc: true, title: true, tone: true, name: true, fromEmail: true } } }
     })
   }
@@ -21,10 +23,10 @@ export async function GET() {
   const last30 = new Date()
   last30.setDate(last30.getDate() - 30)
   const [sentCount, replyCount, meetingCount] = await Promise.all([
-    prisma.email.count({ where: { lead: { userId: session.user.id }, sentAt: { gte: last30 } } }),
-    prisma.reply.count({ where: { lead: { userId: session.user.id }, receivedAt: { gte: last30 } } }),
+    prisma.email.count({ where: { lead: { userId: scopeId }, sentAt: { gte: last30 } } }),
+    prisma.reply.count({ where: { lead: { userId: scopeId }, receivedAt: { gte: last30 } } }),
     prisma.activity.count({
-      where: { lead: { userId: session.user.id }, type: "MEETING_BOOKED", createdAt: { gte: last30 } },
+      where: { lead: { userId: scopeId }, type: "MEETING_BOOKED", createdAt: { gte: last30 } },
     }),
   ])
 
@@ -48,6 +50,7 @@ export async function GET() {
 export async function PATCH(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const body = (await req.json()) as Partial<{
     meetingsPerMonth: number
@@ -78,9 +81,9 @@ export async function PATCH(req: NextRequest) {
   }
 
   const updated = await prisma.agentGoal.upsert({
-    where: { userId: session.user.id },
+    where: { userId: scopeId },
     update: data,
-    create: { userId: session.user.id, ...data },
+    create: { userId: scopeId, ...data },
   })
 
   return NextResponse.json(updated)

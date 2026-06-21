@@ -3,20 +3,22 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { detectReplies } from "@/lib/imap"
 import { executePendingAction } from "@/lib/agent-core"
+import { getScopeId } from "@/lib/auth-helpers"
 
 export async function POST() {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   try {
     // 1. Sync new replies from IMAP
-    const syncResult = await detectReplies(session.user.id)
+    const syncResult = await detectReplies(scopeId)
 
     // 2. Auto-execute any expired pending actions for this user (for local testing/cron parity)
     const now = new Date()
     const expiredActions = await prisma.pendingAction.findMany({
       where: {
-        userId: session.user.id,
+        userId: scopeId,
         status: "PENDING",
         expiresAt: { lte: now },
       },

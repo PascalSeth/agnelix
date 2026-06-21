@@ -4,10 +4,12 @@ import { prisma } from "@/lib/db"
 import { generateEmail } from "@/lib/ai"
 import { checkEmailQuota } from "@/lib/cost-guard"
 import { runLaunchPipeline } from "@/lib/campaign-sender"
+import { getScopeId } from "@/lib/auth-helpers"
 
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const body = await req.json().catch(() => ({}))
   const { campaignId, leadId, preview, customEmails } = body
@@ -17,7 +19,7 @@ export async function POST(req: NextRequest) {
   // Preview mode: generate emails on-the-fly, do not save to DB
   if (preview) {
     const campaign = await prisma.campaign.findFirst({
-      where: { id: campaignId, userId: session.user.id },
+      where: { id: campaignId, userId: scopeId },
       include: {
         sequence: { include: { steps: { orderBy: { stepNumber: "asc" } } } },
         campaignLeads: {
@@ -32,7 +34,7 @@ export async function POST(req: NextRequest) {
     if (campaign.campaignLeads.length === 0)
       return NextResponse.json({ error: "No leads in campaign" }, { status: 400 })
 
-    const canSend = await checkEmailQuota(session.user.id)
+    const canSend = await checkEmailQuota(scopeId)
     if (!canSend) return NextResponse.json({ error: "Daily email quota reached" }, { status: 429 })
 
     const emails = []
@@ -42,7 +44,7 @@ export async function POST(req: NextRequest) {
       for (const step of campaign.sequence.steps) {
         const generated = await generateEmail(
           {
-            userId:              session.user.id,
+            userId:              scopeId,
             senderName:          campaign.user.name || "Your Name",
             senderTitle:         campaign.user.title || "Marketing Consultant",
             senderCompany:       campaign.user.agencyName || campaign.user.companyName || "Your Company",
@@ -68,14 +70,14 @@ export async function POST(req: NextRequest) {
 
   // ── Launch mode — validate, activate immediately, process in background ──
   const campaign = await prisma.campaign.findFirst({
-    where: { id: campaignId, userId: session.user.id },
+    where: { id: campaignId, userId: scopeId },
     include: { campaignLeads: true },
   })
   if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 })
   if (campaign.campaignLeads.length === 0)
     return NextResponse.json({ error: "Add leads to this campaign first" }, { status: 400 })
 
-  const canSend = await checkEmailQuota(session.user.id)
+  const canSend = await checkEmailQuota(scopeId)
   if (!canSend) return NextResponse.json({ error: "Daily email quota reached" }, { status: 429 })
 
   const now = new Date()
@@ -90,7 +92,7 @@ export async function POST(req: NextRequest) {
 
   after(async () => {
     try {
-      await runLaunchPipeline(campaignId, session.user.id, customEmails)
+      await runLaunchPipeline(campaignId, scopeId, customEmails)
     } catch (err) {
       console.error("[Send/Launch] Background pipeline error:", err)
     }

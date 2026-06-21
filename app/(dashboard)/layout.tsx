@@ -4,22 +4,24 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/db"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { PlaybookProvider } from "@/lib/playbook-context"
+import { getScopeId } from "@/lib/auth-helpers"
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
   if (!session?.user?.id) redirect("/sign-in")
 
+  const scopeId = getScopeId(session)
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { onboardingDone: true, playbookType: true },
+    where: { id: scopeId },
+    select: { onboardingDone: true, playbookType: true, agencyName: true, companyName: true },
   })
 
-  if (!user?.onboardingDone) redirect("/onboarding")
+  if (!session.user.teamOwnerId && !user?.onboardingDone) redirect("/onboarding")
 
   let inboxCount = 0
   let playbooks: any[] = []
   try {
-    inboxCount = await prisma.reply.count({ where: { lead: { userId: session.user.id } } })
+    inboxCount = await prisma.reply.count({ where: { lead: { userId: scopeId } } })
     playbooks = await prisma.playbook.findMany({
       orderBy: { name: "asc" }
     })
@@ -27,7 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <PlaybookProvider initialType={user?.playbookType || "sales"} playbooks={playbooks}>
-      <DashboardLayout session={session} inboxCount={inboxCount}>
+      <DashboardLayout session={session} inboxCount={inboxCount} companyName={user?.agencyName || user?.companyName || null}>
         {children}
       </DashboardLayout>
     </PlaybookProvider>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import OpenAI from "openai"
+import { getScopeId } from "@/lib/auth-helpers"
 
 const openai = new OpenAI({
   apiKey: process.env.NEXT_DEEPSEEKER_API_KEY,
@@ -12,9 +13,10 @@ const openai = new OpenAI({
 export async function GET() {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: scopeId },
     select: {
       name: true,
       companyName: true,
@@ -39,6 +41,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const { messages } = await req.json() as {
     messages: { role: "user" | "assistant"; content: string }[]
@@ -48,7 +51,7 @@ export async function POST(req: NextRequest) {
   }
 
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: scopeId },
     select: {
       name: true,
       companyName: true,

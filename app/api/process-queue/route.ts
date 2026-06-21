@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { drainDueQueue } from "@/lib/scheduler"
+import { getScopeId } from "@/lib/auth-helpers"
 
 /**
  * POST /api/process-queue
@@ -12,11 +13,12 @@ import { drainDueQueue } from "@/lib/scheduler"
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   try {
     // Reset FAILED emails for this user's leads to QUEUED so they can be retried
     const userLeads = await prisma.lead.findMany({
-      where: { userId: session.user.id },
+      where: { userId: scopeId },
       select: { id: true },
     })
     const leadIds = userLeads.map(l => l.id)

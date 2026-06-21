@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { generateProposal } from "@/lib/ai"
+import { getScopeId } from "@/lib/auth-helpers"
 
 const PIPELINE_STAGES = ["NEW", "CONTACTED", "REPLIED", "INTERESTED", "MEETING_BOOKED", "PROPOSAL_SENT", "WON", "LOST", "NOT_INTERESTED", "BOUNCED"]
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const { id } = await params
   const { stage } = await req.json()
@@ -17,7 +19,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const lead = await prisma.lead.findFirst({
-    where: { id, userId: session.user.id },
+    where: { id, userId: scopeId },
     include: {
       campaignLeads: { select: { campaignId: true } },
       user: { select: { id: true, name: true, agencyName: true, companyName: true, companyDesc: true } },

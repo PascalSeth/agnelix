@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { randomBytes } from "crypto"
+import { getScopeId } from "@/lib/auth-helpers"
 
 export async function GET() {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const portals = await prisma.clientPortal.findMany({
-    where: { userId: session.user.id },
+    where: { userId: scopeId },
     include: { campaign: { select: { id: true, name: true, status: true, revenueAttributed: true } } },
     orderBy: { createdAt: "desc" },
   })
@@ -19,18 +21,19 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const body = await req.json()
   const { campaignId, portalTemplate } = body
   if (!campaignId) return NextResponse.json({ error: "campaignId required" }, { status: 400 })
 
-  const campaign = await prisma.campaign.findFirst({ where: { id: campaignId, userId: session.user.id } })
+  const campaign = await prisma.campaign.findFirst({ where: { id: campaignId, userId: scopeId } })
   if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 })
 
   const existing = await prisma.clientPortal.findUnique({ where: { campaignId } })
   if (existing) return NextResponse.json(existing)
 
-  const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { playbookType: true, agencyLogo: true, brandColor: true } })
+  const user = await prisma.user.findUnique({ where: { id: scopeId }, select: { playbookType: true, agencyLogo: true, brandColor: true } })
 
   let enabledSections: string[] = ["overview", "reports", "proposals", "documents", "messages"]
   if (user?.playbookType) {
@@ -48,7 +51,7 @@ export async function POST(req: NextRequest) {
 
   const portal = await prisma.clientPortal.create({
     data: {
-      userId: session.user.id,
+      userId: scopeId,
       campaignId,
       portalTemplate: portalTemplate || null,
       enabledSections,

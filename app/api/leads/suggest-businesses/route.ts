@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import OpenAI from "openai"
+import { getScopeId } from "@/lib/auth-helpers"
 
 const openai = new OpenAI({
   apiKey: process.env.NEXT_DEEPSEEKER_API_KEY,
@@ -12,9 +13,10 @@ const openai = new OpenAI({
 export async function GET() {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ prefill: "" })
+  const scopeId = getScopeId(session)
 
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: scopeId },
     select: { companyName: true, companyDesc: true, agencyName: true, title: true },
   })
 

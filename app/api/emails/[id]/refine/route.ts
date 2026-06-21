@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import OpenAI from "openai"
+import { getScopeId } from "@/lib/auth-helpers"
 
 const openai = new OpenAI({
   apiKey: process.env.NEXT_DEEPSEEKER_API_KEY,
@@ -14,6 +15,7 @@ export async function POST(
 ) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const { id } = await params
   const { instruction } = await req.json()
@@ -24,7 +26,7 @@ export async function POST(
 
   // 1. Fetch email and check ownership
   const email = await prisma.email.findFirst({
-    where: { id, lead: { userId: session.user.id } },
+    where: { id, lead: { userId: scopeId } },
     select: { id: true, subject: true, body: true, status: true }
   })
 

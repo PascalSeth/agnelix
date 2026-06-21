@@ -1,19 +1,21 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
+import { getScopeId } from "@/lib/auth-helpers"
 
 export async function GET() {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const digest = await prisma.agentDigestLog.findMany({
-    where: { userId: session.user.id },
+    where: { userId: scopeId },
     orderBy: { day: "desc" },
     take: 14,
   })
 
   const memory = await prisma.agentMemory.findMany({
-    where: { userId: session.user.id },
+    where: { userId: scopeId },
     orderBy: { createdAt: "desc" },
     take: 200,
     select: { intent: true, responseStyle: true, score: true, bookedMeeting: true, outcome: true },

@@ -3,12 +3,16 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { verifySmtp, resolveSmtp } from "@/lib/email"
 
+import { getScopeId, isTeamOwner } from "@/lib/auth-helpers"
+
 export async function POST() {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  if (!isTeamOwner(session)) return NextResponse.json({ error: "Only the team owner can manage SMTP settings" }, { status: 403 })
 
+  const scopeId = getScopeId(session)
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: scopeId },
     select: { fromEmail: true, smtpPass: true, smtpHost: true, smtpPort: true },
   })
 

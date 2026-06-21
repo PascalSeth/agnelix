@@ -121,9 +121,11 @@ function renderCircularGauge(score: number, label: string, color: string, subtex
   )
 }
 
+import { getScopeId } from "@/lib/auth-helpers"
+
 export default async function DashboardPage() {
   const session = await auth()
-  const userId  = session?.user?.id ?? ""
+  const userId  = session ? getScopeId(session) : ""
 
   let campaigns: CampaignRow[] = []
   let totalLeads  = 0

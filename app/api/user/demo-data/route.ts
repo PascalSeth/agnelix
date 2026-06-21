@@ -3,13 +3,15 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { NextResponse } from "next/server"
 
+import { getScopeId } from "@/lib/auth-helpers"
+
 export async function DELETE() {
   const session = await auth()
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const userId = session.user.id
+  const userId = getScopeId(session)
 
   await prisma.$transaction([
     prisma.activity.deleteMany({ where: { lead: { userId } } }),
@@ -40,7 +42,7 @@ export async function POST() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const userId = session.user.id
+  const userId = getScopeId(session)
 
   // 1. Get active user details
   const user = await prisma.user.findUnique({

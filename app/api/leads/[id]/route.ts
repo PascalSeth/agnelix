@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
+import { getScopeId } from "@/lib/auth-helpers"
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const { id } = await params
   const lead = await prisma.lead.findFirst({
-    where: { id, userId: session.user.id },
+    where: { id, userId: scopeId },
     include: { emails: { orderBy: { createdAt: "asc" } } },
   })
 
@@ -19,6 +21,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const { id } = await params
   const body = await req.json()
@@ -26,13 +29,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   // Fetch current state before update to detect status transitions
   const existing = body.status
     ? await prisma.lead.findFirst({
-        where: { id, userId: session.user.id },
+        where: { id, userId: scopeId },
         select: { status: true, campaignLeads: { select: { campaignId: true } } },
       })
     : null
 
   const lead = await prisma.lead.updateMany({
-    where: { id, userId: session.user.id },
+    where: { id, userId: scopeId },
     data: {
       ...(body.status && { status: body.status }),
       ...(body.notes !== undefined && { notes: body.notes }),
@@ -85,12 +88,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const { id } = await params
 
   try {
     const lead = await prisma.lead.findFirst({
-      where: { id, userId: session.user.id },
+      where: { id, userId: scopeId },
       select: {
         id: true,
         campaignLeads: { select: { campaignId: true } },

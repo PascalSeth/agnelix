@@ -2,10 +2,12 @@ import { NextRequest, NextResponse, after } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { enrichLeadsInBackground } from "@/lib/lead-enricher"
+import { getScopeId } from "@/lib/auth-helpers"
 
 export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const { searchParams } = req.nextUrl
   const status = searchParams.get("status")
@@ -13,7 +15,7 @@ export async function GET(req: NextRequest) {
 
   const leads = await prisma.lead.findMany({
     where: {
-      userId: session.user.id,
+      userId: scopeId,
       ...(status && status !== "ALL" ? { status: status as never } : {}),
       ...(q
         ? {
@@ -36,6 +38,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const body = await req.json()
 
@@ -56,7 +59,7 @@ export async function POST(req: NextRequest) {
     leadsData.map((lead) =>
       prisma.lead.create({
         data: {
-          userId: session.user.id,
+          userId: scopeId,
           email: lead.email.toLowerCase().trim(),
           firstName: lead.firstName || null,
           lastName: lead.lastName || null,
@@ -85,7 +88,7 @@ export async function POST(req: NextRequest) {
   if (newCampaign?.name && newCampaign?.sequenceId && created.length > 0) {
     const campaign = await prisma.campaign.create({
       data: {
-        userId: session.user.id,
+        userId: scopeId,
         name: newCampaign.name.trim(),
         sequenceId: newCampaign.sequenceId,
         totalLeads: created.length,
@@ -100,7 +103,7 @@ export async function POST(req: NextRequest) {
     finalCampaignId = campaign.id
   } else if (campaignId && created.length > 0) {
     const campaign = await prisma.campaign.findFirst({
-      where: { id: campaignId, userId: session.user.id },
+      where: { id: campaignId, userId: scopeId },
       select: { id: true },
     })
     if (campaign) {

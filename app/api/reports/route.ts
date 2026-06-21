@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { generateReportNarrative } from "@/lib/ai"
+import { getScopeId } from "@/lib/auth-helpers"
 
 export async function GET() {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const reports = await prisma.clientReport.findMany({
-    where: { userId: session.user.id },
+    where: { userId: scopeId },
     include: { campaign: { select: { id: true, name: true, status: true } } },
     orderBy: { createdAt: "desc" },
   })
@@ -19,6 +21,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const body = await req.json()
   const { campaignId, periodStart, periodEnd } = body
@@ -26,10 +29,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "campaignId, periodStart and periodEnd are required" }, { status: 400 })
   }
 
-  const campaign = await prisma.campaign.findFirst({ where: { id: campaignId, userId: session.user.id } })
+  const campaign = await prisma.campaign.findFirst({ where: { id: campaignId, userId: scopeId } })
   if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 })
 
-  const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { playbookType: true, companyDesc: true } })
+  const user = await prisma.user.findUnique({ where: { id: scopeId }, select: { playbookType: true, companyDesc: true } })
 
   const openRate = campaign.emailsSent > 0 ? Math.round((campaign.emailsOpened / campaign.emailsSent) * 1000) / 10 : 0
   const clickRate = campaign.emailsSent > 0 ? Math.round((campaign.emailsClicked / campaign.emailsSent) * 1000) / 10 : 0
@@ -63,7 +66,7 @@ export async function POST(req: NextRequest) {
 
   const report = await prisma.clientReport.create({
     data: {
-      userId: session.user.id,
+      userId: scopeId,
       campaignId,
       portalId: portal?.id ?? null,
       periodStart: new Date(periodStart),

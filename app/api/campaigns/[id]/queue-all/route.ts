@@ -3,6 +3,7 @@ import { after } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { drainDueQueue } from "@/lib/scheduler"
+import { getScopeId } from "@/lib/auth-helpers"
 
 export async function POST(
   req: NextRequest,
@@ -10,12 +11,13 @@ export async function POST(
 ) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const { id: campaignId } = await params
 
   // 1. Verify campaign ownership and load sequence steps
   const campaign = await prisma.campaign.findFirst({
-    where: { id: campaignId, userId: session.user.id },
+    where: { id: campaignId, userId: scopeId },
     include: {
       sequence: { include: { steps: { orderBy: { stepNumber: "asc" } } } },
     },

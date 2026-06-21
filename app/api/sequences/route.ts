@@ -2,13 +2,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
+import { getScopeId } from "@/lib/auth-helpers"
 
 export async function GET() {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const sequences = await prisma.sequence.findMany({
-    where: { userId: session.user.id },
+    where: { userId: scopeId },
     include: { steps: { orderBy: { stepNumber: "asc" } } },
     orderBy: { createdAt: "asc" },
   })
@@ -19,13 +21,14 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const body = await req.json()
   const { name, isDefault, steps } = body
 
   const sequence = await prisma.sequence.create({
     data: {
-      userId: session.user.id,
+      userId: scopeId,
       name,
       isDefault: isDefault || false,
       steps: {

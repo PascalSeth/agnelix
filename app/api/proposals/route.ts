@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { generateProposalContent } from "@/lib/ai"
+import { getScopeId } from "@/lib/auth-helpers"
 
 export async function GET() {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const proposals = await prisma.proposal.findMany({
-    where: { userId: session.user.id },
+    where: { userId: scopeId },
     include: { lead: { select: { id: true, firstName: true, lastName: true, company: true, email: true } } },
     orderBy: { createdAt: "desc" },
   })
@@ -19,6 +21,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const body = await req.json()
   const { leadId, templateId } = body
@@ -26,11 +29,11 @@ export async function POST(req: NextRequest) {
 
   const [lead, user] = await Promise.all([
     prisma.lead.findFirst({
-      where: { id: leadId, userId: session.user.id },
+      where: { id: leadId, userId: scopeId },
       include: { campaignLeads: { select: { campaignId: true } } },
     }),
     prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: scopeId },
       select: { name: true, agencyName: true, companyName: true, companyDesc: true, playbookType: true, currency: true },
     }),
   ])
@@ -73,7 +76,7 @@ export async function POST(req: NextRequest) {
 
   const proposal = await prisma.proposal.create({
     data: {
-      userId: session.user.id,
+      userId: scopeId,
       leadId: lead.id,
       campaignId: lead.campaignLeads[0]?.campaignId ?? null,
       title: `${template?.name || "Proposal"} for ${lead.company || lead.email}`,

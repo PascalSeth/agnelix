@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { usePlaybook } from "@/lib/playbook-context"
 import { CustomSelect } from "@/components/ui/custom-select"
-import { BarChart3, Plus, Send, Loader2, Trash2 } from "lucide-react"
+import { BarChart3, Plus, Send, Loader2, Trash2, FileDown, FileText } from "lucide-react"
 import { ReportCardChart } from "@/components/report-card-chart"
 import { ReportsOverviewChart } from "@/components/reports-overview-chart"
 
@@ -22,6 +22,7 @@ interface Report {
   status: "DRAFT" | "SCHEDULED" | "SENT" | "VIEWED"
   sentAt: string | null
   createdAt: string
+  pdfUrl: string | null
   campaign: Campaign
 }
 
@@ -93,6 +94,19 @@ export default function ReportsPage() {
       if (res.ok) {
         const updated = await res.json()
         setReports(prev => prev.map(r => r.id === id ? { ...r, ...updated } : r))
+      }
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function generatePdf(id: string) {
+    setBusyId(id)
+    try {
+      const res = await fetch(`/api/reports/${id}/pdf`, { method: "POST" })
+      if (res.ok) {
+        const { pdfUrl } = await res.json()
+        setReports(prev => prev.map(r => r.id === id ? { ...r, pdfUrl } : r))
       }
     } finally {
       setBusyId(null)
@@ -238,6 +252,25 @@ export default function ReportsPage() {
                     className="flex items-center gap-1.5 rounded-xl bg-blue-500/90 hover:bg-blue-500 text-black text-[11px] font-bold px-3 py-1.5 disabled:opacity-40 transition-all"
                   >
                     <Send className="size-3.5" /> Mark as Sent
+                  </button>
+                )}
+                {report.pdfUrl ? (
+                  <a
+                    href={report.pdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 rounded-xl bg-white/[0.05] hover:bg-white/10 border border-white/[0.06] text-[11px] font-semibold text-white/70 px-3 py-1.5 transition-all"
+                  >
+                    <FileText className="size-3.5" /> View PDF
+                  </a>
+                ) : (
+                  <button
+                    onClick={() => generatePdf(report.id)}
+                    disabled={busyId === report.id}
+                    className="flex items-center gap-1.5 rounded-xl bg-white/[0.05] hover:bg-white/10 border border-white/[0.06] text-[11px] font-semibold text-white/70 px-3 py-1.5 disabled:opacity-40 transition-all"
+                  >
+                    {busyId === report.id ? <Loader2 className="size-3.5 animate-spin" /> : <FileDown className="size-3.5" />}
+                    Generate PDF
                   </button>
                 )}
                 <button

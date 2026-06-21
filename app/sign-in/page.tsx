@@ -41,7 +41,8 @@ function SignInForm() {
     // Clear any stale session before starting a fresh OAuth flow, so signing in
     // with a different Google account doesn't collide with the old session.
     await signOut({ redirect: false })
-    await signIn("google", { callbackUrl: "/dashboard" })
+    const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"
+    await signIn("google", { callbackUrl })
   }
 
   const isSignIn = tab === "signin"

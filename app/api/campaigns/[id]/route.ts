@@ -5,14 +5,16 @@ import { prisma } from "@/lib/db"
 import { drainDueQueue } from "@/lib/scheduler"
 import { computeWorkflowPhase } from "@/lib/campaign-workflow"
 import { WorkflowStage } from "@/app/generated/prisma/client"
+import { getScopeId } from "@/lib/auth-helpers"
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const { id } = await params
   const campaign = await prisma.campaign.findFirst({
-    where: { id, userId: session.user.id },
+    where: { id, userId: scopeId },
     include: {
       sequence: { include: { steps: { orderBy: { stepNumber: "asc" } } } },
       campaignLeads: {
@@ -77,13 +79,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const { id } = await params
   const body = await req.json()
 
   // Find the campaign first to check ownership and capture status/autonomous values
   const existing = await prisma.campaign.findFirst({
-    where: { id, userId: session.user.id },
+    where: { id, userId: scopeId },
     select: { status: true, autonomous: true },
   })
 
@@ -106,7 +109,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     after(async () => {
       try {
         const { runLaunchPipeline } = await import("@/lib/campaign-sender")
-        await runLaunchPipeline(id, session.user.id)
+        await runLaunchPipeline(id, scopeId)
       } catch (err) {
         console.error("[Campaign PATCH] Launch pipeline background error:", err)
       }
@@ -116,7 +119,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     after(async () => {
       try {
         const { runLaunchPipeline } = await import("@/lib/campaign-sender")
-        await runLaunchPipeline(id, session.user.id)
+        await runLaunchPipeline(id, scopeId)
       } catch (err) {
         console.error("[Campaign PATCH] Autopilot transition background error:", err)
       }
@@ -129,11 +132,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const { id } = await params
 
   const campaign = await prisma.campaign.findFirst({
-    where: { id, userId: session.user.id },
+    where: { id, userId: scopeId },
     select: { id: true },
   })
   if (!campaign) return NextResponse.json({ error: "Not found" }, { status: 404 })
@@ -152,8 +156,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const exclusiveLeadIds = enrolledLeadIds.filter((lid) => !sharedLeadIds.has(lid))
 
   await prisma.$transaction([
-    prisma.lead.deleteMany({ where: { id: { in: exclusiveLeadIds }, userId: session.user.id } }),
-    prisma.campaign.deleteMany({ where: { id, userId: session.user.id } }),
+    prisma.lead.deleteMany({ where: { id: { in: exclusiveLeadIds }, userId: scopeId } }),
+    prisma.campaign.deleteMany({ where: { id, userId: scopeId } }),
   ])
 
   return NextResponse.json({ deleted: true, leadsDeleted: exclusiveLeadIds.length })

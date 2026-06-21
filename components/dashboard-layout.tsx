@@ -1,8 +1,10 @@
 "use client"
 
-import { Menu, ChevronDown, Briefcase, Search, Bell, User } from "lucide-react"
+import { Menu, ChevronDown, Briefcase, Search, Bell, User, LogOut, Building2, ShieldCheck } from "lucide-react"
 import type { Session } from "next-auth"
+import { signOut } from "next-auth/react"
 import Image from "next/image"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
 import { Sidebar } from "@/components/sidebar"
@@ -15,13 +17,29 @@ interface DashboardLayoutProps {
   children: React.ReactNode
   session?: Session | null
   inboxCount?: number
+  companyName?: string | null
 }
 
-export function DashboardLayout({ children, session, inboxCount = 0 }: DashboardLayoutProps) {
+const ROLE_LABEL: Record<string, string> = {
+  SUPERADMIN: "Superadmin",
+  MANAGER: "Manager",
+  USER: "Member",
+  ADMIN: "Member",
+}
+
+export function DashboardLayout({ children, session, inboxCount = 0, companyName }: DashboardLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [collapsed, setCollapsed]   = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
   const { activePlaybook, playbooks, changePlaybook, isPending } = usePlaybook()
+
+  const isOwner = !session?.user?.teamOwnerId
+  const roleLabel = session?.user?.role === "SUPERADMIN"
+    ? "Superadmin"
+    : isOwner
+      ? "Owner"
+      : (ROLE_LABEL[session?.user?.role ?? "USER"] ?? "Member")
 
   useEffect(() => {
     const handle = () => { if (window.innerWidth < 1024) setMobileOpen(false) }
@@ -139,23 +157,25 @@ export function DashboardLayout({ children, session, inboxCount = 0 }: Dashboard
             </div>
 
             {/* Right Section: Status, Playbook, Notifications, Profile */}
-            <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-4 shrink-0">
               
               {/* Playbook Selector */}
               {playbooks.length > 0 && (
-                <div className="relative hidden sm:block">
+                <div className="relative">
                   <button
                     onClick={() => setDropdownOpen(!dropdownOpen)}
                     disabled={isPending}
                     className={cn(
-                      "flex items-center gap-2 rounded-lg px-3 py-1.5 text-[12px] font-semibold text-white/70 transition-all",
+                      "flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] sm:text-[12px] font-semibold text-white/70 transition-all",
                       "hover:bg-white/[0.06] hover:text-white",
                       isPending ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
                     )}
                   >
-                    <Briefcase className="size-3.5 text-white/40" />
-                    <span>{activePlaybook?.name || "Select"}</span>
-                    <ChevronDown className={cn("size-3.5 text-white/30 transition-transform duration-200", dropdownOpen && "rotate-180")} />
+                    <Briefcase className="size-3.5 text-white/40 shrink-0" />
+                    <span className="truncate max-w-[80px] min-[380px]:max-w-[110px] min-[450px]:max-w-[160px] sm:max-w-none">
+                      {activePlaybook?.name || "Select"}
+                    </span>
+                    <ChevronDown className={cn("size-3 text-white/30 transition-transform duration-200 shrink-0", dropdownOpen && "rotate-180")} />
                   </button>
 
                   {dropdownOpen && (
@@ -200,6 +220,18 @@ export function DashboardLayout({ children, session, inboxCount = 0 }: Dashboard
                 </div>
               )}
 
+              {/* Mobile/Tablet Search Trigger */}
+              <button 
+                onClick={() => {
+                  const event = new KeyboardEvent('keydown', { key: 'k', ctrlKey: true });
+                  window.dispatchEvent(event);
+                }}
+                className="flex md:hidden items-center justify-center size-8 rounded-full hover:bg-white/5 transition-colors text-white/50 hover:text-white shrink-0"
+                title="Search or jump to..."
+              >
+                <Search className="size-4" />
+              </button>
+
               <div className="h-4 w-px bg-white/[0.1] hidden sm:block" />
 
               {/* Systems Live Status (Dot only on desktop, full text maybe hidden or tooltip) */}
@@ -219,15 +251,89 @@ export function DashboardLayout({ children, session, inboxCount = 0 }: Dashboard
               </button>
 
               {/* User Profile / Avatar */}
-              <button className="flex items-center justify-center size-8 rounded-full border border-white/[0.1] overflow-hidden hover:border-white/[0.3] transition-colors ml-1">
-                {session?.user?.image ? (
-                  <Image src={session.user.image} alt="User" width={32} height={32} className="size-full object-cover" />
-                ) : (
-                  <div className="size-full flex items-center justify-center bg-indigo-500/20 text-indigo-300">
-                    <User className="size-4" />
-                  </div>
+              <div className="relative ml-1">
+                <button
+                  onClick={() => setProfileOpen(!profileOpen)}
+                  className="flex items-center justify-center size-8 rounded-full border border-white/[0.1] overflow-hidden hover:border-white/[0.3] transition-colors cursor-pointer"
+                >
+                  {session?.user?.image ? (
+                    <Image src={session.user.image} alt="User" width={32} height={32} className="size-full object-cover" />
+                  ) : (
+                    <div className="size-full flex items-center justify-center bg-indigo-500/20 text-indigo-300">
+                      <User className="size-4" />
+                    </div>
+                  )}
+                </button>
+
+                {profileOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
+                    <div
+                      className="absolute right-0 mt-2 w-64 origin-top-right rounded-xl border border-white/[0.08] p-1.5 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150"
+                      style={{
+                        background: "rgba(22, 24, 30, 0.98)",
+                        backdropFilter: "blur(12px)",
+                      }}
+                    >
+                      <div className="flex items-center gap-3 px-2.5 py-2.5">
+                        <div className="size-9 rounded-full border border-white/[0.1] overflow-hidden shrink-0">
+                          {session?.user?.image ? (
+                            <Image src={session.user.image} alt="User" width={36} height={36} className="size-full object-cover" />
+                          ) : (
+                            <div className="size-full flex items-center justify-center bg-indigo-500/20 text-indigo-300">
+                              <User className="size-4" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-semibold text-white truncate">{session?.user?.name || "User"}</p>
+                          <p className="text-[11px] text-white/40 truncate">{session?.user?.email}</p>
+                        </div>
+                      </div>
+
+                      <div className="h-px bg-white/[0.06] my-1" />
+
+                      <div className="px-2.5 py-1.5 space-y-1.5">
+                        <div className="flex items-center gap-2 text-[12px] text-white/60">
+                          {roleLabel === "Superadmin" ? (
+                            <ShieldCheck className="size-3.5 text-amber-400 shrink-0" />
+                          ) : (
+                            <ShieldCheck className="size-3.5 text-white/30 shrink-0" />
+                          )}
+                          <span className="font-medium">{roleLabel}</span>
+                        </div>
+                        {companyName && (
+                          <div className="flex items-center gap-2 text-[12px] text-white/60">
+                            <Building2 className="size-3.5 text-white/30 shrink-0" />
+                            <span className="truncate">{companyName}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="h-px bg-white/[0.06] my-1" />
+
+                      {roleLabel === "Superadmin" && (
+                        <Link
+                          href="/admin"
+                          onClick={() => setProfileOpen(false)}
+                          className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-medium text-white/70 hover:bg-white/[0.04] hover:text-white transition-all"
+                        >
+                          <ShieldCheck className="size-3.5" />
+                          Platform Overview
+                        </Link>
+                      )}
+
+                      <button
+                        onClick={() => signOut({ callbackUrl: "/sign-in" })}
+                        className="w-full flex items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-medium text-white/70 hover:bg-white/[0.04] hover:text-rose-300 transition-all cursor-pointer"
+                      >
+                        <LogOut className="size-3.5" />
+                        Sign out
+                      </button>
+                    </div>
+                  </>
                 )}
-              </button>
+              </div>
             </div>
           </header>
 

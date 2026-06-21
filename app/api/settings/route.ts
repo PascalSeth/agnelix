@@ -3,16 +3,21 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { generatePlaybookTemplates } from "@/lib/ai"
 
+import { getScopeId, isTeamOwner } from "@/lib/auth-helpers"
+
 export async function GET() {
   const session = await auth()
   if (!session?.user?.id) return new NextResponse("Unauthorized", { status: 401 })
 
+  const scopeId = getScopeId(session)
+  const owner = isTeamOwner(session)
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: scopeId },
     select: {
       agencyName: true,
       fromEmail: true,
-      smtpPass: true,
+      // Only the owner needs to see whether SMTP creds are configured/editable
+      smtpPass: owner,
       smtpHost: true,
       smtpPort: true,
       companyDesc: true,
@@ -31,7 +36,9 @@ export async function GET() {
 export async function PATCH(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return new NextResponse("Unauthorized", { status: 401 })
+  if (!isTeamOwner(session)) return new NextResponse("Only the team owner can update agency settings", { status: 403 })
 
+  const scopeId = getScopeId(session)
   const body = await req.json()
 
   // Validate calendar link if provided
@@ -61,7 +68,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   const user = await prisma.user.update({
-    where: { id: session.user.id },
+    where: { id: scopeId },
     data,
     select: {
       agencyName: true,

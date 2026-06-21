@@ -230,12 +230,12 @@ export function AiAdvisorBubble() {
                   />
                   {/* Solid Center Orb */}
                   <img
-                    src="/logo.png"
-                    alt="Galien"
-                    className="relative size-7 rounded-xl object-contain bg-black/20"
+                    src="/chatbubble.png"
+                    alt="Agnel"
+                    className="relative z-10 size-9 object-contain"
                     style={{
-                      border: "1px solid rgba(255, 255, 255, .2)",
-                      boxShadow: "0 0 12px rgba(99, 102, 241, .4)"
+                      filter: "drop-shadow(0 0 10px rgba(56,189,248,.55)) drop-shadow(0 0 18px rgba(99,102,241,.3))",
+                      animation: "float 3.5s ease-in-out infinite"
                     }}
                   />
                 </div>
@@ -314,13 +314,10 @@ export function AiAdvisorBubble() {
                 >
                   {msg.role === "assistant" && (
                     <img
-                      src="/logo.png"
-                      alt="Galien"
-                      className="size-6 rounded-full shrink-0 mb-0.5 object-contain bg-black/20"
-                      style={{
-                        border: "1px solid rgba(255, 255, 255, 0.15)",
-                        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)"
-                      }}
+                      src="/chatbubble.png"
+                      alt="Agnel"
+                      className="size-7 shrink-0 mb-0.5 object-contain"
+                      style={{ filter: "drop-shadow(0 0 6px rgba(56,189,248,.45))" }}
                     />
                   )}
 
@@ -353,13 +350,10 @@ export function AiAdvisorBubble() {
               {loading && (
                 <div className="flex items-end gap-2.5 msg-appear">
                   <img
-                    src="/logo.png"
-                    alt="Galien"
-                    className="size-6 rounded-full shrink-0 mb-0.5 object-contain bg-black/20"
-                    style={{
-                      border: "1px solid rgba(255, 255, 255, 0.15)",
-                      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)"
-                    }}
+                    src="/chatbubble.png"
+                    alt="Agnel"
+                    className="size-7 shrink-0 mb-0.5 object-contain"
+                    style={{ filter: "drop-shadow(0 0 6px rgba(56,189,248,.45))" }}
                   />
                   <div
                     className="flex items-center gap-1.5 rounded-2xl px-5 py-3.5"
@@ -462,9 +456,13 @@ export function AiAdvisorBubble() {
             <X className="relative z-10 size-5 text-white/60" />
           ) : (
             <img
-              src="/logo.png"
-              alt="Galien"
-              className="relative z-10 size-7 object-contain"
+              src="/chatbubble.png"
+              alt="Agnel"
+              className="relative z-10 size-12 object-contain"
+              style={{
+                animation: "float 3.5s ease-in-out infinite",
+                filter: "drop-shadow(0 0 14px rgba(56,189,248,.6)) drop-shadow(0 0 28px rgba(99,102,241,.35))",
+              }}
             />
           )}
         </div>

@@ -9,6 +9,8 @@ import { LeadStatus } from "@/app/generated/prisma/client"
 
 type SearchParams = { q?: string; status?: string; campaignId?: string }
 
+import { getScopeId } from "@/lib/auth-helpers"
+
 export default async function LeadsPage({
   searchParams,
 }: {
@@ -16,7 +18,7 @@ export default async function LeadsPage({
 }) {
   const session = await auth()
   const { q, status, campaignId } = await searchParams
-  const userId = session?.user?.id ?? ""
+  const userId = session ? getScopeId(session) : ""
 
   let leads: LeadRow[] = []
   let total = 0

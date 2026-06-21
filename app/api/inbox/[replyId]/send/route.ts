@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { sendEmail, resolveSmtp } from "@/lib/email"
+import { getScopeId } from "@/lib/auth-helpers"
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ replyId: string }> }) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const { replyId } = await params
   const { subject, body } = await req.json()
@@ -15,7 +17,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ rep
   }
 
   const reply = await prisma.reply.findFirst({
-    where: { id: replyId, lead: { userId: session.user.id } },
+    where: { id: replyId, lead: { userId: scopeId } },
     include: {
       lead: {
         select: {

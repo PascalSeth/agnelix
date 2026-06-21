@@ -32,6 +32,8 @@ const LEAD_STATUS: Record<string, { text: string; bg: string }> = {
   BOUNCED:        { text: "text-red-400",     bg: "rgba(239,68,68,.1)"    },
 }
 
+import { getScopeId } from "@/lib/auth-helpers"
+
 export default async function LeadDetailPage({
   params,
 }: {
@@ -41,7 +43,7 @@ export default async function LeadDetailPage({
   if (!session?.user?.id) notFound()
 
   const { id } = await params
-  const userId = session.user.id
+  const userId = getScopeId(session)
 
   let lead: any = null
   try {

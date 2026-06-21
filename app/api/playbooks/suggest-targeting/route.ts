@@ -2,16 +2,18 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { suggestTargeting } from "@/lib/ai"
 import { NextResponse } from "next/server"
+import { getScopeId } from "@/lib/auth-helpers"
 
 export async function POST() {
   const session = await auth()
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const scopeId = getScopeId(session)
 
   try {
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: scopeId },
       select: {
         agencyName: true,
         companyDesc: true,

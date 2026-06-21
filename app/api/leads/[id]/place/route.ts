@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
+import { getScopeId } from "@/lib/auth-helpers"
 
 export async function GET(
   req: NextRequest,
@@ -8,6 +9,7 @@ export async function GET(
 ) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const { id } = await params
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
@@ -16,7 +18,7 @@ export async function GET(
 
   try {
     const lead = await prisma.lead.findUnique({
-      where: { id, userId: session.user.id },
+      where: { id, userId: scopeId },
       select: { googlePlaceId: true, company: true, website: true }
     })
 

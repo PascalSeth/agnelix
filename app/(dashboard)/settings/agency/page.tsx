@@ -226,6 +226,13 @@ export default function AgencySettingsPage() {
     </div>
   )
 
+  if (session?.user?.teamOwnerId) return (
+    <div className="mx-auto max-w-lg py-20 text-center space-y-2">
+      <p className="text-sm font-semibold text-white/60">Only the team owner can manage agency settings</p>
+      <p className="text-xs text-white/30">Ask the team owner to update branding, SMTP, or your calendar link.</p>
+    </div>
+  )
+
   return (
     <div className="mx-auto max-w-4xl space-y-6 pb-12 animate-fadeIn">
 

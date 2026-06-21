@@ -3,11 +3,15 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
 
+import { getScopeId } from "@/lib/auth-helpers";
+
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const scopeId = getScopeId(session);
 
   try {
     const { playbookType } = await req.json();
@@ -17,7 +21,7 @@ export async function POST(req: Request) {
 
     // Update user's active playbook
     const updatedUser = await prisma.user.update({
-      where: { id: session.user.id },
+      where: { id: scopeId },
       data: { playbookType },
     });
 

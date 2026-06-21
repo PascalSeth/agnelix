@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db"
 import { generateEmail } from "@/lib/ai"
 import { performCompanyResearch } from "@/lib/research"
 import * as cheerio from "cheerio"
+import { getScopeId } from "@/lib/auth-helpers"
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
@@ -63,13 +64,14 @@ export async function POST(
 ) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const { id: campaignId, leadId } = await params
   const { approach } = await req.json()
 
   // 1. Verify campaign ownership and load sequence steps
   const campaign = await prisma.campaign.findFirst({
-    where: { id: campaignId, userId: session.user.id },
+    where: { id: campaignId, userId: scopeId },
     include: {
       sequence: { include: { steps: { orderBy: { stepNumber: "asc" } } } },
       user: true
@@ -79,7 +81,7 @@ export async function POST(
 
   // 2. Fetch the target lead
   const lead = await prisma.lead.findFirst({
-    where: { id: leadId, userId: session.user.id }
+    where: { id: leadId, userId: scopeId }
   })
   if (!lead) return NextResponse.json({ error: "Lead not found" }, { status: 404 })
 
@@ -161,7 +163,7 @@ export async function POST(
 
     const generated = await generateEmail(
       {
-        userId:            session.user.id,
+        userId:            scopeId,
         senderName:        user.name || "Your Name",
         senderTitle:       user.title || "Marketing Consultant",
         senderCompany:     user.agencyName || user.companyName || "Your Company",

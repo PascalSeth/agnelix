@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { cancelledEnrichments } from "@/lib/lead-enricher"
+import { getScopeId } from "@/lib/auth-helpers"
 
 export async function POST(
   _req: NextRequest,
@@ -11,12 +12,13 @@ export async function POST(
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const scopeId = getScopeId(session)
 
   const { id } = await params
 
   // Verify the lead belongs to the user
   const lead = await prisma.lead.findFirst({
-    where: { id, userId: session.user.id },
+    where: { id, userId: scopeId },
   })
 
   if (!lead) {

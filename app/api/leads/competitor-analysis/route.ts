@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { generateCompetitorAnalysis } from "@/lib/ai"
+import { getScopeId } from "@/lib/auth-helpers"
 
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const body = await req.json()
   const { leadId, competitorName, competitorWebsite, competitorNotes } = body
@@ -14,7 +16,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "leadId and competitorName are required" }, { status: 400 })
   }
 
-  const lead = await prisma.lead.findFirst({ where: { id: leadId, userId: session.user.id } })
+  const lead = await prisma.lead.findFirst({ where: { id: leadId, userId: scopeId } })
   if (!lead) return NextResponse.json({ error: "Lead not found" }, { status: 404 })
 
   const analysis = await generateCompetitorAnalysis({

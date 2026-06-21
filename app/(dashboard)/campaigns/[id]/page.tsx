@@ -4,6 +4,8 @@ import { notFound } from "next/navigation"
 import { prisma } from "@/lib/db"
 import { CampaignPageShell } from "@/components/campaign-page-shell"
 
+import { getScopeId } from "@/lib/auth-helpers"
+
 export default async function CampaignDetailPage({
   params,
   searchParams,
@@ -12,13 +14,17 @@ export default async function CampaignDetailPage({
   searchParams: Promise<{ new?: string }>
 }) {
   const session = await auth()
+  if (!session?.user?.id) notFound()
+
   const { id } = await params
   const { new: isNew } = await searchParams
+
+  const scopeId = getScopeId(session)
 
   let campaign: any = null
   try {
     campaign = await prisma.campaign.findUnique({
-      where: { id, userId: session?.user?.id ?? "" },
+      where: { id, userId: scopeId },
       include: {
         sequence: {
           select: {

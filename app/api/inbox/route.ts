@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
+import { getScopeId } from "@/lib/auth-helpers"
 
 export async function GET() {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const replies = await prisma.reply.findMany({
-    where: { lead: { userId: session.user.id } },
+    where: { lead: { userId: scopeId } },
     include: {
       lead: {
         select: {

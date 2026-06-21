@@ -64,6 +64,7 @@ const navGroups = [
     items: [
       { href: "/settings/autopilot", label: "Autopilot", icon: Bot },
       { href: "/settings/agency",    label: "Agency Profile", icon: Settings },
+      { href: "/settings/team",      label: "Team Seats", icon: Users },
     ],
   },
 ]
@@ -146,7 +147,7 @@ export function Sidebar({ session, collapsed, mobileOpen, inboxCount = 0, onMobi
               </div>
             )}
             <div className="space-y-0.5">
-              {group.items.map((item) => {
+              {group.items.filter(item => item.href !== "/settings/agency" || !session?.user?.teamOwnerId).map((item) => {
                 const active =
                   pathname === item.href ||
                   (item.href !== "/dashboard" && pathname.startsWith(item.href))

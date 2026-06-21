@@ -6,8 +6,11 @@ import Link from "next/link"
 import { Plus, Megaphone, Layers, Users, Mail, MessageSquare, Calendar } from "lucide-react"
 import { pct } from "@/lib/utils"
 
+import { getScopeId } from "@/lib/auth-helpers"
+
 export default async function CampaignsPage() {
   const session = await auth()
+  const scopeId = session ? getScopeId(session) : ""
   let campaigns: {
     id: string; name: string; status: string; totalLeads: number
     emailsSent: number; emailsOpened: number; emailsClicked: number
@@ -16,7 +19,7 @@ export default async function CampaignsPage() {
 
   try {
     campaigns = await prisma.campaign.findMany({
-      where: { userId: session?.user?.id ?? "" },
+      where: { userId: scopeId },
       orderBy: { updatedAt: "desc" },
     })
   } catch {

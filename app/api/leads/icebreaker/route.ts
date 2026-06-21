@@ -3,6 +3,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import OpenAI from "openai"
 import type { BusinessProfile } from "@/app/api/leads/research/route"
+import { getScopeId } from "@/lib/auth-helpers"
 
 const TONE_GUIDE: Record<string, string> = {
   "Professional":  "professional and measured — authoritative without being stiff, polished without being corporate",
@@ -279,6 +280,7 @@ Write the opening now:`
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   let body: RequestBody
   try { body = await req.json() }
@@ -292,7 +294,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: scopeId },
       select: { agencyName: true, companyName: true, companyDesc: true, tone: true },
     })
     if (user?.tone)  tone   = user.tone

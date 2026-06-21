@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
+import { getScopeId } from "@/lib/auth-helpers"
 
 export async function GET() {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const searches = await prisma.autoSearch.findMany({
-    where: { userId: session.user.id },
+    where: { userId: scopeId },
     include: {
       sequence: { select: { name: true } },
       campaign: { select: { id: true, name: true } },
@@ -21,6 +23,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const { query, location, sequenceId, campaignName, campaignId, frequency } = await req.json()
 
@@ -33,7 +36,7 @@ export async function POST(req: NextRequest) {
 
   const search = await prisma.autoSearch.create({
     data: {
-      userId: session.user.id,
+      userId: scopeId,
       query: query.trim(),
       location: location.trim(),
       sequenceId,

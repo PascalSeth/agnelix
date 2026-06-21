@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
+import { getScopeId } from "@/lib/auth-helpers"
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const { id } = await params
   const proposal = await prisma.proposal.findFirst({
-    where: { id, userId: session.user.id },
+    where: { id, userId: scopeId },
     include: { lead: { select: { id: true, firstName: true, lastName: true, company: true, email: true, industry: true } } },
   })
   if (!proposal) return NextResponse.json({ error: "Not found" }, { status: 404 })
@@ -19,9 +21,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const { id } = await params
-  const existing = await prisma.proposal.findFirst({ where: { id, userId: session.user.id } })
+  const existing = await prisma.proposal.findFirst({ where: { id, userId: scopeId } })
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
   const body = await req.json()
@@ -72,9 +75,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const { id } = await params
-  const existing = await prisma.proposal.findFirst({ where: { id, userId: session.user.id } })
+  const existing = await prisma.proposal.findFirst({ where: { id, userId: scopeId } })
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
   await prisma.proposal.delete({ where: { id } })

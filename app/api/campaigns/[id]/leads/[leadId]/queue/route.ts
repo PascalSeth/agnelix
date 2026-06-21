@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { sendEmailImmediately } from "@/lib/scheduler"
+import { getScopeId } from "@/lib/auth-helpers"
 
 export async function POST(
   req: NextRequest,
@@ -9,12 +10,13 @@ export async function POST(
 ) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const scopeId = getScopeId(session)
 
   const { id: campaignId, leadId } = await params
 
   // 1. Verify campaign ownership
   const campaign = await prisma.campaign.findFirst({
-    where: { id: campaignId, userId: session.user.id },
+    where: { id: campaignId, userId: scopeId },
   })
   if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 })
 
