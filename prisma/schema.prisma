@@ -99,6 +99,7 @@ model User {
   smtpPort       Int?
   onboardingDone Boolean @default(false)
   calendarLink   String?
+  lastTrialAt    DateTime?
 
   // NEW: Playbook & Identity
   playbookType     String? @default("sales")

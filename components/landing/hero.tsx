@@ -1,21 +1,22 @@
 "use client"
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { 
-  Sparkles, 
-  Play, 
-  CheckCircle2, 
-  Bot, 
-  Search, 
-  Mail, 
-  CalendarCheck, 
+import { useState } from "react"
+import {
+  Sparkles,
+  Play,
+  CheckCircle2,
+  Bot,
+  Search,
+  Mail,
+  CalendarCheck,
   ArrowRight,
   User,
   Zap,
   Calendar
 } from "lucide-react"
 import { CtaLink } from "@/components/landing/cta-link"
-import Link from "next/link"
+import { TryGalienModal } from "@/components/landing/try-galien-modal"
 import dynamic from "next/dynamic"
 
 const HeroRobot3D = dynamic(
@@ -28,6 +29,8 @@ const HeroRobot3D = dynamic(
 
 
 export function Hero() {
+  const [tryOpen, setTryOpen] = useState(false)
+
   return (
     <section className="relative overflow-hidden pt-20 pb-10 lg:pt-24 lg:pb-12 bg-transparent min-h-[70vh] flex items-center">
       {/* Background soft lighting glow */}
@@ -80,10 +83,13 @@ export function Hero() {
                   <ArrowRight className="ml-2 h-3.5 w-3.5" />
                 </CtaLink>
               </div>
-              <Link href="/playground" className="group flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.02] px-6 py-2.5 text-xs font-semibold text-slate-300 transition-all hover:bg-white/[0.06] hover:border-white/[0.15] shadow-sm backdrop-blur-md">
+              <button
+                onClick={() => setTryOpen(true)}
+                className="group flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.02] px-6 py-2.5 text-xs font-semibold text-slate-300 transition-all hover:bg-white/[0.06] hover:border-white/[0.15] shadow-sm backdrop-blur-md"
+              >
                 <Play className="h-3.5 w-3.5 text-[#c5a880] transition-transform group-hover:scale-110" />
-                Watch Demo
-              </Link>
+                Try Galien
+              </button>
             </div>
 
             {/* Trust Markers */}
@@ -167,6 +173,8 @@ export function Hero() {
 
         </div>
       </div>
+
+      <TryGalienModal open={tryOpen} onOpenChange={setTryOpen} />
     </section>
   )
 }
