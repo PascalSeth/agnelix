@@ -49,6 +49,8 @@ export async function POST(req: NextRequest) {
       responseStyle,
       calendarLink: user.calendarLink,
       personaConfig: user.agentGoal?.personaConfig,
+      playbookType: user.playbookType,
+      userId: user.id,
     })
 
     const latencyMs = Date.now() - start

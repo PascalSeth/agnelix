@@ -18,8 +18,9 @@ export function CSVUpload({ onParsed }: CSVUploadProps) {
 
   const handleFile = useCallback(
     async (file: File) => {
-      if (!file.name.endsWith(".csv")) {
-        setError("Please upload a .csv file")
+      const fileNameLower = file.name.toLowerCase()
+      if (!fileNameLower.endsWith(".csv") && !fileNameLower.endsWith(".tsv") && !fileNameLower.endsWith(".txt")) {
+        setError("Please upload a .csv, .tsv, or .txt file")
         return
       }
       setLoading(true)
@@ -32,7 +33,7 @@ export function CSVUpload({ onParsed }: CSVUploadProps) {
         return
       }
       if (!result.leads.length) {
-        setError("No valid leads found. Ensure the CSV has an email column.")
+        setError("No valid leads found. Ensure the CSV has an email column or valid email addresses.")
         return
       }
       setParsed({ leads: result.leads, skipped: result.skipped })
@@ -78,13 +79,13 @@ export function CSVUpload({ onParsed }: CSVUploadProps) {
             {loading ? "Parsing…" : "Drop your CSV here or click to browse"}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Columns: email, first_name, last_name, company, title, website
+            Columns: email, first_name, last_name, company, title, industry, website
           </p>
         </div>
         <input
           ref={inputRef}
           type="file"
-          accept=".csv"
+          accept=".csv,text/csv,.tsv,text/tab-separated-values,.txt"
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0]
@@ -119,17 +120,20 @@ export function CSVUpload({ onParsed }: CSVUploadProps) {
             Preview (first 5)
           </div>
           <div className="divide-y divide-border">
-            {parsed.leads.slice(0, 5).map((lead, i) => (
-              <div key={i} className="flex items-center gap-3 px-4 py-2.5 text-sm">
-                <span className="font-medium">
-                  {lead.firstName} {lead.lastName}
-                </span>
-                <span className="text-muted-foreground">{lead.email}</span>
-                {lead.company && (
-                  <span className="ml-auto text-xs text-muted-foreground">{lead.company}</span>
-                )}
-              </div>
-            ))}
+            {parsed.leads.slice(0, 5).map((lead, i) => {
+              const fullName = [lead.firstName, lead.lastName].filter(Boolean).join(" ")
+              return (
+                <div key={i} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+                  <span className="font-medium text-white/90">
+                    {fullName || "—"}
+                  </span>
+                  <span className="text-muted-foreground">{lead.email}</span>
+                  {lead.company && (
+                    <span className="ml-auto text-xs text-muted-foreground">{lead.company}</span>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

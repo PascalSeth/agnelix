@@ -1,154 +1,143 @@
-/* eslint-disable @typescript-eslint/no-unused-vars, @next/next/no-img-element */
-import { MapPin, Brain, Bot, BarChart3, Zap, Swords, Mail, Sparkles, User, Crosshair } from "lucide-react"
+"use client"
+
+import { MapPin, Brain, Bot, BarChart3, Zap, Swords, Mail, User, Crosshair, FileUp, ShieldCheck, Globe, Sparkles } from "lucide-react"
+import { ChatBubbleIcon } from "@/components/ui/chat-bubble-icon"
 
 export function BentoFeatures() {
   return (
-    <section className="relative bg-[#111216] py-24 lg:py-32 overflow-hidden">
-      
+    <section className="relative bg-[#0d0e12] py-24 lg:py-32 overflow-hidden" id="features">
       {/* Background Glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[400px] bg-[#c5a880]/10 blur-[120px] pointer-events-none" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[400px] bg-[#c5a880]/[0.03] blur-[140px] pointer-events-none" />
 
-      <div className="mx-auto max-w-7xl px-6 relative z-10">
-        <div className="anim-fade-up text-center mb-16 lg:mb-24">
-          <h2 className="text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-6xl font-luxury-sans">
-            Everything you need,
-            <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#c5a880] to-[#e6d5b8]">in one place.</span>
+      <div className="mx-auto max-w-7xl px-6 relative z-10 space-y-16">
+        {/* Section Header */}
+        <div className="text-center max-w-3xl mx-auto space-y-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3.5 py-1.5 text-xs font-semibold text-white/80 backdrop-blur-md shadow-sm">
+            <ChatBubbleIcon className="size-3.5" />
+            <span>Autonomous Agency Capabilities</span>
+          </div>
+
+          <h2 className="text-4xl font-extrabold tracking-tight text-white md:text-5xl lg:text-6xl font-luxury-sans">
+            Every pipeline tool you need,{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#c5a880] to-[#e6d5b8]">
+              in one autonomous OS.
+            </span>
           </h2>
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-400 font-medium">
-            No more juggling five different tools. Galien finds leads, writes emails, manages your deals, and follows up — all by itself.
+
+          <p className="text-base sm:text-lg text-slate-400 font-medium leading-relaxed">
+            Eliminate disconnected scrapers, template plugins, and clunky CRMs. Galien discovers leads, drafts direct-response hooks, overcomes objections, and tracks revenue.
           </p>
         </div>
 
         {/* BENTO GRID */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4 auto-rows-[220px]">
-
-          {/* 1. Lead Discovery - Large (2x2) */}
-          <div className="anim-fade-up group relative col-span-1 md:col-span-2 row-span-2 overflow-hidden rounded-[2rem] bg-[#16181D] border border-white/5 transition-colors hover:bg-[#1A1C23] hover:border-[#c5a880]/30" style={{ animationDelay: "0.15s" }}>
-            
-            {/* Abstract Background Image */}
-            <div className="absolute inset-0 h-[60%] overflow-hidden">
-              <img 
-                src="https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=1000&auto=format&fit=crop" 
-                alt="Dark map" 
-                className="w-full h-full object-cover opacity-20 mix-blend-screen transition-transform duration-700 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#16181D] via-[#16181D]/80 to-transparent transition-colors group-hover:from-[#1A1C23]" />
-              
-              {/* Floating UI Overlay */}
-              <div className="absolute top-8 left-1/2 -translate-x-1/2 w-[80%] rounded-xl bg-white/5 backdrop-blur-md border border-white/10 p-3 shadow-2xl">
-                <div className="flex items-center gap-2 border-b border-white/10 pb-2 mb-2">
-                  <MapPin className="h-3 w-3 text-[#c5a880]" />
-                  <span className="text-xs font-semibold text-white">Targeting: Plumbers in Austin, TX</span>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-5">
+          {/* Card 1: Verified Lead Discovery */}
+          <div className="rounded-3xl bg-white/[0.02] border border-white/10 p-7 flex flex-col justify-between hover:border-white/20 transition-all duration-300 shadow-xl group">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400">
+                  <Crosshair className="size-5" />
                 </div>
-                <div className="space-y-1.5">
-                  <div className="flex justify-between items-center bg-[#c5a880]/10 rounded px-2 py-1">
-                    <span className="text-[10px] text-[#c5a880]">Found 245 verified leads</span>
-                    <Sparkles className="h-3 w-3 text-[#c5a880]" />
-                  </div>
-                  <div className="flex justify-between items-center bg-white/5 rounded px-2 py-1">
-                    <span className="text-[10px] text-slate-400">Extracting emails & LinkedIn profiles...</span>
-                  </div>
-                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded">
+                  Discovery Engine
+                </span>
               </div>
-            </div>
-
-            {/* Content */}
-            <div className="absolute bottom-0 inset-x-0 p-8">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#c5a880]/10 border border-[#c5a880]/20">
-                  <MapPin className="h-5 w-5 text-[#c5a880]" />
-                </div>
-                <div className="rounded-full bg-[#c5a880]/10 border border-[#c5a880]/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#c5a880]">Core Engine</div>
-              </div>
-              <h3 className="text-2xl font-bold text-white font-luxury-sans">Lead Discovery</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-400 font-medium max-w-md">
-                Tell Galien the type of business and the city. It pulls their name, website, phone number, and ratings — then finds a direct email address for each one.
+              <h3 className="text-xl font-bold text-white">Verified Lead Discovery</h3>
+              <p className="text-xs sm:text-[13px] text-white/50 leading-relaxed">
+                Extract high-intent decision-makers, direct emails, phone numbers, and buying signals across Google Maps, LinkedIn, and local business directories with zero bounce risk.
               </p>
             </div>
           </div>
 
-          {/* 2. AI Email Writer (1x1) */}
-          <div className="anim-fade-up group relative overflow-hidden rounded-[2rem] bg-[#16181D] border border-white/5 transition-colors hover:bg-[#1A1C23] hover:border-[#c5a880]/30 p-6 flex flex-col justify-between" style={{ animationDelay: "0.2s" }}>
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <Brain className="h-24 w-24 text-[#c5a880]" />
-            </div>
-            <div className="relative z-10">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 border border-white/10 mb-4">
-                <Brain className="h-5 w-5 text-[#c5a880]" />
+          {/* Card 2: Direct-Response Copywriting */}
+          <div className="rounded-3xl bg-white/[0.02] border border-white/10 p-7 flex flex-col justify-between hover:border-white/20 transition-all duration-300 shadow-xl group">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                  <Brain className="size-5" />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">
+                  Sales Psychology
+                </span>
               </div>
-              <h3 className="font-bold text-white font-luxury-sans text-lg">AI Email Writer</h3>
-              <p className="mt-2 text-xs leading-relaxed text-slate-400 font-medium">
-                Reads each prospect&apos;s website and writes a personal email — not a generic template.
+              <h3 className="text-xl font-bold text-white">Direct-Response Copywriting</h3>
+              <p className="text-xs sm:text-[13px] text-white/50 leading-relaxed">
+                Trained on proven direct-response frameworks (Pain-Proof-Plan, Tactical Empathy, High-Status Positioning). Galien crafts emails that command attention without looking like generic AI.
               </p>
             </div>
           </div>
 
-          {/* 3. Autonomous Agent (1x1) */}
-          <div className="anim-fade-up group relative overflow-hidden rounded-[2rem] bg-[#16181D] border border-white/5 transition-colors hover:bg-[#1A1C23] hover:border-[#c5a880]/30 p-6 flex flex-col justify-between" style={{ animationDelay: "0.25s" }}>
-            <div className="absolute inset-0 bg-gradient-to-br from-[#c5a880]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-            <div className="relative z-10">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#c5a880]/10 border border-[#c5a880]/20 mb-4">
-                <Bot className="h-5 w-5 text-[#c5a880]" />
+          {/* Card 3: PDF Sales SOP Ingestion */}
+          <div className="rounded-3xl bg-white/[0.02] border border-white/10 p-7 flex flex-col justify-between hover:border-white/20 transition-all duration-300 shadow-xl group">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
+                  <FileUp className="size-5" />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded">
+                  Company Memory
+                </span>
               </div>
-              <h3 className="font-bold text-white font-luxury-sans text-lg">Autonomous Agent</h3>
-              <p className="mt-2 text-xs leading-relaxed text-slate-400 font-medium">
-                When a prospect replies, Galien reads it, responds, and can book the meeting — no extra work from you.
+              <h3 className="text-xl font-bold text-white">PDF Sales SOP Ingestion</h3>
+              <p className="text-xs sm:text-[13px] text-white/50 leading-relaxed">
+                Drag and drop your company handbooks, pricing decks, or onboarding SOPs. Galien dynamically extracts strict company rules and enforces them across your entire team.
               </p>
             </div>
           </div>
 
-          {/* 4. Pipeline & CRM - Wide (2x1) */}
-          <div className="anim-fade-up group relative col-span-1 md:col-span-2 overflow-hidden rounded-[2rem] bg-[#16181D] border border-white/5 transition-colors hover:bg-[#1A1C23] hover:border-[#c5a880]/30 p-6" style={{ animationDelay: "0.3s" }}>
-            <div className="flex h-full flex-col sm:flex-row gap-6 relative z-10">
-              <div className="flex-1 flex flex-col justify-center">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 border border-white/10 mb-4">
-                  <BarChart3 className="h-5 w-5 text-[#c5a880]" />
+          {/* Card 4: 24/7 Autopilot Objection Handling */}
+          <div className="rounded-3xl bg-white/[0.02] border border-white/10 p-7 flex flex-col justify-between hover:border-white/20 transition-all duration-300 shadow-xl group">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                  <Bot className="size-5" />
                 </div>
-                <h3 className="font-bold text-lg text-white font-luxury-sans">Pipeline &amp; CRM</h3>
-                <p className="mt-2 text-xs leading-relaxed text-slate-400 font-medium">
-                  See every lead and deal in one place — from first email to closed deal — so you always know what&apos;s happening.
-                </p>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
+                  Smart Rebuttal
+                </span>
               </div>
-              {/* UI Mockup of Kanban */}
-              <div className="hidden sm:flex flex-1 gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
-                <div className="flex-1 bg-white/5 rounded-lg border border-white/10 p-2 space-y-2">
-                  <div className="h-2 w-1/2 bg-slate-500/30 rounded" />
-                  <div className="h-8 w-full bg-[#c5a880]/20 border border-[#c5a880]/30 rounded-md" />
-                  <div className="h-8 w-full bg-white/5 rounded-md" />
-                </div>
-                <div className="flex-1 bg-white/5 rounded-lg border border-white/10 p-2 space-y-2">
-                  <div className="h-2 w-1/2 bg-[#c5a880]/50 rounded" />
-                  <div className="h-8 w-full bg-white/5 rounded-md" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* 5. Battle Cards - Wide (2x1) */}
-          <div className="anim-fade-up group relative col-span-1 md:col-span-2 overflow-hidden rounded-[2rem] bg-[#16181D] border border-white/5 transition-colors hover:bg-[#1A1C23] hover:border-[#c5a880]/30 p-6" style={{ animationDelay: "0.35s" }}>
-            
-            {/* Abstract Background for wide card */}
-            <div className="absolute top-0 right-0 h-full w-1/2">
-              <img 
-                src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=800&auto=format&fit=crop" 
-                alt="Cyber background" 
-                className="h-full w-full object-cover opacity-10 mix-blend-screen transition-transform duration-700 group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-[#16181D] via-[#16181D]/80 to-transparent transition-colors group-hover:from-[#1A1C23]" />
-            </div>
-
-            <div className="relative z-10 flex h-full flex-col justify-center max-w-[60%]">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#c5a880]/10 border border-[#c5a880]/20 mb-4">
-                <Swords className="h-5 w-5 text-[#c5a880]" />
-              </div>
-              <h3 className="font-bold text-lg text-white font-luxury-sans">Battle Cards</h3>
-              <p className="mt-2 text-xs leading-relaxed text-slate-400 font-medium">
-                When a prospect replies, Galien instantly gives you a one-page cheat sheet — what to say, how to handle objections, and what to do next.
+              <h3 className="text-xl font-bold text-white">24/7 Objection Rebuttals</h3>
+              <p className="text-xs sm:text-[13px] text-white/50 leading-relaxed">
+                When a prospect replies with pricing pushback or &quot;send more info&quot;, Galien uses calm consulting authority to reframe the value and book the call on your calendar.
               </p>
             </div>
           </div>
 
+          {/* Card 5: Pipeline & Telemetry Insights */}
+          <div className="rounded-3xl bg-white/[0.02] border border-white/10 p-7 flex flex-col justify-between hover:border-white/20 transition-all duration-300 shadow-xl group">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
+                  <BarChart3 className="size-5" />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded">
+                  Pipeline Intelligence
+                </span>
+              </div>
+              <h3 className="text-xl font-bold text-white">Telemetry & Insights Hub</h3>
+              <p className="text-xs sm:text-[13px] text-white/50 leading-relaxed">
+                Visual funnel drop-off charts, 7-day reply trends, objection heatmaps, and 1-click Galien AI strategic briefings to unblock pipeline bottlenecks instantly.
+              </p>
+            </div>
+          </div>
+
+          {/* Card 6: White-Label Client Portals */}
+          <div className="rounded-3xl bg-white/[0.02] border border-white/10 p-7 flex flex-col justify-between hover:border-white/20 transition-all duration-300 shadow-xl group">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="p-2.5 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400">
+                  <Globe className="size-5" />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-teal-400 bg-teal-500/10 px-2 py-0.5 rounded">
+                  Agency Scale
+                </span>
+              </div>
+              <h3 className="text-xl font-bold text-white">White-Label Client Portals</h3>
+              <p className="text-xs sm:text-[13px] text-white/50 leading-relaxed">
+                Deliver custom-branded client dashboards, real-time ROI reports, and dedicated proposals under your own domain to impress retainers and scale enterprise contracts.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </section>

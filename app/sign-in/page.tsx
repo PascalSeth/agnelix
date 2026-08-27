@@ -70,7 +70,7 @@ function SignInForm() {
         {/* Logo */}
         <div className="mb-8 flex justify-center">
           <Link href="/" className="transition-opacity hover:opacity-80">
-            <Image src="/logo-hq.png" alt="Galien" width={130} height={52} className="object-contain" loading="eager" priority />
+            <Image src="/logo-hq.png" alt="Galien" width={130} height={52} style={{ width: "auto", height: "auto" }} className="object-contain" loading="eager" priority />
           </Link>
         </div>
 

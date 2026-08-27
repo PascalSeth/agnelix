@@ -1,6 +1,7 @@
 import { prisma } from "./db"
 import { classifyReply, generateReplyDraft } from "./ai"
 import { evaluateRiskPolicy, getOrCreateAgentGoal } from "./agent-core"
+import { getWorkspace } from "./workspaces"
 
 function detectMeetingIntent(replyBody: string): boolean {
   const lower = replyBody.toLowerCase()
@@ -57,6 +58,7 @@ export async function processReply(replyId: string): Promise<void> {
               companyName: true, companyDesc: true, tone: true,
               fromEmail: true, smtpPass: true, smtpHost: true, smtpPort: true,
               title: true, calendarLink: true, playbookType: true,
+              lastActiveAt: true,
             },
           },
         },
@@ -66,7 +68,7 @@ export async function processReply(replyId: string): Promise<void> {
           id: true,
           subject: true,
           body: true,
-          campaign: { select: { autonomous: true } },
+          campaign: { select: { autonomous: true, playbookType: true } },
         }
       },
     },
@@ -125,28 +127,42 @@ export async function processReply(replyId: string): Promise<void> {
     confidence: classification.confidence,
     replyBody: reply.body,
   })
-  // AI determines priority based on risk level and actively replies on a random timeline
+  // AI determines priority based on intent criticality, risk level, and user online/offline presence
   const isHighPriority = policy.riskLevel === "HIGH"
   
-  const lowPriorityDelayMins = goal.lowPriorityDelayMins ?? 2
-  const highPriorityDelayMins = goal.highPriorityDelayMins ?? 15
+  // 1. Check if user is actively online in the dashboard (active within last 10 minutes)
+  const isUserOnline = user.lastActiveAt ? (Date.now() - new Date(user.lastActiveAt).getTime()) < 10 * 60 * 1000 : false
 
-  let randomDelayMs = 0
-  if (isHighPriority) {
-    if (highPriorityDelayMins > 0) {
-      const maxMins = highPriorityDelayMins
-      const minMins = Math.max(0, maxMins - 5)
-      randomDelayMs = (Math.random() * (maxMins - minMins) + minMins) * 60 * 1000
-    }
+  // 2. Determine base delay based on message criticality & intent
+  let targetDelayMins = 2
+  if (intent === "INTERESTED" || meetingRequested) {
+    // Critical / Hot Leads: fastest response to capture warm prospect
+    targetDelayMins = goal.criticalDelayMins ?? 1
+  } else if (intent === "QUESTION") {
+    // Medium Criticality: Inquiries & feature questions
+    targetDelayMins = goal.questionDelayMins ?? 5
+  } else if (intent === "OBJECTION" || intent === "NOT_NOW") {
+    // Sensitive Criticality: Objections & timing friction
+    targetDelayMins = goal.objectionDelayMins ?? 15
   } else {
-    if (lowPriorityDelayMins > 0) {
-      const maxMins = lowPriorityDelayMins
-      const minMins = Math.max(0, maxMins - 1)
-      randomDelayMs = (Math.random() * (maxMins - minMins) + minMins) * 60 * 1000
-    }
+    // Low Criticality / Generic
+    targetDelayMins = isHighPriority ? (goal.highPriorityDelayMins ?? 15) : (goal.lowPriorityDelayMins ?? 30)
+  }
+
+  // 3. Apply Offline Auto-Pilot Override
+  if (!isUserOnline && goal.autoSendOnlyWhenOffline) {
+    targetDelayMins = goal.offlineDelayMins ?? 2
+  } else if (isUserOnline && goal.autoSendOnlyWhenOffline) {
+    targetDelayMins = Math.max(targetDelayMins, goal.reviewWindowMins ?? 5)
+  }
+
+  let delayMs = 0
+  if (targetDelayMins > 0) {
+    const jitterMs = Math.floor((Math.random() * 20 - 10) * 1000)
+    delayMs = Math.max(0, targetDelayMins * 60 * 1000 + jitterMs)
   }
   
-  const expiresAt = new Date(Date.now() + randomDelayMs)
+  const expiresAt = new Date(Date.now() + delayMs)
 
   // OOO — pause follow-ups, queue a stage note
   if (intent === "OOO") {
@@ -232,20 +248,52 @@ export async function processReply(replyId: string): Promise<void> {
   ]
   thread.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
 
-  // Format the thread history into a transcript block
-  const conversationHistory = thread
-    .map(msg => `- ${msg.type.toUpperCase()}: ${msg.body}`)
-    .join("\n")
+  // Format the thread history into a transcript block. Keep it signal-dense:
+  // only the last 12 messages, each trimmed, and the latest reply clearly
+  // marked so the model answers *that* instead of drifting across the thread.
+  const recentThread = thread.slice(-12)
+  const conversationHistory = recentThread
+    .map((msg, i) => {
+      const who = msg.type === "outgoing" ? "YOU" : "PROSPECT"
+      const body = msg.body.length > 600 ? msg.body.slice(0, 600).trimEnd() + " […trimmed]" : msg.body
+      const isLatest = i === recentThread.length - 1
+      return `${isLatest ? "→ LATEST — " : ""}${who}:\n${body}`
+    })
+    .join("\n---\n")
+
+  // Resolve the playbook from the campaign this reply belongs to, so a
+  // full-service agency running SEO + PPC + Social campaigns side-by-side gets
+  // campaign-appropriate objection handling. Falls back to the lead's most
+  // recent campaign, then the user's global playbook.
+  let effectivePlaybookType = reply.email?.campaign?.playbookType ?? null
+  if (!effectivePlaybookType) {
+    const latestEnrollment = await prisma.campaignLead.findFirst({
+      where: { leadId: lead.id },
+      orderBy: { enrolledAt: "desc" },
+      select: { campaign: { select: { playbookType: true } } },
+    })
+    effectivePlaybookType = latestEnrollment?.campaign?.playbookType ?? null
+  }
+  effectivePlaybookType = effectivePlaybookType ?? user.playbookType
 
   let objectionHandlers = null
-  if (user.playbookType) {
+  if (effectivePlaybookType) {
     const playbook = await prisma.playbook.findUnique({
-      where: { type: user.playbookType },
+      where: { type: effectivePlaybookType },
       select: { objectionHandlers: true },
     })
     if (playbook) {
       objectionHandlers = playbook.objectionHandlers
     }
+  }
+
+  // Speak as the workspace's specialist (Closer, Analyst, Creative Director…);
+  // user-configured persona rules still take precedence via spread order.
+  const wsPersona = getWorkspace(effectivePlaybookType).persona
+  const personaConfig = {
+    workspaceRole: wsPersona.role,
+    workspaceVoice: wsPersona.voice,
+    ...(typeof goal.personaConfig === "object" && goal.personaConfig ? (goal.personaConfig as Record<string, unknown>) : {}),
   }
 
   const draft = await generateReplyDraft({
@@ -261,8 +309,10 @@ export async function processReply(replyId: string): Promise<void> {
     responseStyle: learnedStyle,
     conversationHistory,
     calendarLink: user.calendarLink,
-    personaConfig: goal.personaConfig,
+    personaConfig,
     objectionHandlers,
+    playbookType: effectivePlaybookType,
+    userId: user.id,
   })
 
   let draftSubject = draft.subject
@@ -321,7 +371,8 @@ export async function processReply(replyId: string): Promise<void> {
     },
   })
 
-  if (expiresAt <= new Date() && goal.autoSendEnabled) {
+  const canAutoSend = goal.autoSendEnabled && (!goal.autoSendOnlyWhenOffline || !isUserOnline)
+  if (expiresAt <= new Date() && canAutoSend) {
     const isAutonomous = reply.email?.campaign?.autonomous ?? false
     const shouldSkip = nextBestAction === "SEND_REPLY" && isHighPriority && !isAutonomous
     if (!shouldSkip) {

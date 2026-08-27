@@ -25,38 +25,99 @@ export async function sendEmailImmediately(emailId: string): Promise<boolean> {
   // Skip if not QUEUED
   if (email.status !== "QUEUED") return false
 
-  // Skip if the lead has opted out / already replied
-  if (["REPLIED", "MEETING_BOOKED", "NOT_INTERESTED", "BOUNCED"].includes(lead.status)) {
+  // 1. Skip if the lead has opted out / already replied / booked a meeting
+  if (["REPLIED", "MEETING_BOOKED", "NOT_INTERESTED", "BOUNCED", "LOST"].includes(lead.status)) {
+    console.log(`[Scheduler] Skipping email ${emailId} because lead status is ${lead.status}.`)
     await prisma.email.update({ where: { id: emailId }, data: { status: "FAILED" } })
     return false
   }
 
-  // Prevent out-of-order sends (safety check for older/corrupted campaign states)
+  // 2. Strict Unreplied Guard: Verify no incoming reply records exist for this lead
+  const replyCount = await prisma.reply.count({ where: { leadId: lead.id } })
+  if (replyCount > 0 || (lead.repliesReceivedCount && lead.repliesReceivedCount > 0)) {
+    console.log(`[Scheduler] Skipping step ${email.stepNumber} for lead ${lead.id} because lead has already replied (${replyCount} replies).`)
+    await prisma.email.update({ where: { id: emailId }, data: { status: "REPLIED" } })
+    return false
+  }
+
+  const now = new Date()
+
+  // 3. Step Sequence & Timeframe Enforcement for Follow-ups (Step > 1):
   if (email.stepNumber > 1 && email.campaignId) {
-    const priorUnsent = await prisma.email.findFirst({
+    const priorStep = await prisma.email.findFirst({
       where: {
         leadId: lead.id,
         campaignId: email.campaignId,
-        stepNumber: { lt: email.stepNumber },
-        status: { notIn: ["SENT", "REPLIED", "FAILED"] },
+        stepNumber: email.stepNumber - 1,
       },
     })
-    if (priorUnsent) {
-      console.log(`[Scheduler] Skipping step ${email.stepNumber} for lead ${lead.id} because prior step ${priorUnsent.stepNumber} is not sent.`)
+
+    if (!priorStep || !["SENT", "DELIVERED", "OPENED", "CLICKED"].includes(priorStep.status)) {
+      console.log(`[Scheduler] Skipping step ${email.stepNumber} for lead ${lead.id} because prior step ${email.stepNumber - 1} is not sent yet.`)
       await prisma.email.update({
         where: { id: emailId },
         data: { status: "DRAFT" },
       })
       return false
     }
+
+    // Ensure the delayDays timeframe has genuinely passed since previous step sentAt!
+    if (priorStep.sentAt && email.campaign?.sequence?.steps) {
+      const stepDef = email.campaign.sequence.steps.find((s) => s.stepNumber === email.stepNumber)
+      const delayDays = stepDef?.delayDays ?? 1
+      const minSendTime = new Date(new Date(priorStep.sentAt).getTime() + delayDays * 24 * 60 * 60 * 1000)
+      if (now < minSendTime) {
+        console.log(`[Scheduler] Step ${email.stepNumber} for lead ${lead.id} is not due yet. Scheduled for ${minSendTime.toISOString()}.`)
+        await prisma.email.update({
+          where: { id: emailId },
+          data: { scheduledAt: minSendTime },
+        })
+        return false
+      }
+    }
+  }
+
+  // 4. Resolve SMTP credentials with graceful error handling & activity notification
+  let smtp
+  try {
+    smtp = resolveSmtp(lead.user)
+  } catch (err: any) {
+    const errorReason = err?.message || "Email SMTP credentials not configured. Please add your Gmail App Password in Settings → Agency."
+    console.error(`[Scheduler] SMTP config missing for user ${lead.userId}:`, errorReason)
+    await prisma.email.update({
+      where: { id: emailId },
+      data: {
+        status: "FAILED",
+        replySnippet: errorReason,
+      },
+    })
+    await prisma.activity.create({
+      data: {
+        leadId: lead.id,
+        type: "NOTE_ADDED",
+        note: `Dispatch failed: ${errorReason}`,
+      },
+    }).catch(() => {})
+    return false
   }
 
   const canSend = await checkEmailQuota(lead.userId)
-  if (!canSend) return false
+  if (!canSend) {
+    console.warn(`[Scheduler] Daily email quota reached for user ${lead.userId}. Rescheduling for tomorrow.`)
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    tomorrow.setHours(8, 0, 0, 0)
+    await prisma.email.update({
+      where: { id: emailId },
+      data: {
+        scheduledAt: tomorrow,
+        replySnippet: "Daily email quota limit reached (100/day). Rescheduled for tomorrow.",
+      },
+    })
+    return false
+  }
 
-  const now = new Date()
-
-  // 1. Atomically claim/update the email status to "SENT" to prevent concurrent double-sends
+  // 5. Atomically claim/update the email status to "SENT" to prevent concurrent double-sends
   const claimResult = await prisma.email.updateMany({
     where: { id: emailId, status: "QUEUED" },
     data: { status: "SENT", sentAt: now },
@@ -67,7 +128,6 @@ export async function sendEmailImmediately(emailId: string): Promise<boolean> {
   }
 
   try {
-    const smtp = resolveSmtp(lead.user)
     const result = await sendEmail(
       {
         to: lead.email,
@@ -86,7 +146,10 @@ export async function sendEmailImmediately(emailId: string): Promise<boolean> {
 
     await prisma.email.update({
       where: { id: emailId },
-      data: { messageId: result.messageId },
+      data: {
+        messageId: result.messageId,
+        replySnippet: null,
+      },
     })
 
     await prisma.lead.update({
@@ -100,17 +163,16 @@ export async function sendEmailImmediately(emailId: string): Promise<boolean> {
         data: { emailsSent: { increment: 1 } },
       })
 
-      // Reschedule next-step email
+      // Reschedule next-step follow-up email
       if (email.campaign?.sequence?.steps) {
         const steps = email.campaign.sequence.steps
         const nextEmail = await prisma.email.findFirst({
           where: { leadId: lead.id, campaignId: email.campaignId, stepNumber: email.stepNumber + 1 },
         })
         if (nextEmail) {
-          const currentStepDef = steps.find((s) => s.stepNumber === email.stepNumber)
-          const delayDays = currentStepDef?.delayDays ?? 1
-          const nextScheduledAt = new Date(now)
-          nextScheduledAt.setDate(nextScheduledAt.getDate() + delayDays)
+          const nextStepDef = steps.find((s) => s.stepNumber === nextEmail.stepNumber)
+          const delayDays = nextStepDef?.delayDays ?? 1
+          const nextScheduledAt = new Date(now.getTime() + delayDays * 24 * 60 * 60 * 1000)
           await prisma.email.update({
             where: { id: nextEmail.id },
             data: {
@@ -137,9 +199,24 @@ export async function sendEmailImmediately(emailId: string): Promise<boolean> {
     })
 
     return true
-  } catch (err) {
+  } catch (err: any) {
+    const errorMsg = `SMTP Delivery Failed: ${err?.message || "Could not connect to SMTP server"}`
     console.error("[Scheduler] Failed to send email", emailId, err)
-    await prisma.email.update({ where: { id: emailId }, data: { status: "FAILED" } })
+    await prisma.email.update({
+      where: { id: emailId },
+      data: {
+        status: "FAILED",
+        replySnippet: errorMsg,
+      },
+    })
+    await prisma.activity.create({
+      data: {
+        leadId: lead.id,
+        type: "NOTE_ADDED",
+        note: errorMsg,
+        metadata: { emailId, error: String(err) },
+      },
+    }).catch(() => {})
     return false
   }
 }
@@ -147,8 +224,6 @@ export async function sendEmailImmediately(emailId: string): Promise<boolean> {
 // ── Sequence queue processor ──────────────────────────────────────────────────
 
 // Module-level mutex — prevents concurrent runs in the same Node.js process.
-// Without this, the 4-second GET poll and any manual triggers can fire simultaneously,
-// opening multiple SMTP connections to the same email and causing socket errors.
 let _isRunning = false
 
 export async function processSequenceQueue() {
@@ -188,16 +263,29 @@ export async function drainDueQueue(maxRounds = 20) {
 async function _processQueue() {
   const now = new Date()
 
+  // ── 0. Failsafe Lock Recovery ─────────────────────────────────────────────
+  // Automatically unlock any QUEUED emails whose lock timestamp has expired (> 2 mins old)
+  const lockCutoff = new Date(now.getTime() - 2 * 60 * 1000)
+  await prisma.email.updateMany({
+    where: {
+      status: "QUEUED",
+      scheduledAt: { gt: now, lte: new Date(now.getTime() + 10 * 60 * 1000) },
+      updatedAt: { lte: lockCutoff },
+    },
+    data: { scheduledAt: now },
+  }).catch(() => {})
+
   // ── 1. Auto-promote expired follow-up drafts (24h safety window) ──────────
-  // Step 1 initial outreach drafts are NEVER auto-promoted in manual mode —
-  // only step 2+ follow-ups that passed their scheduled date by >24h.
   const expiredCutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000)
   const expiredDrafts = await prisma.email.findMany({
     where: {
       status: "DRAFT",
       stepNumber: { gt: 1 },
       scheduledAt: { lte: expiredCutoff },
-      campaign: { status: "ACTIVE" }, // Only promote drafts for active campaigns
+      OR: [
+        { campaign: { status: "ACTIVE" } },
+        { campaign: { autonomous: true } },
+      ],
     },
     include: {
       campaign: { select: { autonomous: true } },
@@ -205,8 +293,22 @@ async function _processQueue() {
   })
 
   for (const draft of expiredDrafts) {
-    // Only auto-promote follow-ups for manual campaigns (autonomous handles its own flow)
     if (draft.campaign?.autonomous) continue
+
+    const lead = await prisma.lead.findUnique({
+      where: { id: draft.leadId },
+      select: { status: true },
+    })
+    if (lead && ["REPLIED", "MEETING_BOOKED", "NOT_INTERESTED", "BOUNCED", "LOST"].includes(lead.status)) {
+      await prisma.email.update({ where: { id: draft.id }, data: { status: "REPLIED" } })
+      continue
+    }
+    const replyCount = await prisma.reply.count({ where: { leadId: draft.leadId } })
+    if (replyCount > 0) {
+      await prisma.email.update({ where: { id: draft.id }, data: { status: "REPLIED" } })
+      continue
+    }
+
     await prisma.email.update({
       where: { id: draft.id },
       data: { status: "QUEUED", scheduledAt: now },
@@ -218,23 +320,22 @@ async function _processQueue() {
         note: `Step ${draft.stepNumber} follow-up auto-promoted to queue (24h review window expired)`,
         metadata: { emailId: draft.id, stepNumber: draft.stepNumber, autoPromoted: true },
       },
-    })
+    }).catch(() => {})
   }
 
-  // ── 2. Atomically claim due QUEUED emails (prevents double-processing) ──────
-  // We fetch IDs first, then batch-update their scheduledAt to a future date to lock them.
-  // Any concurrent runner that also queries will see the future date and skip them.
+  // ── 2. Atomically claim due QUEUED emails ────────────────────────────────
   const dueEmailIds = await prisma.email.findMany({
     where: {
       status: "QUEUED",
       scheduledAt: { lte: now },
       OR: [
         { campaignId: null },
-        { campaign: { status: "ACTIVE" } }, // Only send emails for active campaigns
+        { campaign: { status: "ACTIVE" } },
+        { campaign: { autonomous: true } },
       ],
     },
     orderBy: { scheduledAt: "asc" },
-    take: 5, // Conservative — Gmail allows 500/day; process in small batches with pacing
+    take: 5,
     select: { id: true },
   })
 
@@ -250,7 +351,7 @@ async function _processQueue() {
     data: { scheduledAt: lockTime },
   })
 
-  // Re-fetch emails that we successfully locked (some may have been grabbed by another run)
+  // Re-fetch emails that we successfully locked
   const claimedEmails = await prisma.email.findMany({
     where: { id: { in: ids }, status: "QUEUED", scheduledAt: lockTime },
     select: { id: true },
@@ -263,61 +364,14 @@ async function _processQueue() {
     if (success) results.sent++
     else results.failed++
 
-    // Delay between sends to avoid Gmail rate limits / throttling-induced failures
     if (claimedEmails.indexOf(email) < claimedEmails.length - 1) {
-      await new Promise(r => setTimeout(r, 3000))
+      await new Promise(r => setTimeout(r, 2500))
     }
   }
 
   return results
 }
 
-/**
- * Reschedules the next paused campaign follow-up email to send in 3 days,
- * provided the deal is not finalized (won, lost, meeting booked, etc.).
- */
-export async function rescheduleNextCampaignStep(leadId: string): Promise<void> {
-  const lead = await prisma.lead.findUnique({
-    where: { id: leadId },
-    select: { status: true },
-  })
-
-  if (!lead) return
-
-  // Do not schedule automatic follow-up if the deal is finalized or meeting is booked
-  const finalizedStages = ["WON", "LOST", "NOT_INTERESTED", "BOUNCED", "MEETING_BOOKED"]
-  if (finalizedStages.includes(lead.status)) {
-    return
-  }
-
-  // Find the next sequence step that was paused/failed
-  const nextStep = await prisma.email.findFirst({
-    where: {
-      leadId,
-      status: "FAILED",
-      campaignId: { not: null },
-      stepNumber: { gt: 0 },
-    },
-    orderBy: { stepNumber: "asc" },
-  })
-
-  if (nextStep) {
-    const threeDaysLater = new Date()
-    threeDaysLater.setDate(threeDaysLater.getDate() + 3)
-
-    await Promise.all([
-      prisma.email.update({
-        where: { id: nextStep.id },
-        data: { status: "QUEUED", scheduledAt: threeDaysLater },
-      }),
-      prisma.activity.create({
-        data: {
-          leadId,
-          type: "STAGE_CHANGED",
-          note: `Lead replied. AI rescheduled campaign follow-up Step ${nextStep.stepNumber} to send in 3 days if no response received.`,
-          metadata: { emailId: nextStep.id, stepNumber: nextStep.stepNumber },
-        },
-      }),
-    ])
-  }
-}
+// Moved to lib/email-queue.ts to break the agent-core ↔ scheduler circular dependency.
+// Re-exported here so existing importers keep working.
+export { rescheduleNextCampaignStep } from "./email-queue"

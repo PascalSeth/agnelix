@@ -61,6 +61,37 @@ Rules:
     }
   }
 
+  // ── Mode: refine flagship offer ───────────────────────────────────────────
+  if (mode === "offer") {
+    const prompt = `You are a world-class B2B offer architect. Given this agency's name and description, create their Flagship Offer.
+Agency Name: ${agencyName || "Agency"}
+Description: ${rawDescription || "B2B growth and lead generation agency"}
+
+Generate a JSON object with:
+- "name": Short, punchy offer title (3-6 words, e.g. "Cosmetic Clinic Patient Acquisition Engine")
+- "transformation": The core metric outcome (e.g. "Add 15-25 high-ticket private patients/month without ad waste")
+- "deliverable": Clear mechanism/deliverable (e.g. "Done-for-you cold email outbound + AI appointment setter")
+
+Return ONLY the raw JSON object, without markdown quotes or formatting.`
+
+    try {
+      const res = await openai.chat.completions.create({
+        model: "deepseek-v4-flash",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.5,
+        max_tokens: 250,
+        // @ts-expect-error — disable DeepSeek thinking for fast tasks
+        thinking: { type: "disabled" },
+      })
+      const text = res.choices[0]?.message?.content?.trim() ?? "{}"
+      const cleaned = text.replace(/^```json\s*|```$/g, "").trim()
+      const offer = JSON.parse(cleaned)
+      return NextResponse.json({ offer })
+    } catch {
+      return NextResponse.json({ error: "Failed to generate offer" }, { status: 500 })
+    }
+  }
+
   // ── Mode: refine company description (default) ────────────────────────────
   if (!rawDescription?.trim()) {
     return NextResponse.json({ error: "Description required" }, { status: 400 })

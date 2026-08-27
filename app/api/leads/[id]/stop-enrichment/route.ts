@@ -42,7 +42,7 @@ export async function POST(
     data: {
       leadId: id,
       type: "NOTE_ADDED",
-      note: "Enrichment stopped by user.",
+      note: "Lead data research stopped by user.",
     },
   })
 

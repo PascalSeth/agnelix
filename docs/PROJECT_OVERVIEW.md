@@ -132,7 +132,7 @@ After onboarding, user is redirected to **Sequences** to create their first emai
 ### Global dashboard UI
 
 - **Sidebar** — navigation groups: Overview (Dashboard, Pipeline, Inbox, Playground) + Outreach (Sequences, Campaigns, Leads) + Settings  
-- **AI Advisor bubble (“Agnel”)** — floating chat on all dashboard pages; opens via bubble or `open-ai-advisor` event (Playground uses this)
+- **AI Advisor bubble (“Galien”)** — floating chat on all dashboard pages; opens via bubble or `open-ai-advisor` event (Playground uses this)
 
 ---
 
@@ -170,7 +170,7 @@ Primary **lead discovery** workflow:
 
 - Multi-step **email sequences** with per-step **delay days**  
 - Optional subject/body templates per step; AI generates personalised content per lead at send time  
-- **Agnel Step Copilot** — AI helps write/refine sequence step guidelines  
+- **Galien Step Copilot** — AI helps write/refine sequence step guidelines  
 - Default sequence created during onboarding path  
 - Sequences linked to campaigns and auto-searches
 
@@ -275,12 +275,12 @@ Shown in Inbox Copilot, lead detail, and Playground demos.
 3. **Rejection → Nurtured** — unsubscribe → sequences stopped → 60-day nurture  
 4. **Full Journey → Won** — proposal request → auto proposal → deal won (£1,200 + £350/mo)
 
-Split UI: **Your view (inside Galien)** vs **Prospect’s view (Gmail)**. Auto-play mode. Promotes **Ask Agnel** AI advisor.
+Split UI: **Your view (inside Galien)** vs **Prospect’s view (Gmail)**. Auto-play mode. Promotes **Ask Galien** AI advisor.
 
-### 5.9 AI Advisor (“Agnel”)
+### 5.9 AI Advisor (“Galien”)
 
 - Floating bubble on all dashboard pages (`AiAdvisorBubble`)  
-- Chat with **Agnel** — B2B sales coach using user’s agency profile as context  
+- Chat with **Galien** — B2B sales coach using user’s agency profile as context  
 - API: `/api/ai-advisor` (GET greeting, POST chat)  
 - Use cases: campaign strategy, ICP targeting, outreach hooks, growth advice  
 - Model: DeepSeek; concise, max ~3 short paragraphs
@@ -352,7 +352,7 @@ Import leads via PapaParse; map columns to lead fields; bulk add to pipeline/cam
 | Site-audit-based hooks | Email personalisation |
 | Sequence step copilot | Sequences page |
 | Company description refine | Settings |
-| Conversational advisor | Agnel bubble |
+| Conversational advisor | Galien bubble |
 | Lead scoring / categorisation | Find Leads UI (Tier 1, healthcare, etc.) |
 
 **AI provider:** DeepSeek (`NEXT_DEEPSEEKER_API_KEY`), model `deepseek-v4-flash`.
@@ -499,7 +499,7 @@ Sign in (Google)
 | Term | Meaning |
 |------|---------|
 | **Galien** | Product brand |
-| **Agnel** | In-app AI business advisor (chat bubble) |
+| **Galien** | In-app AI business advisor (chat bubble) |
 | **Battle card** | AI-generated reply strategy sheet |
 | **Autonomous / Autopilot** | Campaign or agent mode with auto-send |
 | **AI Queue** | Pending actions awaiting approve/auto-send |

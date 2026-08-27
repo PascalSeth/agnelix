@@ -5,6 +5,7 @@ import { generateEmail } from "@/lib/ai"
 import { checkEmailQuota } from "@/lib/cost-guard"
 import { runLaunchPipeline } from "@/lib/campaign-sender"
 import { getScopeId } from "@/lib/auth-helpers"
+import { getValidProspectFirstName } from "@/lib/name-sanitizer"
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
             senderTitle:         campaign.user.title || "Marketing Consultant",
             senderCompany:       campaign.user.agencyName || campaign.user.companyName || "Your Company",
             senderCompanyDesc:   campaign.user.companyDesc || "We help businesses grow.",
-            prospectFirstName:   lead.firstName || lead.email.split("@")[0],
+            prospectFirstName:   getValidProspectFirstName(lead.firstName, lead.email) || "",
             prospectLastName:    lead.lastName || "",
             prospectTitle:       lead.title || "Decision Maker",
             prospectCompany:     lead.company || "their company",

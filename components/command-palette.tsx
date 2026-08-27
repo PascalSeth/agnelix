@@ -3,7 +3,8 @@
 
 import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { Search, Compass, Database, Sparkles, Settings, ArrowRight, X, Command } from "lucide-react"
+import { Search, Compass, Database, Settings, ArrowRight, X, Command } from "lucide-react"
+import { Sparkles } from "@/components/ui/chat-bubble-icon"
 import { toast } from "sonner"
 
 export function CommandPalette() {
@@ -73,8 +74,8 @@ export function CommandPalette() {
     },
     {
       id: "advisor",
-      title: "Ask Agnel AI Advisor",
-      description: "Focus the Agnel chat bubble directly",
+      title: "Ask Galien AI Advisor",
+      description: "Focus the Galien chat bubble directly",
       category: "Quick Actions",
       icon: Sparkles,
       action: () => {
@@ -83,7 +84,7 @@ export function CommandPalette() {
           chatInput.focus()
           toast.success("AI advisor chat focused!")
         } else {
-          toast.info("Agnel chat is ready on the bottom right.")
+          toast.info("Galien chat is ready on the bottom right.")
         }
         setOpen(false)
       }

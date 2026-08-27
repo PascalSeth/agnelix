@@ -24,17 +24,17 @@ export async function POST(req: NextRequest) {
   const scopeId = getScopeId(session)
 
   const body = await req.json()
-  const { leadId, templateId } = body
+  const { leadId, templateId, currency: customCurrency } = body
   if (!leadId) return NextResponse.json({ error: "leadId required" }, { status: 400 })
 
   const [lead, user] = await Promise.all([
     prisma.lead.findFirst({
       where: { id: leadId, userId: scopeId },
-      include: { campaignLeads: { select: { campaignId: true } } },
+      include: { campaignLeads: { select: { campaignId: true, campaign: { select: { clientGoal: true } } } } },
     }),
     prisma.user.findUnique({
       where: { id: scopeId },
-      select: { name: true, agencyName: true, companyName: true, companyDesc: true, playbookType: true, currency: true },
+      select: { name: true, agencyName: true, companyName: true, companyDesc: true, playbookType: true, currency: true, flagshipOffer: true },
     }),
   ])
 
@@ -44,16 +44,43 @@ export async function POST(req: NextRequest) {
   let template: ProposalTemplate | null = null
   if (user?.playbookType) {
     const playbook = await prisma.playbook.findUnique({ where: { type: user.playbookType } })
-    if (playbook) {
-      const templates = JSON.parse(playbook.proposalTemplates as string) as ProposalTemplate[]
-      template = (templateId ? templates.find(t => t?.id === templateId) : templates[0]) ?? templates[0] ?? null
+    if (playbook && playbook.proposalTemplates) {
+      let templates: ProposalTemplate[] = []
+      try {
+        templates = typeof playbook.proposalTemplates === "string"
+          ? JSON.parse(playbook.proposalTemplates)
+          : (Array.isArray(playbook.proposalTemplates) ? playbook.proposalTemplates as ProposalTemplate[] : [])
+      } catch {
+        templates = []
+      }
+      template = (templateId ? templates.find(t => t?.id === templateId || t?.name === templateId) : templates[0]) ?? templates[0] ?? null
     }
   }
 
-  const currency = user?.currency || lead.dealCurrency || "GBP"
+  const currency = customCurrency || user?.currency || lead.dealCurrency || "USD"
   const painPoints: string[] = lead.painPoints
     ? (Array.isArray(lead.painPoints) ? (lead.painPoints as unknown[]).map(String) : [])
     : (lead.painPoint ? [lead.painPoint] : [])
+
+  // Feedback loop: learn from this agency's recently signed and declined proposals
+  const pastOutcomes = await prisma.proposal.findMany({
+    where: { userId: scopeId, status: { in: ["SIGNED", "DECLINED"] } },
+    orderBy: { updatedAt: "desc" },
+    take: 5,
+    select: { title: true, status: true, declineReason: true, totalValue: true, currency: true },
+  })
+  const pastProposalLearnings = pastOutcomes.length
+    ? pastOutcomes
+        .map(p =>
+          p.status === "SIGNED"
+            ? `- WON: "${p.title}"${p.totalValue ? ` (${p.currency} ${p.totalValue})` : ""}`
+            : `- LOST: "${p.title}"${p.declineReason ? ` — client's reason: ${p.declineReason}` : ""}`
+        )
+        .join("\n")
+    : null
+
+  const flagshipOffer = user?.flagshipOffer as { name: string; transformation: string; deliverable: string } | null
+  const clientGoal = lead.campaignLeads.find(cl => cl.campaign?.clientGoal)?.campaign?.clientGoal ?? null
 
   const content = await generateProposalContent({
     leadName: [lead.firstName, lead.lastName].filter(Boolean).join(" ") || lead.email,
@@ -66,6 +93,11 @@ export async function POST(req: NextRequest) {
     senderService: user?.companyDesc || "our services",
     proposalTemplateName: template?.name || "Growth Engagement",
     currency,
+    flagshipOffer,
+    clientGoal,
+    pastProposalLearnings,
+    playbookType: user?.playbookType,
+    userId: scopeId,
   })
 
   const pricingPackages = template

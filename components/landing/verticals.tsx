@@ -1,130 +1,147 @@
-/* eslint-disable @typescript-eslint/no-unused-vars, @next/next/no-img-element */
-import { Users, Briefcase, User, Sparkles, MessageSquare, ArrowRight } from "lucide-react"
+"use client"
+
+import { Rocket, Search, Share2, TrendingUp, Layout, DollarSign, ArrowRight } from "lucide-react"
+import { ChatBubbleIcon } from "@/components/ui/chat-bubble-icon"
+import { CtaLink } from "@/components/landing/cta-link"
 
 export function Verticals() {
-  const personas = [
+  const workspaces = [
     {
-      id: "agencies",
-      icon: Users,
-      title: "Digital Marketing Agencies",
-      desc: "Find dentists, roofers, salons — anyone. Search by niche and city, send personal emails, and let Galien handle the follow-ups.",
-      image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=800&auto=format&fit=crop",
-      prompt: "Find 50 plumbers in Dallas without SEO...",
-      tags: ["Local Search", "Personal Emails", "Auto Follow-Up"],
+      id: "sales",
+      title: "Sales OS (Outbound Closer)",
+      job: "Book qualified discovery meetings on autopilot",
+      icon: Rocket,
+      accent: "#818cf8",
+      tags: ["B2B SaaS", "Consulting", "Recruitment"],
+      persona: "AI Closer",
     },
     {
-      id: "b2b",
-      icon: Briefcase,
-      title: "B2B Service Providers",
-      desc: "Galien checks each prospect's website, writes a tailored pitch, and tracks every deal from first email to booked meeting.",
-      image: "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=800&auto=format&fit=crop",
-      prompt: "Pitch our HR software to local tech firms...",
-      tags: ["Company Research", "AI Sequences", "Pipeline CRM"],
+      id: "seo",
+      title: "SEO OS (Audit & Search)",
+      job: "Spot businesses losing organic rank & generate audit hooks",
+      icon: Search,
+      accent: "#34d399",
+      tags: ["Dental & Legal", "Roofing & HVAC", "E-commerce"],
+      persona: "AI SEO Analyst",
     },
     {
-      id: "solo",
-      icon: User,
-      title: "Consultants & Freelancers",
-      desc: "Working alone? Galien becomes your sales team. It finds businesses, replies to leads, and fills your calendar — so you can focus on the work.",
-      image: "https://images.unsplash.com/photo-1499951360447-b19be8fe80f5?q=80&w=800&auto=format&fit=crop",
-      prompt: "Book 3 meetings for my design service...",
-      tags: ["Autopilot Mode", "Battle Cards", "Meeting Booking"],
-    }
+      id: "social_media",
+      title: "Social OS (Creative Engine)",
+      job: "Synthesize 30-day viral content calendars & DM hooks",
+      icon: Share2,
+      accent: "#fb7185",
+      tags: ["MedSpas & Beauty", "Gyms", "Real Estate"],
+      persona: "AI Creative Director",
+    },
+    {
+      id: "ppc",
+      title: "PPC OS (Media Buyer)",
+      job: "Calculate break-even ROAS targets & high-intent ad angles",
+      icon: TrendingUp,
+      accent: "#38bdf8",
+      tags: ["D2C Brands", "Cosmetics", "Home Services"],
+      persona: "AI Media Buyer",
+    },
+    {
+      id: "web_design",
+      title: "Web Studio (UX & Redesign)",
+      job: "Diagnose site friction, low trust, and generate redesign proposals",
+      icon: Layout,
+      accent: "#a78bfa",
+      tags: ["Tech Startups", "Boutique Law", "Fine Dining"],
+      persona: "AI UX Consultant",
+    },
+    {
+      id: "finance",
+      title: "CFO OS (Retainer Health)",
+      job: "Track client runway, gross margins, and churn danger signals",
+      icon: DollarSign,
+      accent: "#fbbf24",
+      tags: ["Funded Seed Startups", "Agencies", "Healthcare"],
+      persona: "AI Fractional CFO",
+    },
   ]
 
   return (
-    <section className="relative bg-[#0A0B0E] py-24 lg:py-32 overflow-hidden">
-      
-      {/* Subtle Background Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-5xl h-[500px] bg-[#c5a880]/5 blur-[150px] pointer-events-none" />
+    <section className="relative bg-[#0b0c10] py-24 lg:py-32 overflow-hidden" id="workspaces">
+      {/* Background Glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-5xl h-[450px] bg-violet-600/[0.02] blur-[160px] pointer-events-none" />
 
-      <div className="mx-auto max-w-7xl px-6 relative z-10">
-        
+      <div className="mx-auto max-w-7xl px-6 relative z-10 space-y-16">
         {/* Header */}
-        <div className="anim-fade-up text-center mb-16 lg:mb-24">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/5 bg-white/[0.02] px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-slate-400 mb-6">
-            <User className="h-3.5 w-3.5 text-[#c5a880]" />
-            Who is this for?
+        <div className="text-center max-w-3xl mx-auto space-y-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3.5 py-1.5 text-xs font-semibold text-white/80 backdrop-blur-md shadow-sm">
+            <ChatBubbleIcon className="size-3.5" />
+            <span>Specialized Agency Workspaces</span>
           </div>
-          <h2 className="text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-6xl font-luxury-sans">
-            Built for anyone who sells to <br className="hidden md:block" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#c5a880] to-[#e6d5b8]">local businesses.</span>
+
+          <h2 className="text-4xl font-extrabold tracking-tight text-white md:text-5xl lg:text-6xl font-luxury-sans">
+            Calibrated for your exact{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#c5a880] to-[#e6d5b8]">
+              agency service line.
+            </span>
           </h2>
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-400 font-medium">
-            Whether you run an agency, a small team, or work alone — Galien is your extra salesperson, working around the clock.
+
+          <p className="text-base sm:text-lg text-slate-400 font-medium leading-relaxed">
+            Galien switches AI specialist personas, voice guidelines, and objection playbooks to match the specific service you deliver.
           </p>
         </div>
 
-        {/* Persona Cards Grid */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          {personas.map((vert, i) => (
-            <div 
-              key={vert.id} 
-              className="anim-fade-up group relative flex flex-col overflow-hidden rounded-[2rem] bg-[#16181D] border border-white/5 transition-all duration-500 hover:border-[#c5a880]/30 hover:shadow-[0_0_40px_rgba(197,168,128,0.1)] hover:-translate-y-2" 
-              style={{ animationDelay: `${0.15 + i * 0.1}s` }}
-            >
-              
-              {/* Image & Interactive Top Half */}
-              <div className="relative h-56 w-full overflow-hidden bg-neutral-900">
-                <img 
-                  src={vert.image} 
-                  alt={vert.title} 
-                  className="absolute inset-0 h-full w-full object-cover opacity-30 mix-blend-luminosity transition-transform duration-700 group-hover:scale-110 group-hover:opacity-40 group-hover:mix-blend-normal"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#16181D] via-[#16181D]/60 to-transparent" />
-                
-                {/* Floating AI Prompt Simulation */}
-                <div className="absolute inset-x-0 bottom-6 flex justify-center px-4 transition-transform duration-500 group-hover:-translate-y-2">
-                  <div className="flex w-full max-w-[90%] items-center gap-3 rounded-xl border border-white/10 bg-black/40 backdrop-blur-md p-3 shadow-2xl">
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#c5a880]/20 text-[#c5a880]">
-                      <Sparkles className="h-3 w-3" />
-                    </div>
-                    <p className="text-xs font-medium text-white/90 truncate">
-                      &quot;{vert.prompt}&quot;
-                    </p>
-                    <div className="ml-auto h-3 w-[2px] animate-pulse bg-[#c5a880]" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Content Bottom Half */}
-              <div className="relative flex flex-col flex-1 p-8 pt-4">
-                
-                {/* Icon & Title */}
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/5 border border-white/10 transition-colors group-hover:bg-[#c5a880]/10 group-hover:border-[#c5a880]/30">
-                    <vert.icon className="h-5 w-5 text-white transition-colors group-hover:text-[#c5a880]" />
-                  </div>
-                  <h3 className="text-xl font-bold text-white font-luxury-sans leading-tight">
-                    {vert.title}
-                  </h3>
-                </div>
-
-                {/* Description */}
-                <p className="text-sm leading-relaxed text-slate-400 font-medium mb-6 flex-1">
-                  {vert.desc}
-                </p>
-
-                {/* Tags */}
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {vert.tags.map((tag) => (
-                    <span 
-                      key={tag} 
-                      className="rounded-lg bg-white/5 border border-white/5 px-2.5 py-1 text-[11px] font-semibold text-slate-400 transition-colors group-hover:border-[#c5a880]/20 group-hover:text-white"
+        {/* 6 Workspace Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {workspaces.map(ws => {
+            const Icon = ws.icon
+            return (
+              <div
+                key={ws.id}
+                className="group relative overflow-hidden rounded-3xl bg-white/[0.02] border border-white/10 hover:border-white/20 p-6 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 shadow-xl"
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div
+                      className="p-2.5 rounded-xl border shadow-md flex items-center justify-center shrink-0"
+                      style={{
+                        backgroundColor: `${ws.accent}15`,
+                        borderColor: `${ws.accent}30`,
+                        color: ws.accent,
+                      }}
                     >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
+                      <Icon className="size-5" />
+                    </div>
 
-                {/* Action Link (Appears on Hover) */}
-                <div className="mt-auto flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#c5a880] opacity-0 transition-all duration-300 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0">
-                  See how it works <ArrowRight className="h-4 w-4" />
+                    <span
+                      className="text-[9.5px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md"
+                      style={{
+                        backgroundColor: `${ws.accent}10`,
+                        color: ws.accent,
+                        borderColor: `${ws.accent}20`,
+                        borderWidth: "1px",
+                      }}
+                    >
+                      {ws.persona}
+                    </span>
+                  </div>
+
+                  <div>
+                    <h3 className="text-base font-black text-white">{ws.title}</h3>
+                    <p className="text-xs text-white/50 mt-1 leading-relaxed">{ws.job}</p>
+                  </div>
+
+                  {/* Niche Tag Cloud */}
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {ws.tags.map((tag, idx) => (
+                      <span
+                        key={idx}
+                        className="text-[10.5px] font-semibold px-2 py-0.5 rounded bg-white/5 text-white/60 border border-white/5"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-                
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </section>

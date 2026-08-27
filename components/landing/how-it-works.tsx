@@ -1,110 +1,120 @@
-import { MapPin, Search, Mail, Bot, Sparkles, ArrowRight } from "lucide-react"
+"use client"
+
+import { MapPin, Search, Mail, Bot, ArrowRight, Upload, Layers, ShieldCheck, CalendarCheck } from "lucide-react"
+import { ChatBubbleIcon } from "@/components/ui/chat-bubble-icon"
 
 export function HowItWorks() {
   const steps = [
     {
       step: "01",
-      icon: MapPin,
-      title: "Find Leads",
-      desc: "Tell Galien what kind of business you want and where. It searches the web and builds a list with names, websites, phone numbers, and reviews.",
-      badge: "Search"
+      icon: Layers,
+      title: "Calibrate Playbook & SOPs",
+      desc: "Select your operating workspace (Sales, SEO, Social, PPC, Web, CFO) or drag & drop your sales PDF handbook. Galien learns your company rules in seconds.",
+      badge: "1. Calibration",
+      accent: "#818cf8",
     },
     {
       step: "02",
       icon: Search,
-      title: "Research Each One",
-      desc: "Galien visits each website, finds the best email address, and writes a short summary of what the business does.",
-      badge: "AI Research"
+      title: "Discover Verified Leads",
+      desc: "Specify your dream ICP and location. Galien extracts real decision-makers, verified direct emails, and key buying signals without bounce risk.",
+      badge: "2. Prospecting",
+      accent: "#38bdf8",
     },
     {
       step: "03",
       icon: Mail,
-      title: "Send Personal Emails",
-      desc: "Set up a series of emails. Galien writes each one using what it learned about the business, then sends them on schedule.",
-      badge: "Outreach"
+      title: "Direct-Response Outreach",
+      desc: "Galien drafts multi-step email sequences customized to each prospect's acute pain points using master sales psychology (Pain, Proof, Plan).",
+      badge: "3. Copywriting",
+      accent: "#34d399",
     },
     {
       step: "04",
-      icon: Bot,
-      title: "Follow Up Automatically",
-      desc: "When someone replies, Galien reads the message, writes a reply, and can book the meeting straight onto your calendar.",
-      badge: "Closing"
+      icon: CalendarCheck,
+      title: "Autopilot Rebuttal & Booking",
+      desc: "When leads reply with questions or objections, Galien applies tactical empathy reframing, overcomes pushback, and books meetings on your calendar 24/7.",
+      badge: "4. Closing",
+      accent: "#c5a880",
     },
   ]
 
   return (
-    <section className="relative overflow-hidden bg-[#111216] py-24 lg:py-32">
-      
+    <section className="relative overflow-hidden bg-[#0e0f14] py-24 lg:py-32" id="how-it-works">
       {/* Background Ambient Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[400px] w-[80%] rounded-full bg-[#c5a880]/10 blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[450px] w-[85%] rounded-full bg-gradient-to-r from-violet-600/[0.03] to-[#c5a880]/[0.03] blur-[140px] pointer-events-none" />
 
-      <div className="mx-auto max-w-7xl px-6 relative z-10">
-        
+      <div className="mx-auto max-w-7xl px-6 relative z-10 space-y-20">
         {/* Header Section */}
-        <div className="anim-fade-up text-center mb-20 lg:mb-28">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#c5a880]/20 bg-[#c5a880]/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-[#c5a880] mb-6">
-            <Sparkles className="h-3.5 w-3.5" />
-            Agent Workflow
+        <div className="text-center max-w-3xl mx-auto space-y-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3.5 py-1.5 text-xs font-semibold text-white/80 backdrop-blur-md shadow-sm">
+            <ChatBubbleIcon className="size-3.5" />
+            <span>Autonomous Pipeline Engine</span>
           </div>
-          <h2 className="text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-6xl font-luxury-sans">
-            From search to meeting in <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#c5a880] to-[#e6d5b8]">four steps.</span>
+
+          <h2 className="text-4xl font-extrabold tracking-tight text-white md:text-5xl lg:text-6xl font-luxury-sans">
+            From cold prospect to booked meeting in{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#c5a880] to-[#e6d5b8]">
+              four automated steps.
+            </span>
           </h2>
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-400 font-medium">
-            No spreadsheets. No copy-paste. One tool takes you from finding a lead to booking the meeting.
+
+          <p className="text-base sm:text-lg text-slate-400 font-medium leading-relaxed">
+            No messy spreadsheets. No rookie templates. One unified operating system takes your agency from zero to booked discovery calls.
           </p>
         </div>
 
-        {/* Workflow Grid */}
-        <div className="relative grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-          
-          {/* Desktop Connecting Line */}
-          <div className="hidden lg:block absolute top-10 left-[12.5%] right-[12.5%] h-[2px] bg-gradient-to-r from-transparent via-[#c5a880]/20 to-transparent z-0" />
+        {/* 4 Steps Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative">
+          {steps.map((item, i) => {
+            const Icon = item.icon
+            return (
+              <div
+                key={i}
+                className="group relative overflow-hidden rounded-3xl bg-white/[0.02] border border-white/10 hover:border-white/20 p-7 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 shadow-xl"
+              >
+                {/* Giant Background Step Number */}
+                <span className="absolute -top-4 -right-1 text-7xl font-black text-white/[0.03] select-none font-mono group-hover:text-white/[0.06] transition-colors">
+                  {item.step}
+                </span>
 
-          {steps.map((item, i) => (
-            <div key={i} className="anim-fade-up group relative z-10" style={{ animationDelay: `${0.15 + i * 0.1}s` }}>
-              
-              {/* Icon / Node Indicator */}
-              <div className="relative flex flex-col items-center mb-8">
-                <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[#1A1C23] border border-white/5 shadow-xl transition-all duration-500 group-hover:-translate-y-2 group-hover:border-[#c5a880]/40 group-hover:shadow-[0_0_30px_rgba(197,168,128,0.2)]">
-                  <item.icon className="h-8 w-8 text-[#c5a880] transition-transform duration-500 group-hover:scale-110" />
-                </div>
-                
-                {/* Micro Arrow between steps (Mobile/Tablet) */}
-                {i < 3 && (
-                  <div className="lg:hidden mt-6 text-[#c5a880]/30">
-                    <ArrowRight className="h-6 w-6 rotate-90 md:rotate-0" />
+                <div className="space-y-4 relative z-10">
+                  <div className="flex items-center justify-between">
+                    <div
+                      className="p-3 rounded-2xl border shadow-md flex items-center justify-center shrink-0"
+                      style={{
+                        backgroundColor: `${item.accent}15`,
+                        borderColor: `${item.accent}30`,
+                        color: item.accent,
+                      }}
+                    >
+                      <Icon className="size-6" />
+                    </div>
+
+                    <span
+                      className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md"
+                      style={{
+                        backgroundColor: `${item.accent}10`,
+                        color: item.accent,
+                        borderColor: `${item.accent}20`,
+                        borderWidth: "1px",
+                      }}
+                    >
+                      {item.badge}
+                    </span>
                   </div>
-                )}
-              </div>
 
-              {/* Card Content */}
-              <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-b from-white/[0.04] to-transparent border border-white/5 p-8 transition-all duration-500 group-hover:bg-white/[0.06] group-hover:border-white/10 h-full">
-                
-                {/* Giant Watermark Number */}
-                <div className="absolute -top-6 -right-2 select-none">
-                  <span className="text-8xl font-black text-white/[0.02] transition-colors duration-500 group-hover:text-[#c5a880]/[0.05] font-luxury-sans">
-                    {item.step}
-                  </span>
-                </div>
-
-                <div className="relative z-10">
-                  {/* Badge */}
-                  <div className="inline-flex items-center rounded-lg bg-black/40 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#c5a880] mb-5 border border-white/5">
-                    {item.badge}
-                  </div>
-                  
-                  <h3 className="text-xl font-bold text-white mb-3 font-luxury-sans group-hover:text-[#c5a880] transition-colors">
+                  <h3 className="text-lg font-black text-white font-luxury-sans group-hover:text-white/95 transition-colors">
                     {item.title}
                   </h3>
-                  
-                  <p className="text-sm leading-relaxed text-slate-400 font-medium">
+
+                  <p className="text-xs sm:text-[13px] text-white/50 leading-relaxed font-medium">
                     {item.desc}
                   </p>
                 </div>
-
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </section>

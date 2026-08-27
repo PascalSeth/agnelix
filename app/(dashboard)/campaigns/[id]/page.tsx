@@ -22,48 +22,64 @@ export default async function CampaignDetailPage({
   const scopeId = getScopeId(session)
 
   let campaign: any = null
+  let availableSequences: any[] = []
+
   try {
-    campaign = await prisma.campaign.findUnique({
-      where: { id, userId: scopeId },
-      include: {
-        sequence: {
-          select: {
-            id: true,
-            name: true,
-            steps: { select: { id: true, stepNumber: true, delayDays: true, subjectTemplate: true, bodyTemplate: true }, orderBy: { stepNumber: "asc" } },
+    const [fetchedCampaign, fetchedSequences] = await Promise.all([
+      prisma.campaign.findUnique({
+        where: { id, userId: scopeId },
+        include: {
+          sequence: {
+            select: {
+              id: true,
+              name: true,
+              steps: { select: { id: true, stepNumber: true, delayDays: true, subjectTemplate: true, bodyTemplate: true }, orderBy: { stepNumber: "asc" } },
+            },
           },
-        },
-        campaignLeads: {
-          orderBy: { enrolledAt: "desc" },
-          include: {
-            lead: {
-              select: {
-                id: true, firstName: true, lastName: true,
-                email: true, company: true, status: true,
-                recommendedApproach: true,
-                contactsJson: true,
-                emails: {
-                  where: { campaignId: id },
-                  select: {
-                    id: true, subject: true, body: true, stepNumber: true,
-                    status: true, sentAt: true, openedAt: true,
-                    openCount: true, clickCount: true,
+          campaignLeads: {
+            orderBy: { enrolledAt: "desc" },
+            include: {
+              lead: {
+                select: {
+                  id: true, firstName: true, lastName: true,
+                  email: true, company: true, status: true,
+                  recommendedApproach: true,
+                  contactsJson: true,
+                  emails: {
+                    where: { campaignId: id },
+                    select: {
+                      id: true, subject: true, body: true, stepNumber: true,
+                      status: true, sentAt: true, openedAt: true,
+                      openCount: true, clickCount: true,
+                    },
+                    orderBy: { stepNumber: "asc" },
                   },
-                  orderBy: { stepNumber: "asc" },
                 },
               },
             },
           },
         },
-      },
-    })
+      }),
+      prisma.sequence.findMany({
+        where: { userId: scopeId },
+        select: {
+          id: true,
+          name: true,
+          steps: { select: { id: true, stepNumber: true, delayDays: true, subjectTemplate: true, bodyTemplate: true }, orderBy: { stepNumber: "asc" } },
+        },
+        orderBy: { createdAt: "asc" },
+      }),
+    ])
+
+    campaign = fetchedCampaign
+    availableSequences = fetchedSequences
   } catch {
     notFound()
   }
   if (!campaign) notFound()
 
   const leads = campaign.campaignLeads.map((cl: any) => cl.lead)
-  const sequenceSteps = campaign.sequence.steps ?? []
+  const sequenceSteps = campaign.sequence?.steps ?? []
   const stepCount = sequenceSteps.length || 1
 
   return (
@@ -73,8 +89,10 @@ export default async function CampaignDetailPage({
       status={campaign.status}
       autonomous={campaign.autonomous}
       leads={leads}
+      sequenceId={campaign.sequence?.id || campaign.sequenceId}
       sequenceSteps={sequenceSteps}
-      sequenceName={campaign.sequence.name}
+      sequenceName={campaign.sequence?.name || "Default Sequence"}
+      availableSequences={availableSequences}
       stepCount={stepCount}
       emailsSent={campaign.emailsSent}
       emailsOpened={campaign.emailsOpened}

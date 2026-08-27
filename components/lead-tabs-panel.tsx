@@ -7,12 +7,15 @@ import {
   MessageSquare, Clock, XCircle, Mail, Star, Phone,
   Loader2, Copy, RefreshCw, ExternalLink, FileText,
   Smartphone, TrendingUp, ShoppingBag, Zap, BarChart3,
-  ChevronLeft, ChevronRight, Sparkles, Users, Check,
+  ChevronLeft, ChevronRight, ChevronDown, Users, Check,
   Lightbulb, Target, Swords, NotebookPen, Trash2, Send,
   Newspaper, Flame, UserPlus, Briefcase, Rocket, Cpu,
+  AlertTriangle,
 } from "lucide-react"
+import { Sparkles } from "@/components/ui/chat-bubble-icon"
 import { toast } from "sonner"
 import { formatDate } from "@/lib/utils"
+import { parseCompetitorAnalysis } from "@/lib/competitor-utils"
 import type { LinkedInDecisionMaker } from "@/app/api/leads/linkedin-search/route"
 import type { BusinessProfile } from "@/app/api/leads/research/route"
 import type { BuyingSignals } from "@/lib/buying-signals"
@@ -860,7 +863,7 @@ function IntelTab({
             )}
           </div>
         ) : (
-          <p className="text-[11px] text-white/25">No buying signals checked yet — this is populated automatically when the lead is enriched (recent news, leadership changes, hiring, funding, etc.).</p>
+          <p className="text-[11px] text-white/25">No buying signals checked yet — this is populated automatically when lead data is researched (recent news, leadership changes, hiring, funding, etc.).</p>
         )}
       </div>
 
@@ -964,9 +967,82 @@ function IntelTab({
             <ExternalLink className="size-3" /> {competitorAnalysis ? "Update" : "Generate"}
           </a>
         </div>
-        {competitorAnalysis ? (
-          <pre className="text-[11px] text-white/45 leading-relaxed whitespace-pre-wrap font-sans">{competitorAnalysis}</pre>
-        ) : (
+        {competitorAnalysis ? (() => {
+          const competitors = parseCompetitorAnalysis(competitorAnalysis)
+          if (competitors.length === 0) {
+            return <p className="text-[11px] text-white/25">No competitor analysis yet. Generate one from the Competitor Intel tool.</p>
+          }
+          return (
+            <div className="space-y-2">
+              {competitors.map((c, i) => (
+                <details key={`${c.name}-${i}`} className="group border border-white/[0.04] bg-white/[0.01] rounded-lg overflow-hidden [&_summary::-webkit-details-marker]:hidden" open={i === 0}>
+                  <summary className="flex items-center justify-between p-2.5 cursor-pointer hover:bg-white/[0.02] transition-colors select-none">
+                    <div className="min-w-0 pr-2">
+                      <span className="text-[12px] font-semibold text-white truncate block">{c.name}</span>
+                      {c.website && (
+                        <span className="text-[9px] text-sky-400/60 truncate block">{c.website}</span>
+                      )}
+                    </div>
+                    <ChevronDown className="size-3 text-white/30 group-open:rotate-180 transition-transform duration-200 shrink-0" />
+                  </summary>
+                  <div className="p-3 pt-1.5 space-y-3 border-t border-white/[0.02] text-[11px] leading-relaxed">
+                    {c.summary && (
+                      <p className="text-white/50 italic border-l border-rose-500/30 pl-2">{c.summary}</p>
+                    )}
+                    
+                    {c.shortcomings && c.shortcomings.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-[9px] font-bold text-amber-300/80 uppercase tracking-wider flex items-center gap-1">
+                          <AlertTriangle className="size-3 text-amber-400" /> Shortcomings
+                        </p>
+                        <ul className="space-y-1 pl-2">
+                          {c.shortcomings.map((item, idx) => (
+                            <li key={idx} className="text-white/60 flex items-start gap-1">
+                              <span className="text-amber-500/60 shrink-0 mt-0.5">•</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {c.leverage && c.leverage.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-[9px] font-bold text-emerald-300/80 uppercase tracking-wider flex items-center gap-1">
+                          <Check className="size-3 text-emerald-400" /> Leverage
+                        </p>
+                        <ul className="space-y-1 pl-2">
+                          {c.leverage.map((item, idx) => (
+                            <li key={idx} className="text-white/60 flex items-start gap-1">
+                              <span className="text-emerald-500/60 shrink-0 mt-0.5">•</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {c.talkingPoints && c.talkingPoints.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-[9px] font-bold text-sky-300/80 uppercase tracking-wider flex items-center gap-1">
+                          <MessageSquare className="size-3 text-sky-400" /> Talking Points
+                        </p>
+                        <ul className="space-y-1 pl-2">
+                          {c.talkingPoints.map((item, idx) => (
+                            <li key={idx} className="text-white/60 flex items-start gap-1">
+                              <span className="text-sky-500/60 shrink-0 mt-0.5">•</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </details>
+              ))}
+            </div>
+          )
+        })() : (
           <p className="text-[11px] text-white/25">No competitor analysis yet. Generate one from the Competitor Intel tool.</p>
         )}
       </div>

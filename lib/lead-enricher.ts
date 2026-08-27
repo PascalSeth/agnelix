@@ -5,9 +5,12 @@ import { findLinkedInProfiles } from "@/app/api/leads/linkedin-search/route"
 import { performAudit } from "@/app/api/leads/audit/route"
 import { performAiResearch } from "@/app/api/leads/research/route"
 import { findBuyingSignals } from "@/lib/buying-signals"
-import { generateEmail } from "@/lib/ai"
+import { performSocialAudit } from "@/lib/social-audit"
+import { generateEmail, generateLinkedInMessage } from "@/lib/ai"
 import { performCompanyResearch } from "@/lib/research"
 import { drainDueQueue } from "@/lib/scheduler"
+import { determineOptimalApproach } from "@/lib/approach-selector"
+import { getValidProspectFirstName } from "@/lib/name-sanitizer"
 
 // Simple helper to parse email domain
 function emailFromPlaceWebsite(website: string | null, company: string | null): string {
@@ -55,13 +58,28 @@ async function autoDraftForLead(leadId: string) {
 
     try {
       const user = campaign.user
-      const approach = lead.recommendedApproach || "website"
+      const approachInfo = determineOptimalApproach(lead)
+      const approach = approachInfo.id
+
+      if (!lead.recommendedApproach) {
+        await prisma.lead.update({
+          where: { id: lead.id },
+          data: { recommendedApproach: approach },
+        }).catch(() => {})
+      }
 
       // Parse cached audit data
       let auditData: Record<string, unknown> | null = null
       if (lead.auditJson) {
         try { auditData = JSON.parse(lead.auditJson) } catch { /* ignore */ }
       }
+
+      // Social audit summary + flagship offer + campaign goal feed the AI prompts
+      let socialAuditSummary: string | null = null
+      if (lead.socialAuditJson) {
+        try { socialAuditSummary = (JSON.parse(lead.socialAuditJson) as { summary?: string }).summary ?? null } catch { /* ignore */ }
+      }
+      const flagshipOffer = user.flagshipOffer as { name: string; transformation: string; deliverable: string } | null
 
       const companyResearch = await performCompanyResearch(
         lead.company || lead.email.split("@")[0],
@@ -82,6 +100,68 @@ async function autoDraftForLead(leadId: string) {
           scheduledAt.setDate(scheduledAt.getDate() + daysOffset)
         }
 
+        // WAIT steps are pure delays — no email, no task
+        if (step.stepType === "WAIT") continue
+
+        // LinkedIn steps have no API integration — surface them as manual
+        // "copy & send" tasks in the inbox instead of silently emailing.
+        if (step.stepType === "LINKEDIN_CONNECT" || step.stepType === "LINKEDIN_MESSAGE") {
+          const alreadyCreated = await prisma.pendingAction.findFirst({
+            where: {
+              leadId,
+              type: "LINKEDIN_TASK",
+              metadata: { path: ["campaignId"], equals: campaign.id },
+            },
+            select: { id: true },
+          })
+          if (alreadyCreated) continue
+
+          const message = await generateLinkedInMessage({
+            stepType: step.stepType,
+            guideline: step.bodyTemplate || step.aiPrompt || "",
+            senderName: user.name || "Your Name",
+            senderCompany: user.agencyName || user.companyName || "Your Company",
+            senderCompanyDesc: user.companyDesc || "We help businesses grow.",
+            prospectFirstName: getValidProspectFirstName(lead.firstName, lead.email) || "",
+            prospectCompany: lead.company || "their company",
+            industry: lead.industry || "business",
+            companyResearch,
+            userId: user.id,
+          })
+
+          await prisma.pendingAction.create({
+            data: {
+              userId: user.id,
+              leadId,
+              type: "LINKEDIN_TASK",
+              intent: "LINKEDIN_OUTREACH",
+              draftSubject: step.stepType === "LINKEDIN_CONNECT"
+                ? `LinkedIn connection request — ${lead.company || lead.email}`
+                : `LinkedIn message — ${lead.company || lead.email}`,
+              draftBody: message,
+              metadata: {
+                campaignId: campaign.id,
+                stepNumber: step.stepNumber,
+                stepType: step.stepType,
+                dueAt: scheduledAt.toISOString(),
+                linkedinUrl: lead.linkedinUrl,
+                manualTask: true,
+              },
+              riskLevel: "LOW",
+              confidence: "HIGH",
+            },
+          })
+          await prisma.activity.create({
+            data: {
+              leadId,
+              type: "LINKEDIN_TASK_GENERATED",
+              note: `Step ${step.stepNumber}: LinkedIn ${step.stepType === "LINKEDIN_CONNECT" ? "connection note" : "message"} drafted — copy & send it from your inbox tasks`,
+              metadata: { campaignId: campaign.id, stepNumber: step.stepNumber },
+            },
+          })
+          continue
+        }
+
         const generated = await generateEmail(
           {
             userId:              user.id,
@@ -89,7 +169,7 @@ async function autoDraftForLead(leadId: string) {
             senderTitle:         user.title || "Marketing Consultant",
             senderCompany:       user.agencyName || user.companyName || "Your Company",
             senderCompanyDesc:   user.companyDesc || "We help businesses grow.",
-            prospectFirstName:   lead.firstName || lead.email.split("@")[0],
+            prospectFirstName:   getValidProspectFirstName(lead.firstName, lead.email) || "",
             prospectLastName:    lead.lastName || "",
             prospectTitle:       lead.title || "Decision Maker",
             prospectCompany:     lead.company || "their company",
@@ -106,6 +186,9 @@ async function autoDraftForLead(leadId: string) {
             previousEmailSubject: prevSubject || null,
             previousEmailBody:   prevBody || null,
             calendarLink:        user.calendarLink,
+            flagshipOffer,
+            clientGoal:          campaign.clientGoal,
+            socialAuditSummary,
           },
           step.stepNumber,
         )
@@ -119,7 +202,7 @@ async function autoDraftForLead(leadId: string) {
             campaignId: campaign.id,
             subject:    generated.subject,
             body:       generated.body,
-            aiPrompt:   `${approach} approach (auto-drafted after enrichment)`,
+            aiPrompt:   `${approachInfo.label} (${approach}) — ${approachInfo.reason}`,
             stepNumber: step.stepNumber,
             status:     (campaign.autonomous && step.stepNumber === 1) ? "QUEUED" : "DRAFT",
             scheduledAt,
@@ -162,22 +245,10 @@ class EnrichmentTimeoutError extends Error {
 export const cancelledEnrichments = new Set<string>()
 
 /**
- * Checks if the enrichment for a given lead ID has been cancelled,
- * either via the in-memory registry or because the database status/contactsJson
- * has already been updated (indicating it was stopped/overwritten).
+ * Checks if the enrichment for a given lead ID has been cancelled by the user.
  */
 async function isEnrichmentCancelled(id: string): Promise<boolean> {
-  if (cancelledEnrichments.has(id)) {
-    return true
-  }
-  const lead = await prisma.lead.findUnique({
-    where: { id },
-    select: { contactsJson: true },
-  })
-  if (lead && lead.contactsJson !== null) {
-    return true
-  }
-  return false
+  return cancelledEnrichments.has(id)
 }
 
 function withTimeout<T>(promise: Promise<T>, ms: number, leadId: string): Promise<T> {
@@ -283,6 +354,24 @@ async function enrichSingleLead(id: string, localNeighbors: boolean) {
     console.error(`[Background Enricher] Buying signals search failed for lead ${id}:`, err)
   }
 
+  // 4c. Social content audit — which platforms they're on, gaps, public mentions.
+  // Mention search (extra API call) only runs for social media playbook contexts.
+  let socialAudit: Awaited<ReturnType<typeof performSocialAudit>> | null = null
+  if (lead.website) {
+    try {
+      const [owner, socialCampaignCount] = await Promise.all([
+        prisma.user.findUnique({ where: { id: lead.userId }, select: { playbookType: true } }),
+        prisma.campaignLead.count({
+          where: { leadId: id, campaign: { playbookType: "social_media" } },
+        }),
+      ])
+      const isSocialContext = owner?.playbookType === "social_media" || socialCampaignCount > 0
+      socialAudit = await performSocialAudit(lead.website, lead.company || "", { includeMentions: isSocialContext })
+    } catch (err) {
+      console.error(`[Background Enricher] Social audit failed for lead ${id}:`, err)
+    }
+  }
+
   // Check cancellation before step 5 (combining and writing results)
   if (await isEnrichmentCancelled(id)) {
     console.log(`[Background Enricher] Lead ${id} enrichment cancelled. Aborting.`)
@@ -333,6 +422,8 @@ async function enrichSingleLead(id: string, localNeighbors: boolean) {
     recommendedApproachText,
   ].filter(Boolean).join("\n")
 
+  const optimalApproach = determineOptimalApproach({ ...lead, auditJson: audit ? JSON.stringify(audit) : lead.auditJson, painPoint: painPoints.join(". ") })
+
   // Update lead
   await prisma.lead.update({
     where: { id },
@@ -349,9 +440,10 @@ async function enrichSingleLead(id: string, localNeighbors: boolean) {
       auditJson: audit ? JSON.stringify(audit) : lead.auditJson,
       contactsJson: contacts ? JSON.stringify(contacts) : lead.contactsJson,
       linkedinProfilesJson: linkedinProfiles ? JSON.stringify(linkedinProfiles) : lead.linkedinProfilesJson,
-      recommendedApproach: research?.recommendedApproach?.id || lead.recommendedApproach,
+      recommendedApproach: research?.recommendedApproach?.id || optimalApproach.id,
       buyingSignalsJson: buyingSignals ? JSON.stringify(buyingSignals) : lead.buyingSignalsJson,
       signalsCheckedAt: buyingSignals ? new Date() : lead.signalsCheckedAt,
+      socialAuditJson: socialAudit ? JSON.stringify(socialAudit) : lead.socialAuditJson,
     },
   })
 

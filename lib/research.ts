@@ -1,10 +1,8 @@
 import OpenAI from "openai"
-import * as cheerio from "cheerio"
-
-const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+import { deepCrawlWebsite } from "@/lib/deep-crawler"
 
 /**
- * Performs real-time search & scraping to build a detailed company dossier.
+ * Performs real-time deep multi-page crawl & search to build a detailed company dossier.
  */
 export async function performCompanyResearch(
   companyName: string,
@@ -14,112 +12,71 @@ export async function performCompanyResearch(
 ): Promise<string> {
   const apiKey = process.env.GOOGLE_SEARCH_API_KEY || ""
   const cx = process.env.GOOGLE_SEARCH_CX || ""
-  
-  let websiteText = ""
+
   let searchSnippets = ""
 
-  // 1. Fetch website text if website is available
-  if (websiteUrl) {
-    try {
-      const url = websiteUrl.startsWith("http") ? websiteUrl : `https://${websiteUrl}`
-      const res = await fetch(url, {
-        method: "GET",
-        headers: { 
-          "User-Agent": UA,
-          "Accept-Language": "en-GB,en;q=0.9" 
-        },
-        signal: AbortSignal.timeout(6000),
-        redirect: "follow",
-      })
-      if (res.ok) {
-        const html = await res.text()
-        const $ = cheerio.load(html)
-        
-        // Remove interactive elements
-        $("script, style, svg, iframe, noscript, nav, footer, header").remove()
-        
-        const title = $("title").text().trim()
-        const metaDesc = $("meta[name='description']").attr("content") ?? ""
-        
-        // Grab headings
-        const headings: string[] = []
-        $("h1, h2, h3").each((_, el) => {
-          const t = $(el).text().trim()
-          if (t && t.length > 5 && !headings.includes(t)) headings.push(t)
-        })
-        
-        // Grab paragraph snippets
-        const paras: string[] = []
-        $("p").each((_, el) => {
-          const t = $(el).text().trim().replace(/\s+/g, " ")
-          if (t && t.length > 20 && !paras.includes(t)) paras.push(t)
-        })
-        
-        websiteText = `
-TITLE: ${title}
-DESCRIPTION: ${metaDesc}
-HEADINGS: ${headings.slice(0, 8).join(" | ")}
-TEXT CONTENT: ${paras.slice(0, 5).join("\n")}
-        `.trim()
-      }
-    } catch (err) {
-      console.error("Website fetch during research failed:", err)
-    }
+  // 1. Deep Multi-Page Crawl
+  const [crawlResult, googleSearchResults] = await Promise.all([
+    websiteUrl ? deepCrawlWebsite(websiteUrl, 5) : Promise.resolve(null),
+    apiKey && cx && companyName
+      ? fetch(
+          `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=${encodeURIComponent(
+            `"${companyName}" business value proposition services about`
+          )}`,
+          { signal: AbortSignal.timeout(6000) }
+        )
+          .then(r => (r.ok ? (r.json() as Promise<{ items?: { title: string; snippet: string }[] }>) : {}))
+          .then(data => {
+            const items = ("items" in data && Array.isArray(data.items)) ? data.items : []
+            return items
+              .slice(0, 4)
+              .map((item: { title: string; snippet: string }) => `- ${item.title}: ${item.snippet}`)
+              .join("\n")
+          })
+          .catch(() => "")
+      : Promise.resolve(""),
+  ])
+
+  if (googleSearchResults) {
+    searchSnippets = `GOOGLE SEARCH RESULTS:\n${googleSearchResults}`
   }
 
-  // 2. Perform Google Search for company details
-  if (apiKey && cx && companyName) {
-    try {
-      const query = `"${companyName}" business value proposition services about`
-      const searchRes = await fetch(
-        `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=${encodeURIComponent(query)}`,
-        { signal: AbortSignal.timeout(6000) }
-      )
-      if (searchRes.ok) {
-        const data = await searchRes.json()
-        const items = data.items || []
-        const snippets = items.slice(0, 4).map((item: { title: string; snippet: string }) => `- ${item.title}: ${item.snippet}`).join("\n")
-        searchSnippets = `GOOGLE SEARCH RESULTS:\n${snippets}`
-      }
-    } catch (err) {
-      console.error("Google search during research failed:", err)
-    }
+  // If no search results and no crawl text, return fallback
+  if ((!crawlResult || crawlResult.pagesCrawledCount === 0) && !searchSnippets) {
+    return "No online presence or search profile found for this company."
   }
 
-  // 3. If no search results and no website text, return fallback
-  if (!websiteText && !searchSnippets) {
-    return "No additional online presence or search profile found for this company."
-  }
-
-  // 4. Call DeepSeek to summarize into a clean dossier
+  // Call DeepSeek to summarize into a high-converting intelligence dossier
   try {
     const openai = new OpenAI({
       apiKey: process.env.NEXT_DEEPSEEKER_API_KEY,
       baseURL: "https://api.deepseek.com",
     })
 
-    const prompt = `You are a B2B sales researcher. Analyze the raw web crawler and search results for the company "${companyName}".
+    const prompt = `You are an elite B2B sales intelligence investigator. Analyze the raw multi-page crawler and search results for "${companyName}".
 Synthesize a concise, high-impact research dossier that will help our agency ("${senderCompany || "our agency"}") pitch them.
 
 OUR AGENCY DESCRIPTION:
 ${senderCompanyDesc || "We offer digital marketing and growth services."}
 
 RAW DATA FOUND FOR PROSPECT:
-${websiteText ? `[WEBSITE DATA]\n${websiteText}` : ""}
+${crawlResult ? `[DEEP MULTI-PAGE CRAWLER DATA]\n${crawlResult.fullTextDigest}` : ""}
 ${searchSnippets ? `[SEARCH DATA]\n${searchSnippets}` : ""}
 
 Return a brief, structured synthesis covering:
-1. What they sell / Core value proposition.
-2. Who their target customers are.
-3. Specific gaps or angles where our agency's services (${senderCompanyDesc || "marketing"}) could help them grow.
+1. Core Commercial Offering & Who They Serve (ICP)
+2. Location & Geographic Market (Explicitly identify where they and their customers are based e.g. Ghana, Nigeria, Africa, Europe, US, UK, Global; do NOT invent or default to UK/US if not stated)
+3. Pricing Tier & Market Positioning
+4. Tech Stack & Infrastructure
+5. Specific Revenue / Pipeline Gaps where our agency's services (${senderCompanyDesc || "growth services"}) could immediately unlock revenue for them.
 
-Keep the response under 150 words total, bullet-pointed.`
+Keep the response under 175 words total, bullet-pointed and dense with factual observations.`
 
     const response = await openai.chat.completions.create({
       model: "deepseek-v4-flash",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.2,
-      max_tokens: 250,
+      max_tokens: 350,
       // @ts-expect-error — disable DeepSeek thinking for fast tasks
       thinking: { type: "disabled" },
     })
@@ -132,56 +89,13 @@ Keep the response under 150 words total, bullet-pointed.`
 }
 
 /**
- * Scrapes an agency's own website and asks the AI to write a short
+ * Deep-scrapes an agency's own website across multiple pages and asks the AI to write a short
  * first-person description of what they do, for use as onboarding companyDesc.
  */
 export async function generateAgencyDescriptionFromUrl(websiteUrl: string): Promise<string> {
-  const url = websiteUrl.startsWith("http") ? websiteUrl : `https://${websiteUrl}`
+  const crawlResult = await deepCrawlWebsite(websiteUrl, 4)
 
-  let websiteText = ""
-  try {
-    const res = await fetch(url, {
-      method: "GET",
-      headers: {
-        "User-Agent": UA,
-        "Accept-Language": "en-GB,en;q=0.9",
-      },
-      signal: AbortSignal.timeout(8000),
-      redirect: "follow",
-    })
-    if (res.ok) {
-      const html = await res.text()
-      const $ = cheerio.load(html)
-
-      $("script, style, svg, iframe, noscript, nav, footer").remove()
-
-      const title = $("title").text().trim()
-      const metaDesc = $("meta[name='description']").attr("content") ?? ""
-
-      const headings: string[] = []
-      $("h1, h2, h3").each((_, el) => {
-        const t = $(el).text().trim()
-        if (t && t.length > 5 && !headings.includes(t)) headings.push(t)
-      })
-
-      const paras: string[] = []
-      $("p").each((_, el) => {
-        const t = $(el).text().trim().replace(/\s+/g, " ")
-        if (t && t.length > 20 && !paras.includes(t)) paras.push(t)
-      })
-
-      websiteText = `
-TITLE: ${title}
-DESCRIPTION: ${metaDesc}
-HEADINGS: ${headings.slice(0, 8).join(" | ")}
-TEXT CONTENT: ${paras.slice(0, 6).join("\n")}
-      `.trim()
-    }
-  } catch (err) {
-    console.error("Website fetch for agency description failed:", err)
-  }
-
-  if (!websiteText) {
+  if (!crawlResult || crawlResult.pagesCrawledCount === 0) {
     throw new Error("Couldn't read that website — try pasting a description instead.")
   }
 
@@ -192,13 +106,13 @@ TEXT CONTENT: ${paras.slice(0, 6).join("\n")}
 
   const prompt = `You are helping a marketing/sales agency describe what they do, for use as context that powers their AI-written cold emails.
 
-Based on the content scraped from their own website below, write a concise first-person-plural description (2-4 sentences, starting with "We") covering:
+Based on the content scraped across their website below, write a concise first-person-plural description (2-4 sentences, starting with "We") covering:
 1. What services they offer
 2. Who their typical clients are
 3. The results/value they deliver
 
-WEBSITE DATA:
-${websiteText}
+MULTI-PAGE CRAWL DATA:
+${crawlResult.fullTextDigest}
 
 Return ONLY the description text, no preamble or quotes.`
 
@@ -206,8 +120,8 @@ Return ONLY the description text, no preamble or quotes.`
     const response = await openai.chat.completions.create({
       model: "deepseek-v4-flash",
       messages: [{ role: "user", content: prompt }],
-      temperature: 0.4,
-      max_tokens: 200,
+      temperature: 0.3,
+      max_tokens: 220,
       // @ts-expect-error — disable DeepSeek thinking for fast tasks
       thinking: { type: "disabled" },
     })

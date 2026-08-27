@@ -7,67 +7,101 @@ import type { Session } from "next-auth"
 import {
   LayoutDashboard, Users, Megaphone, GitBranch,
   Settings, LogOut, X, ChevronLeft, ChevronRight,
-  KanbanSquare, Inbox, Sparkles,
+  KanbanSquare, Inbox,
   Search, FileText, Briefcase, Swords, Globe, BarChart3,
-  ClipboardList, BookOpen, Copy, Zap, Bot
+  ClipboardList, BookOpen, Copy, Zap, Bot, CalendarDays, Wallet,
+  ListChecks, Lightbulb, ShieldCheck, Radio
 } from "lucide-react"
+import { Sparkles } from "@/components/ui/chat-bubble-icon"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn, initials } from "@/lib/utils"
+import { usePlaybook } from "@/lib/playbook-context"
 import Image from "next/image"
 
-const navGroups = [
-  {
-    label: "Command Center",
-    items: [
-      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/pipeline",  label: "Pipeline",  icon: KanbanSquare },
-      { href: "/inbox",     label: "Inbox",     icon: Inbox },
-    ],
-  },
-  {
-    label: "Acquisition",
-    items: [
-      { href: "/leads/find", label: "Find Leads", icon: Search },
-      { href: "/auto-prospecting", label: "Auto-Prospecting", icon: Zap },
-      { href: "/leads",      label: "Leads Database", icon: Users },
-      { href: "/campaigns",  label: "Campaigns", icon: Megaphone },
-      { href: "/sequences",  label: "Sequences", icon: GitBranch },
-      { href: "/playground", label: "Playground", icon: Sparkles },
-    ],
-  },
-  {
-    label: "Convert",
-    items: [
-      { href: "/proposals",        label: "Proposals", icon: FileText },
-      { href: "/case-studies",     label: "Case Studies", icon: Briefcase },
-      { href: "/competitor-intel", label: "Competitor Intel", icon: Swords },
-    ],
-  },
-  {
-    label: "Client Layer",
-    items: [
-      { href: "/portals",    label: "Client Portals", icon: Globe },
-      { href: "/reports",    label: "Reports", icon: BarChart3 },
-      { href: "/onboarding", label: "Onboarding", icon: ClipboardList },
-    ],
-  },
-  {
-    label: "Assets & Playbooks",
-    items: [
-      { href: "/playbooks",    label: "Playbook Settings", icon: BookOpen },
-      { href: "/templates",    label: "Templates", icon: Copy },
-      { href: "/battle-cards", label: "Battle Cards", icon: Zap },
-    ],
-  },
-  {
-    label: "Automation & Settings",
-    items: [
-      { href: "/settings/autopilot", label: "Autopilot", icon: Bot },
-      { href: "/settings/agency",    label: "Agency Profile", icon: Settings },
-      { href: "/settings/team",      label: "Team Seats", icon: Users },
-    ],
-  },
-]
+type NavItem = { href: string; label: string; icon: React.ComponentType<{ className?: string }> }
+type NavGroup = { label: string; items: NavItem[] }
+
+// Work-based navigation. Sections are stable across workspaces; the DELIVERY
+// section adapts — workspace-exclusive tools (Content Calendar for Social,
+// Financials for CFO) only appear in their workspace.
+function buildNavGroups(workspaceType: string, isSuperadmin = false): NavGroup[] {
+  const delivery: NavItem[] = []
+  if (workspaceType === "social_media") delivery.push({ href: "/content-calendar", label: "Content Calendar", icon: CalendarDays })
+  if (workspaceType === "finance") delivery.push({ href: "/financials", label: "Financials", icon: Wallet })
+  delivery.push(
+    { href: "/reports", label: "Reports", icon: BarChart3 },
+    { href: "/portals", label: "Client Portals", icon: Globe },
+    { href: "/onboarding", label: "Onboarding", icon: ClipboardList },
+  )
+
+  const commandCenterItems: NavItem[] = [
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  ]
+  if (isSuperadmin) {
+    commandCenterItems.push({ href: "/admin", label: "Admin Control", icon: ShieldCheck })
+  }
+
+  return [
+    {
+      label: "Command Center",
+      items: commandCenterItems,
+    },
+    {
+      label: "Work",
+      items: [
+        { href: "/pipeline", label: "Pipeline", icon: KanbanSquare },
+        { href: "/inbox",    label: "Inbox",    icon: Inbox },
+        { href: "/tasks",    label: "Tasks",    icon: ListChecks },
+      ],
+    },
+    {
+      label: "Client Acquisition",
+      items: [
+        { href: "/leads/find", label: "Find Leads", icon: Search },
+        { href: "/auto-prospecting", label: "Auto-Prospecting", icon: Zap },
+        { href: "/social-radar", label: "Social Radar (B2C)", icon: Radio },
+        { href: "/leads",      label: "Lead Database", icon: Users },
+      ],
+    },
+    {
+      label: "Outreach",
+      items: [
+        { href: "/campaigns",  label: "Campaigns", icon: Megaphone },
+        { href: "/sequences",  label: "Sequences", icon: GitBranch },
+        { href: "/templates",  label: "Templates", icon: Copy },
+        { href: "/playground", label: "Playground", icon: Sparkles },
+      ],
+    },
+    {
+      label: "Delivery",
+      items: delivery,
+    },
+    {
+      label: "Intelligence",
+      items: [
+        { href: "/battle-cards",     label: "Battle Cards", icon: Zap },
+        { href: "/competitor-intel", label: "Competitor Intel", icon: Swords },
+        { href: "/case-studies",     label: "Case Studies", icon: Briefcase },
+        { href: "/proposals",        label: "Proposals", icon: FileText },
+      ],
+    },
+    {
+      label: "Automation",
+      items: [
+        { href: "/settings/autopilot", label: "AI Settings", icon: Bot },
+        { href: "/insights",           label: "Insights", icon: Lightbulb },
+      ],
+    },
+    {
+      label: "Settings",
+      items: [
+        { href: "/settings/agency", label: "Agency Profile", icon: Settings },
+        { href: "/playbooks",       label: "Workspaces", icon: BookOpen },
+        { href: "/settings/team",   label: "Team Seats", icon: Users },
+      ],
+    },
+  ]
+}
 
 interface SidebarProps {
   session?: Session | null
@@ -80,6 +114,9 @@ interface SidebarProps {
 
 export function Sidebar({ session, collapsed, mobileOpen, inboxCount = 0, onMobileClose, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname()
+  const { activeType } = usePlaybook()
+  const isSuperadmin = session?.user?.role === "SUPERADMIN"
+  const navGroups = buildNavGroups(activeType, isSuperadmin)
 
   return (
     <aside
@@ -110,9 +147,9 @@ export function Sidebar({ session, collapsed, mobileOpen, inboxCount = 0, onMobi
       <div className="relative z-10 flex h-16 shrink-0 items-center border-b border-white/[0.07] px-4">
         <Link href="/dashboard" className="flex items-center">
           {collapsed ? (
-            <Image src="/logo.png" alt="Galien" width={36} height={36} className="object-contain" />
+            <Image src="/logo.png" alt="Galien" width={36} height={36} style={{ width: "auto", height: "auto" }} className="object-contain" priority />
           ) : (
-            <Image src="/logo-hq.png" alt="Galien" width={130} height={30} className="object-contain object-left" />
+            <Image src="/logo-hq.png" alt="Galien" width={130} height={30} style={{ width: "auto", height: "auto" }} className="object-contain object-left" priority />
           )}
         </Link>
 

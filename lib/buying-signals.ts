@@ -20,13 +20,13 @@ export interface BuyingSignals {
   checkedAt: string
 }
 
-interface SearchResult {
+export interface SearchResult {
   title: string
   snippet: string
   link: string
 }
 
-async function googleSearch(query: string): Promise<SearchResult[]> {
+export async function googleSearch(query: string): Promise<SearchResult[]> {
   const apiKey = process.env.GOOGLE_SEARCH_API_KEY || ""
   const cx = process.env.GOOGLE_SEARCH_CX || ""
   if (!apiKey || !cx) return []

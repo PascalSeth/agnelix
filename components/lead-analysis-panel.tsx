@@ -3,11 +3,12 @@
 
 import { useState, useRef } from "react"
 import {
-  MapPin, Globe2, Gauge, Shield, Sparkles, Zap,
+  MapPin, Globe2, Gauge, Shield, Zap,
   ExternalLink, X, Check, Plus, Loader2,
   ChevronLeft, ChevronRight, UserSearch, Star,
   Copy, Phone, Mail, BarChart3,
 } from "lucide-react"
+import { Sparkles } from "@/components/ui/chat-bubble-icon"
 import { useEffect } from "react"
 import { toast } from "sonner"
 import type { ContactResult } from "@/lib/contact-finder"
@@ -236,34 +237,66 @@ export function LeadAnalysisPanel({
       <div className="space-y-6">
         {/* Photo slider */}
         {place.photos && place.photos.length > 0 && (
-          <div className="relative h-52 rounded-2xl overflow-hidden group/slider select-none touch-none"
-            style={{ border: "1px solid rgba(255,255,255,.07)" }}>
-            <div className={`flex h-full ${dragging.current ? "" : "transition-transform duration-500 ease-out"}`}
-              style={{ transform: `translateX(-${activePhoto * 100}%)` }}>
-              {place.photos.map((photo, i) => (
-                <img key={i} alt=""
-                  src={`https://places.googleapis.com/v1/${photo.name}/media?maxHeightPx=500&maxWidthPx=900&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`}
-                  className="w-full h-full object-cover shrink-0 pointer-events-none"
-                />
-              ))}
+          <div className="space-y-2">
+            <div className="relative h-52 rounded-2xl overflow-hidden group/slider select-none touch-none border border-white/[0.08] shadow-lg bg-black/60">
+              <div className={`flex h-full ${dragging.current ? "" : "transition-transform duration-500 ease-out"}`}
+                style={{ transform: `translateX(-${activePhoto * 100}%)` }}>
+                {place.photos.map((photo, i) => (
+                  <img key={i} alt=""
+                    src={`/api/leads/photo?name=${encodeURIComponent(photo.name)}&maxWidth=800&maxHeight=500`}
+                    className="w-full h-full object-cover shrink-0 pointer-events-none"
+                    loading={i === 0 ? "eager" : "lazy"}
+                  />
+                ))}
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/30 pointer-events-none" />
+
+              {/* Badges */}
+              <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md border border-white/10 text-[10px] font-bold text-white/90">
+                <span>Google Business Photos</span>
+              </div>
+
+              <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md border border-white/10 text-[9px] font-mono font-bold text-white/70">
+                {activePhoto + 1} / {place.photos.length}
+              </div>
+
+              {place.photos.length > 1 && (
+                <>
+                  <button onClick={() => setActivePhoto(p => Math.max(0, p - 1))}
+                    disabled={activePhoto === 0}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 size-8 rounded-full bg-black/60 backdrop-blur border border-white/15 flex items-center justify-center opacity-0 group-hover/slider:opacity-100 transition-opacity hover:bg-black/80 disabled:opacity-0 cursor-pointer shadow-md">
+                    <ChevronLeft className="size-4 text-white" />
+                  </button>
+                  <button onClick={() => setActivePhoto(p => Math.min(place.photos!.length - 1, p + 1))}
+                    disabled={activePhoto === place.photos.length - 1}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 size-8 rounded-full bg-black/60 backdrop-blur border border-white/15 flex items-center justify-center opacity-0 group-hover/slider:opacity-100 transition-opacity hover:bg-black/80 disabled:opacity-0 cursor-pointer shadow-md">
+                    <ChevronRight className="size-4 text-white" />
+                  </button>
+                </>
+              )}
             </div>
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+
+            {/* Thumbnail Preview Strip */}
             {place.photos.length > 1 && (
-              <>
-                <button onClick={() => setActivePhoto(p => Math.max(0, p - 1))}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 size-8 rounded-full bg-black/30 backdrop-blur border border-white/10 flex items-center justify-center opacity-0 group-hover/slider:opacity-100 transition-opacity">
-                  <ChevronLeft className="size-4 text-white" />
-                </button>
-                <button onClick={() => setActivePhoto(p => Math.min(place.photos!.length - 1, p + 1))}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 size-8 rounded-full bg-black/30 backdrop-blur border border-white/10 flex items-center justify-center opacity-0 group-hover/slider:opacity-100 transition-opacity">
-                  <ChevronRight className="size-4 text-white" />
-                </button>
-                <div className="absolute bottom-3 inset-x-0 flex justify-center gap-1.5">
-                  {place.photos.map((_, i) => (
-                    <div key={i} className={`h-1 rounded-full transition-all ${i === activePhoto ? "w-5 bg-white" : "w-1 bg-white/30"}`} />
-                  ))}
-                </div>
-              </>
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                {place.photos.map((photo, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setActivePhoto(i)}
+                    className={`relative size-12 rounded-lg overflow-hidden shrink-0 transition-all border cursor-pointer ${
+                      i === activePhoto 
+                        ? "border-indigo-400 ring-2 ring-indigo-500/30 scale-[1.03]" 
+                        : "border-white/10 opacity-50 hover:opacity-100"
+                    }`}
+                  >
+                    <img 
+                      alt=""
+                      src={`/api/leads/photo?name=${encodeURIComponent(photo.name)}&maxWidth=100&maxHeight=100`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
             )}
           </div>
         )}

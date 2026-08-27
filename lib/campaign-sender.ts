@@ -5,6 +5,7 @@ import { performCompanyResearch } from "./research"
 import { generateDraftsForCampaign } from "./campaign-drafts"
 import { drainDueQueue } from "./scheduler"
 import { enrichLeadsInBackground } from "./lead-enricher"
+import { getValidProspectFirstName } from "./name-sanitizer"
 
 /**
  * Generates AI emails and queues them for a campaign.
@@ -47,6 +48,12 @@ export async function generateAndQueueEmails(
     // Skip leads that have already replied, booked, or opted out
     if (["REPLIED", "MEETING_BOOKED", "NOT_INTERESTED", "BOUNCED"].includes(lead.status)) continue
 
+    // If the lead is actively being enriched in the background, skip here —
+    // enrichLeadsInBackground will automatically draft and queue its emails once enrichment finishes.
+    if (lead.status === "NEW" && lead.contactsJson === null && campaign.autonomous) {
+      continue
+    }
+
     // Promote existing DRAFT emails to QUEUED if launching autonomous campaign
     const drafts = await prisma.email.findMany({
       where: { leadId: lead.id, campaignId, status: "DRAFT" },
@@ -64,6 +71,15 @@ export async function generateAndQueueEmails(
               data: { status: "QUEUED", scheduledAt: now },
             })
             queued++
+
+            await prisma.activity.create({
+              data: {
+                leadId: lead.id,
+                type: "EMAIL_SENT",
+                note: `⚡ [Autopilot] Step ${email.stepNumber} email queued for sending: "${email.subject}"`,
+                metadata: { emailId: email.id, stepNumber: email.stepNumber, campaignId },
+              },
+            })
           } else {
             // Ensure follow-ups are DRAFT status until the prior step is sent
             await prisma.email.update({
@@ -119,7 +135,7 @@ export async function generateAndQueueEmails(
             senderTitle:       user.title || "Marketing Consultant",
             senderCompany:     user.agencyName || user.companyName || "Your Company",
             senderCompanyDesc: user.companyDesc || "We help businesses grow.",
-            prospectFirstName: lead.firstName || lead.email.split("@")[0],
+            prospectFirstName: getValidProspectFirstName(lead.firstName, lead.email) || "",
             prospectLastName:  lead.lastName || "",
             prospectTitle:     lead.title || "Decision Maker",
             prospectCompany:   lead.company || "their company",
@@ -144,6 +160,7 @@ export async function generateAndQueueEmails(
         prevBody = generated.body
       }
 
+      const isImmediateStep = step.stepNumber === 1
       const createdEmail = await prisma.email.create({
         data: {
           leadId: lead.id,
@@ -152,7 +169,7 @@ export async function generateAndQueueEmails(
           body,
           aiPrompt: promptStr,
           stepNumber: step.stepNumber,
-          status: (campaign.autonomous && step.stepNumber === 1) ? "QUEUED" : "DRAFT",
+          status: (campaign.autonomous && isImmediateStep) ? "QUEUED" : "DRAFT",
           scheduledAt,
         },
       })
@@ -166,8 +183,8 @@ export async function generateAndQueueEmails(
         },
       })
 
-      if (campaign.autonomous) {
-        if (step.stepNumber === 1) queued++
+      if (campaign.autonomous && isImmediateStep) {
+        queued++
       }
     }
   }

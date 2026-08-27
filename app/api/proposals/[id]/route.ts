@@ -35,6 +35,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.executiveSummary !== undefined) data.executiveSummary = body.executiveSummary
   if (body.pricingPackages !== undefined) data.pricingPackages = body.pricingPackages
   if (body.totalValue !== undefined) data.totalValue = body.totalValue
+  if (body.currency !== undefined) data.currency = body.currency
+
+  if (body.declineReason !== undefined) {
+    data.declineReason = typeof body.declineReason === "string" && body.declineReason.trim() ? body.declineReason.trim() : null
+  }
 
   if (body.status !== undefined) {
     data.status = body.status
@@ -66,6 +71,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         data: { status: "WON", dealValue: proposal.totalValue ?? undefined },
       }).catch(() => {})
       await prisma.activity.create({ data: { leadId: existing.leadId, type: "DEAL_WON", note: `Deal won via signed proposal "${existing.title}"` } })
+      // Surface a cross-sell pitch card on the dashboard (fire-and-forget)
+      const { generateCrossSellInsight } = await import("@/lib/cross-sell")
+      generateCrossSellInsight(existing.leadId).catch(e => console.error("[cross-sell] insight generation failed:", e))
     }
   }
 

@@ -24,40 +24,55 @@ export async function POST(
   })
   if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 })
 
-  // 2. Find all DRAFT and FAILED emails in this campaign
+  // 2. Find all DRAFT and FAILED emails in this campaign for eligible unreplied leads
   const drafts = await prisma.email.findMany({
     where: {
       campaignId,
       status: { in: ["DRAFT", "FAILED"] },
+      lead: {
+        status: { notIn: ["REPLIED", "MEETING_BOOKED", "NOT_INTERESTED", "BOUNCED"] },
+      },
     },
     orderBy: { stepNumber: "asc" },
   })
 
   if (drafts.length === 0) {
-    return NextResponse.json({ error: "No drafts or failed emails found to queue" }, { status: 400 })
+    return NextResponse.json({ error: "No eligible drafts found to queue" }, { status: 400 })
   }
 
   const now = new Date()
 
-  // 3. Select only the lowest step number draft for each lead
-  const activeDraftsByLead = new Map<string, typeof drafts[0]>()
+  // 3. Promote Step 1 (Day 1) messages to QUEUED for immediate send.
+  // Follow-up messages (Step > 1) remain scheduled for their future timeframe (now + delayDays)
+  // and will only send if the prospect has not replied when that date arrives.
+  const updatedEmails = []
   for (const email of drafts) {
-    if (!activeDraftsByLead.has(email.leadId)) {
-      activeDraftsByLead.set(email.leadId, email)
+    if (email.stepNumber === 1) {
+      const updated = await prisma.email.update({
+        where: { id: email.id },
+        data: { status: "QUEUED", scheduledAt: now },
+      })
+      updatedEmails.push(updated)
+    } else {
+      let daysOffset = 0
+      const stepsUpToCurrent = campaign.sequence.steps.filter(s => s.stepNumber < email.stepNumber)
+      for (const step of stepsUpToCurrent) {
+        daysOffset += step.delayDays
+      }
+      const scheduledAt = new Date(now.getTime() + daysOffset * 24 * 60 * 60 * 1000)
+
+      const updated = await prisma.email.update({
+        where: { id: email.id },
+        data: {
+          status: campaign.autonomous ? "QUEUED" : "DRAFT",
+          scheduledAt,
+        },
+      })
+      updatedEmails.push(updated)
     }
   }
 
-  // 4. Promote active drafts to QUEUED and schedule for now
-  const updatedEmails = []
-  for (const email of activeDraftsByLead.values()) {
-    const updated = await prisma.email.update({
-      where: { id: email.id },
-      data: { status: "QUEUED", scheduledAt: now },
-    })
-    updatedEmails.push(updated)
-  }
-
-  // 5. Ensure campaign is ACTIVE
+  // 4. Ensure campaign is ACTIVE
   if (campaign.status !== "ACTIVE") {
     await prisma.campaign.update({
       where: { id: campaignId },
@@ -65,7 +80,7 @@ export async function POST(
     })
   }
 
-  // 6. Trigger SMTP sends in the background immediately — no cron needed
+  // 5. Trigger immediate SMTP send of Day 1 messages in the background
   after(async () => {
     try {
       await drainDueQueue()
@@ -74,5 +89,10 @@ export async function POST(
     }
   })
 
-  return NextResponse.json({ success: true, count: updatedEmails.length, emails: updatedEmails })
+  return NextResponse.json({
+    success: true,
+    dayOneCount: updatedEmails.filter(e => e.stepNumber === 1).length,
+    totalCount: updatedEmails.length,
+    emails: updatedEmails,
+  })
 }

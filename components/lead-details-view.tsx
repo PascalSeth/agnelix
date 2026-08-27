@@ -5,12 +5,14 @@ import { useState, useEffect } from "react"
 import { 
   Globe, MapPin, ExternalLink, 
   MessageSquare, Gauge, Shield, Cpu, 
-  BarChart3, Zap, Sparkles, Loader2, Copy,
-  ChevronLeft, ChevronRight
+  BarChart3, Zap, Loader2, Copy,
+  ChevronLeft, ChevronRight, Check, RefreshCw
 } from "lucide-react"
+import { Sparkles } from "@/components/ui/chat-bubble-icon"
 import { toast } from "sonner"
 import type { Place } from "@/components/lead-analysis-panel"
 import type { Lead } from "@/app/generated/prisma/client"
+import type { BusinessProfile } from "@/app/api/leads/research/route"
 
 interface AuditData {
   ssl?: boolean
@@ -18,7 +20,6 @@ interface AuditData {
   pixel?: boolean
   googleAds?: boolean
 }
-
 
 interface ExtendedLead extends Lead {
   nationalPhoneNumber?: string | null
@@ -35,42 +36,78 @@ export function LeadDetailsClient({ lead: initialLead }: { lead: ExtendedLead })
   const [auditData, setAuditData] = useState<AuditData | null>(null)
   const [auditing, setAuditing] = useState(false)
   const [icebreaker, setIcebreaker] = useState("")
-  const [generatingIce, setGeneratingIce] = useState(false)
   const [socials, setSocials] = useState<string[]>([])
   const [discoveredEmails, setDiscoveredEmails] = useState<string[]>([])
   const [loadingEnrich, setLoadingEnrich] = useState(false)
 
+  // ── Deep Intelligence & Public Roadmap State ──
+  const [research, setResearch] = useState<BusinessProfile | null>(null)
+  const [loadingResearch, setLoadingResearch] = useState(false)
 
   useEffect(() => {
-    async function fetchMapsData() {
+    async function fetchMapsAndResearchData() {
       setLoadingPlace(true)
       setPlace(null)
       setSocials([])
       setDiscoveredEmails([])
       setAuditData(null)
       setIcebreaker("")
+      setResearch(null)
 
       try {
         const res = await fetch(`/api/leads/${initialLead.id}/place`)
         if (res.ok) {
-          const data = await res.json()
+          const data: Place = await res.json()
           setPlace(data)
           
-          // Also trigger enrichment automatically if possible
+          // Trigger enrichment
           if (data.websiteUri) {
             setLoadingEnrich(true)
-            const enrichRes = await fetch('/api/leads/enrich', {
+            fetch('/api/leads/enrich', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ url: data.websiteUri })
             })
-            if (enrichRes.ok) {
-              const enrichData = await enrichRes.json()
-              setSocials(enrichData.socials || [])
-              setDiscoveredEmails(enrichData.emails || [])
-            }
-            setLoadingEnrich(false)
+              .then(async r => {
+                if (r.ok) {
+                  const d = await r.json()
+                  if (Array.isArray(d.socials)) setSocials(d.socials)
+                  if (Array.isArray(d.emails)) setDiscoveredEmails(d.emails)
+                }
+              })
+              .catch(() => {})
+              .finally(() => setLoadingEnrich(false))
           }
+
+          // Trigger Deep Live AI Research (Website crawl, reviews analysis, public roadmap/announcements)
+          setLoadingResearch(true)
+          fetch('/api/leads/research', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              businessName: data.displayName?.text || initialLead.company || initialLead.firstName || "Company",
+              websiteUrl: data.websiteUri || initialLead.website,
+              industry: initialLead.industry,
+              address: data.formattedAddress,
+              rating: data.rating,
+              userRatingCount: data.userRatingCount,
+              reviews: data.reviews,
+            })
+          })
+            .then(async r => {
+              if (r.ok) {
+                const d = await r.json()
+                if (d.profile) {
+                  const p = d.profile as BusinessProfile
+                  setResearch(p)
+                  if (p.whyNowTrigger) {
+                    setIcebreaker(p.whyNowTrigger)
+                  }
+                }
+              }
+            })
+            .catch(err => console.error("Lead research error:", err))
+            .finally(() => setLoadingResearch(false))
         }
       } catch (err) {
         console.error("Failed to sync Maps data", err)
@@ -78,7 +115,7 @@ export function LeadDetailsClient({ lead: initialLead }: { lead: ExtendedLead })
         setLoadingPlace(false)
       }
     }
-    fetchMapsData()
+    fetchMapsAndResearchData()
   }, [initialLead.id])
 
   async function runAudit() {
@@ -106,21 +143,36 @@ export function LeadDetailsClient({ lead: initialLead }: { lead: ExtendedLead })
     }
   }
 
-  async function generateIcebreaker() {
-    setGeneratingIce(true)
-    await new Promise(r => setTimeout(r, 1200))
-    
-    let hook = `Hi ${initialLead.firstName || 'there'}, `
-    if (auditData) {
-      if (!auditData.ssl) hook += `I noticed your site isn't fully secure (no SSL), which might be hurting your local ranking...`
-      else if (auditData.speed !== undefined && auditData.speed < 70) hook += `I saw your site is a bit slow on mobile. That usually means losing about 20% of local traffic...`
-      else hook += `Love the business you've built. I saw your ${place?.userRatingCount || 0} reviews and wanted to reach out...`
-    } else {
-      hook += `Saw your business on Google Maps. Your ${place?.rating || 'high'} star rating really stands out in the area...`
+  async function triggerManualResearch() {
+    setLoadingResearch(true)
+    try {
+      const res = await fetch('/api/leads/research', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessName: place?.displayName?.text || initialLead.company || "Company",
+          websiteUrl: place?.websiteUri || initialLead.website,
+          industry: initialLead.industry,
+          address: place?.formattedAddress,
+          rating: place?.rating,
+          userRatingCount: place?.userRatingCount,
+          reviews: place?.reviews,
+        })
+      })
+      const data = await res.json()
+      if (data.profile) {
+        const p = data.profile as BusinessProfile
+        setResearch(p)
+        if (p.whyNowTrigger) {
+          setIcebreaker(p.whyNowTrigger)
+        }
+        toast.success("Live intelligence refreshed")
+      }
+    } catch {
+      toast.error("Research failed")
+    } finally {
+      setLoadingResearch(false)
     }
-    
-    setIcebreaker(hook)
-    setGeneratingIce(false)
   }
 
   // Slider Drag logic
@@ -163,7 +215,7 @@ export function LeadDetailsClient({ lead: initialLead }: { lead: ExtendedLead })
           </div>
           
           <div 
-            className="h-[400px] relative overflow-hidden bg-black/40 touch-none cursor-grab active:cursor-grabbing"
+            className="h-[360px] relative overflow-hidden bg-black/40 touch-none cursor-grab active:cursor-grabbing"
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
@@ -208,17 +260,157 @@ export function LeadDetailsClient({ lead: initialLead }: { lead: ExtendedLead })
           </div>
         </div>
 
-        {/* Business Identity & Market Position */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Main Identity */}
-          <div className="p-8 rounded-3xl bg-[#1a1c23] border border-white/5 space-y-5 relative overflow-hidden group/id">
-            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover/id:opacity-20 transition-opacity">
-              <Globe className="size-20 -rotate-12" />
+        {/* Deep Business Intelligence Dossier */}
+        <div className="rounded-3xl border border-white/[0.08] bg-[#1a1c23] p-6 space-y-5 shadow-2xl">
+          <div className="flex items-center justify-between border-b border-white/5 pb-4">
+            <div className="flex items-center gap-2.5">
+              <Sparkles className="size-4 text-cyan-300" />
+              <h3 className="text-xs font-black uppercase tracking-wider text-white">
+                Deep Lead Intelligence &amp; Multi-Page Live Crawl
+              </h3>
             </div>
-            
+            <button
+              onClick={triggerManualResearch}
+              disabled={loadingResearch}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-bold text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 transition-all"
+            >
+              <RefreshCw className={`size-3 ${loadingResearch ? "animate-spin" : ""}`} />
+              {loadingResearch ? "Investigating..." : "Deep Crawl & Analyze"}
+            </button>
+          </div>
+
+          {loadingResearch && !research ? (
+            <div className="py-12 flex flex-col items-center justify-center gap-3 text-white/40">
+              <Loader2 className="size-6 animate-spin text-cyan-400" />
+              <p className="text-[11px] tracking-wide">Crawling multi-page sitemap, scanning public announcements &amp; analyzing reviews...</p>
+            </div>
+          ) : research ? (
+            <div className="space-y-4 text-[12.5px]">
+              {/* 1. Core Offering & Pricing */}
+              <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9.5px] font-black uppercase tracking-wider text-white/30">What They Sell &amp; Target ICP</span>
+                  {research.pricingTier && (
+                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300">
+                      {research.pricingTier}
+                    </span>
+                  )}
+                </div>
+                <p className="text-white/85 leading-relaxed">{research.whatTheyDo}</p>
+                {research.targetCustomers && (
+                  <p className="text-[11px] text-white/50">
+                    <strong className="text-white/70">Target Audience:</strong> {research.targetCustomers}
+                  </p>
+                )}
+                {research.specializations?.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {research.specializations.map((spec, i) => (
+                      <span key={i} className="text-[10px] px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-white/60">
+                        {spec}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 2. Public Roadmap & Announcements ("What they have made publicly known they are coming to do") */}
+              {(research.publicRoadmap?.upcomingInitiatives?.length || research.publicRoadmap?.announcements?.length) ? (
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-950/40 to-violet-950/30 border border-indigo-500/25 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
+                      <Sparkles className="size-3 text-indigo-400" /> Public Roadmap &amp; Announcements
+                    </span>
+                    {research.publicRoadmap?.growthTrajectory && (
+                      <span className="text-[9px] font-bold text-indigo-300/80 font-mono">
+                        {research.publicRoadmap.growthTrajectory}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {research.publicRoadmap.upcomingInitiatives?.map((init, i) => (
+                      <div key={i} className="flex items-start gap-2 text-[11.5px] text-indigo-100 leading-snug">
+                        <span className="text-indigo-400 shrink-0 font-bold">📢</span>
+                        <span>{init}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {/* 3. Review Sentiment & Critical Friction Points */}
+              <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9.5px] font-black uppercase tracking-wider text-white/30">Customer Reviews &amp; Friction Radar</span>
+                  {research.reviewHighlights.overallSentiment && (
+                    <span className="text-[9.5px] font-mono text-emerald-300/80">
+                      {research.reviewHighlights.overallSentiment} ({place?.rating || "?"}★)
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 text-[11.5px]">
+                  {research.reviewHighlights.praise?.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-bold uppercase text-emerald-400/70">What Customers Praise</p>
+                      <div className="flex flex-wrap gap-1">
+                        {research.reviewHighlights.praise.map((p, i) => (
+                          <span key={i} className="text-[9.5px] px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">
+                            {p}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {research.reviewHighlights.complaints?.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-bold uppercase text-amber-400/70">Customer Complaints / Gaps</p>
+                      <div className="flex flex-wrap gap-1">
+                        {research.reviewHighlights.complaints.map((c, i) => (
+                          <span key={i} className="text-[9.5px] px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300">
+                            {c}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {research.reviewHighlights.recurringFrictionPoint && (
+                  <p className="text-[11px] text-amber-200/80 italic bg-amber-500/[0.06] p-2.5 rounded-xl border border-amber-500/15">
+                    <strong>Recurring operational friction:</strong> {research.reviewHighlights.recurringFrictionPoint}
+                  </p>
+                )}
+              </div>
+
+              {/* 4. Strategic Outreach Angles */}
+              {research.outreachAngles?.length > 0 && (
+                <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-2">
+                  <span className="text-[9.5px] font-black uppercase tracking-wider text-sky-400/60">Tailored Conversation Angles</span>
+                  <div className="space-y-1.5">
+                    {research.outreachAngles.map((angle, i) => (
+                      <p key={i} className="text-[11px] text-white/70 leading-snug flex items-start gap-1.5">
+                        <span className="text-sky-400 font-bold shrink-0">→</span> {angle}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="p-6 rounded-2xl border border-dashed border-white/10 text-center text-white/30 text-xs">
+              Click &ldquo;Deep Crawl &amp; Analyze&rdquo; above to run real-time research on this company.
+            </div>
+          )}
+        </div>
+
+        {/* Business Identity & Tech Profile */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="p-6 rounded-3xl bg-[#1a1c23] border border-white/5 space-y-4">
             <div className="space-y-1">
-              <h2 className="text-2xl font-black text-white tracking-tight leading-none truncate">
-                {place?.displayName?.text || initialLead.company || "Unknown Business"}
+              <h2 className="text-xl font-black text-white tracking-tight leading-none truncate">
+                {place?.displayName?.text || initialLead.company || "Business"}
               </h2>
               <p className="text-[11px] font-bold text-white/30 uppercase tracking-widest">
                 {initialLead.industry || "General Business"}
@@ -243,275 +435,120 @@ export function LeadDetailsClient({ lead: initialLead }: { lead: ExtendedLead })
             </div>
           </div>
 
-          {/* Market Position */}
-          <div className="p-8 rounded-3xl bg-[#1a1c23] border border-white/5 space-y-4">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="size-4 text-emerald-400" />
-              <h4 className="text-[11px] font-black uppercase tracking-widest text-white/30">Google Rating</h4>
-            </div>
-            {place ? (
-              <div className="space-y-3">
-                <div className="flex items-end gap-2">
-                  <span className="text-3xl font-black text-white">{place.rating}</span>
-                  <span className="text-[12px] text-white/40 mb-1.5">★ Rating</span>
-                </div>
-                <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-400" style={{ width: `${(place.rating || 0) * 20}%` }} />
-                </div>
-                <p className="text-[11px] text-white/30">
-                  {place.rating && place.rating > 4.4 ? "Performing above category average." : "Opportunity for reputation growth."}
-                </p>
-              </div>
-            ) : <div className="h-20 animate-pulse bg-white/5 rounded-xl" />}
-          </div>
-
-          {/* Tech Profile */}
+          {/* Tech & Infrastructure Profile */}
           <div className="p-6 rounded-3xl bg-[#1a1c23] border border-white/5 space-y-4">
-            <div className="flex items-center gap-2">
-              <Cpu className="size-4 text-sky-400" />
-              <h4 className="text-[11px] font-black uppercase tracking-widest text-white/30">Website Tech</h4>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Cpu className="size-4 text-sky-400" />
+                <h4 className="text-[11px] font-black uppercase tracking-widest text-white/30">Tech Stack &amp; Infrastructure</h4>
+              </div>
+              <span className="text-[9px] font-black uppercase text-sky-400/60 font-mono">Live Crawl</span>
             </div>
+            
             <div className="space-y-3">
-              <div className="flex flex-wrap gap-2">
-                <span className="px-2 py-1 rounded-lg bg-white/5 text-[10px] font-bold text-white/60">Modern Stack</span>
-                <span className="px-2 py-1 rounded-lg bg-white/5 text-[10px] font-bold text-white/60">Responsive</span>
-                {place?.websiteUri?.includes('wordpress') && <span className="px-2 py-1 rounded-lg bg-white/5 text-[10px] font-bold text-white/60">WordPress</span>}
+              <div className="flex flex-wrap gap-1.5">
+                {(research?.technicalProfile?.techStack && research.technicalProfile.techStack.length > 0) ? (
+                  research.technicalProfile.techStack.map((tech, i) => (
+                    <span key={i} className="px-2.5 py-1 rounded-lg bg-sky-500/10 border border-sky-500/20 text-[10.5px] font-bold text-sky-300">
+                      {tech}
+                    </span>
+                  ))
+                ) : (
+                  <>
+                    <span className="px-2 py-1 rounded-lg bg-white/5 text-[10px] font-bold text-white/60">Modern Web</span>
+                    <span className="px-2 py-1 rounded-lg bg-white/5 text-[10px] font-bold text-white/60">Responsive</span>
+                    {place?.websiteUri?.includes('wordpress') && <span className="px-2 py-1 rounded-lg bg-white/5 text-[10px] font-bold text-white/60">WordPress</span>}
+                  </>
+                )}
               </div>
-              <p className="text-[11px] text-white/30">Detected via domain pattern analysis.</p>
-            </div>
-          </div>
-        </div>
 
-        {/* Customer Sentiment */}
-        <div className="p-6 rounded-3xl bg-[#1a1c23] border border-white/5 space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <MessageSquare className="size-4 text-violet-400" />
-              <h4 className="text-[11px] font-black uppercase tracking-widest text-white/30">Customer Reviews</h4>
-            </div>
-            <span className="px-2 py-1 rounded-lg bg-violet-400/10 text-[9px] font-black uppercase text-violet-400 tracking-tighter">Verified Reviews</span>
-          </div>
-          
-          <div className="space-y-4">
-            {place?.reviews?.slice(0, 2).map((review: {
-              text?: { text?: string }
-              rating?: number
-              authorAttribution?: { displayName?: string }
-              relativePublishTimeDescription?: string
-            }, i: number) => (
-              <div key={i} className="p-4 rounded-2xl bg-white/[0.02] border border-white/5">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex text-amber-400 text-[10px]">
-                    {Array.from({ length: review?.rating || 0 }).map((_, j) => <span key={j}>★</span>)}
-                    <span className="text-[10px] text-white/20 ml-2">• {review?.relativePublishTimeDescription || 'Recently'}</span>
+              {/* Detected Pricing Signals if any */}
+              {research?.technicalProfile?.detectedPricing && research.technicalProfile.detectedPricing.length > 0 && (
+                <div className="pt-2 border-t border-white/5">
+                  <p className="text-[9px] font-black uppercase text-white/25 mb-1">Pricing Signals Crawled</p>
+                  <div className="flex flex-wrap gap-1">
+                    {research.technicalProfile.detectedPricing.map((price, i) => (
+                      <span key={i} className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-mono font-bold text-emerald-300">
+                        {price}
+                      </span>
+                    ))}
                   </div>
-                  <span className="text-[9px] font-bold text-white/40 uppercase tracking-tighter">{review?.authorAttribution?.displayName || 'Anonymous'}</span>
                 </div>
-                <p className="text-[12px] text-white/50 italic leading-relaxed line-clamp-3">
-                  &quot;{review?.text?.text || 'No review text provided.'}&quot;
-                </p>
-              </div>
-            ))}
-            {!place?.reviews && <p className="text-[12px] text-white/20 italic">No public reviews found to analyze.</p>}
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Right Column: Outreach & Action */}
+      {/* Right Column: Outreach Hook & Action */}
       <div className="lg:col-span-5 space-y-6">
         
         {/* Outreach Center */}
-        <div className="rounded-3xl bg-gradient-to-br from-emerald-500/10 to-transparent border border-emerald-500/20 p-8 space-y-6 relative overflow-hidden group/outreach">
-          <div className="absolute top-0 right-0 p-6">
-            <Sparkles className="size-6 text-emerald-400/20 group-hover/outreach:scale-125 transition-all duration-700" />
-          </div>
-          
-          <div className="space-y-2">
-            <h3 className="text-xl font-black text-white tracking-tight">Email Writer</h3>
-            <p className="text-[12px] text-white/40 leading-relaxed">AI looks at photos and website info to write a personal email.</p>
+        <div className="rounded-3xl bg-gradient-to-br from-emerald-500/10 via-black/50 to-transparent border border-emerald-500/20 p-6 space-y-5 shadow-2xl">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <h3 className="text-lg font-black text-white tracking-tight">AI &ldquo;Why Now&rdquo; Outreach Hook</h3>
+              <p className="text-[11.5px] text-white/40">Grounded directly in multi-page crawl findings and review signals.</p>
+            </div>
+            <Sparkles className="size-5 text-emerald-400/40" />
           </div>
 
-          <div className="min-h-[140px] rounded-2xl bg-black/40 border border-white/5 p-5 flex flex-col justify-center">
-            {generatingIce ? (
-              <div className="flex flex-col items-center gap-3">
+          <div className="min-h-[140px] rounded-2xl bg-black/60 border border-white/5 p-4 flex flex-col justify-center">
+            {loadingResearch ? (
+              <div className="flex flex-col items-center gap-2.5 py-4">
                 <Loader2 className="size-5 animate-spin text-emerald-400" />
-                <span className="text-[10px] uppercase font-black text-white/20 tracking-widest">Writing email...</span>
+                <span className="text-[10px] uppercase font-black text-white/30 tracking-widest">Synthesizing crawl &amp; reviews...</span>
               </div>
             ) : icebreaker ? (
-              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-                <p className="text-[13px] text-emerald-100/80 leading-relaxed italic pr-8">&quot;{icebreaker}&quot;</p>
+              <div className="space-y-3.5">
+                <p className="text-[12.5px] text-emerald-100/90 leading-relaxed italic">&ldquo;{icebreaker}&rdquo;</p>
                 <button 
                   onClick={() => { navigator.clipboard.writeText(icebreaker); toast.success("Copied to clipboard") }}
-                  className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-400 hover:text-emerald-300"
+                  className="flex items-center gap-1.5 text-[10.5px] font-black uppercase text-emerald-400 hover:text-emerald-300 transition-colors"
                 >
-                  <Copy className="size-3" /> Copy Message
+                  <Copy className="size-3" /> Copy Outreach Hook
                 </button>
               </div>
             ) : (
-              <div className="text-center">
-                <button 
-                  onClick={generateIcebreaker}
-                  className="px-6 py-3 rounded-xl bg-emerald-400 text-black text-[12px] font-black hover:scale-105 active:scale-95 transition-all shadow-xl shadow-emerald-500/20"
-                >
-                  Generate First Touch
-                </button>
-              </div>
+              <p className="text-[11px] text-white/30 text-center py-4 italic">No hook generated yet. Run research to synthesize.</p>
             )}
           </div>
         </div>
 
         {/* Technical Audit Card */}
-        <div className="p-6 rounded-3xl bg-[#1a1c23] border border-white/5 space-y-6">
+        <div className="p-6 rounded-3xl bg-[#1a1c23] border border-white/5 space-y-4 shadow-xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Zap className="size-4 text-emerald-400" />
-              <h4 className="text-[11px] font-black uppercase tracking-widest text-white/30">Website Check</h4>
+              <Gauge className="size-4 text-sky-400" />
+              <h4 className="text-[11px] font-black uppercase tracking-widest text-white/30">Technical Health Audit</h4>
             </div>
-            {!auditData && (
-              <button 
-                onClick={runAudit}
-                disabled={auditing}
-                className="text-[10px] font-black text-emerald-400 hover:underline uppercase tracking-wider"
-              >
-                {auditing ? 'Checking...' : 'Start Check'}
-              </button>
-            )}
+            <button
+              onClick={runAudit}
+              disabled={auditing}
+              className="text-[11px] font-bold text-sky-400 hover:text-sky-300 flex items-center gap-1"
+            >
+              {auditing ? <Loader2 className="size-3 animate-spin" /> : <RefreshCw className="size-3" />}
+              {auditing ? "Scanning..." : "Run Tech Scan"}
+            </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            {auditing ? (
-              // Skeletal Loader for Audit
-              Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="p-3 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2 animate-pulse">
-                  <div className="size-3 bg-white/10 rounded-full" />
-                  <div className="h-2 w-16 bg-white/5 rounded" />
-                  <div className="h-3 w-10 bg-white/10 rounded" />
-                </div>
-              ))
-            ) : (
-              [
-                { icon: Shield, label: "SSL Security", val: auditData?.ssl },
-                { icon: Gauge, label: "Page Speed", val: auditData ? `${auditData.speed}ms` : null },
-                { icon: Globe, label: "Meta Pixel", val: auditData?.pixel },
-                { icon: BarChart3, label: "Google Ads", val: auditData?.googleAds },
-              ].map((item, i) => (
-                <div key={i} className="p-3 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
-                  <item.icon className={`size-3 ${item.val === false ? 'text-red-400' : 'text-emerald-400/40'}`} />
-                  <span className="text-[9px] font-bold text-white/20 uppercase">{item.label}</span>
-                  <span className={`text-[11px] font-bold ${item.val === false ? 'text-red-400' : 'text-white/70'}`}>
-                    {item.val === null || item.val === undefined ? "—" : typeof item.val === 'boolean' ? (item.val ? 'Active' : 'Missing') : item.val}
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Contact Info */}
-        <div className="p-6 rounded-3xl bg-[#1a1c23] border border-white/5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="text-[11px] font-black uppercase tracking-widest text-white/30">Contact Info</h4>
-            {discoveredEmails.length > 0 && (
-              <span className="px-2 py-0.5 rounded bg-emerald-400/10 text-[9px] font-black text-emerald-400 uppercase tracking-tighter animate-pulse">
-                Live Scan Complete
-              </span>
-            )}
-          </div>
-          
-          <div className="space-y-3">
-            {/* Primary Web Info */}
-            <div className="flex items-center justify-between py-2 border-b border-white/5 group/link">
-              <span className="text-[11px] text-white/40 font-bold uppercase tracking-tighter">Web Domain</span>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-sky-400 font-mono font-bold truncate max-w-[150px]">
-                  {place?.websiteUri?.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "") || initialLead.website || '—'}
+          {auditData ? (
+            <div className="grid grid-cols-2 gap-2 text-[11px]">
+              <div className="p-3 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between">
+                <span className="text-white/50">SSL Certificate</span>
+                <span className={auditData.ssl ? "text-emerald-400 font-bold" : "text-rose-400 font-bold"}>
+                  {auditData.ssl ? "✓ Secure" : "✕ Missing"}
                 </span>
-                <button 
-                  onClick={() => { 
-                    navigator.clipboard.writeText(place?.websiteUri || initialLead.website || '');
-                    toast.success("URL Copied");
-                  }}
-                  className="opacity-0 group-hover/link:opacity-100 transition-opacity p-1 hover:bg-white/5 rounded"
-                >
-                  <Copy className="size-3 text-white/40" />
-                </button>
+              </div>
+              <div className="p-3 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between">
+                <span className="text-white/50">Mobile Speed</span>
+                <span className="text-white font-bold">{auditData.speed ?? "N/A"}/100</span>
               </div>
             </div>
-
-            {/* Found Emails Section with Skeletal Loader */}
-            {loadingEnrich ? (
-              <div className="py-2 border-b border-white/5 space-y-3">
-                <span className="text-[9px] font-black text-white/10 uppercase tracking-[0.2em]">Searching for contacts...</span>
-                <div className="space-y-2">
-                  <div className="h-4 w-3/4 bg-white/5 rounded-lg animate-pulse" />
-                  <div className="h-4 w-1/2 bg-white/5 rounded-lg animate-pulse" />
-                </div>
-              </div>
-            ) : discoveredEmails.length > 0 && (
-              <div className="py-2 border-b border-white/5 space-y-2">
-                <span className="text-[9px] font-black text-emerald-400/40 uppercase tracking-[0.2em]">Discovered Emails</span>
-                <div className="space-y-1.5">
-                  {discoveredEmails.map((email, i) => (
-                    <div key={i} className="flex items-center justify-between group/email">
-                      <span className="text-[12px] text-white/70 font-medium truncate pr-4">{email}</span>
-                      <button 
-                        onClick={() => { 
-                          navigator.clipboard.writeText(email);
-                          toast.success("Email Copied");
-                        }}
-                        className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 text-[9px] font-bold text-white/40 hover:text-emerald-400 hover:bg-emerald-400/10 transition-all opacity-40 group-hover/email:opacity-100"
-                      >
-                        <Copy className="size-2.5" /> Copy
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            <div className="flex items-center justify-between py-2 border-b border-white/5">
-              <span className="text-[11px] text-white/40">Direct Phone</span>
-              <span className="text-[11px] text-white/80">{place?.nationalPhoneNumber || initialLead.nationalPhoneNumber || '—'}</span>
-            </div>
-            <div className="flex items-center justify-between py-2">
-              <span className="text-[11px] text-white/40">Verified Address</span>
-              <span className="text-[11px] text-white/80 text-right max-w-[180px] leading-tight">{place?.formattedAddress || initialLead.companyDesc}</span>
-            </div>
-          </div>
-
-          {loadingEnrich ? (
-            <div className="pt-4 border-t border-white/5 space-y-3">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-white/10">Finding Socials...</h4>
-              <div className="flex gap-2">
-                <div className="h-7 w-20 bg-white/5 rounded-lg animate-pulse" />
-                <div className="h-7 w-20 bg-white/5 rounded-lg animate-pulse" />
-              </div>
-            </div>
-          ) : socials.length > 0 && (
-            <div className="pt-4 border-t border-white/5 space-y-3">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-400/50">Social Channels</h4>
-              <div className="flex flex-wrap gap-2">
-                {socials.map((link, i) => {
-                  const domain = link.includes('facebook') ? 'Facebook' : 
-                                link.includes('instagram') ? 'Instagram' :
-                                link.includes('linkedin') ? 'LinkedIn' :
-                                link.includes('x.com') || link.includes('twitter') ? 'X / Twitter' : 'Social'
-                  return (
-                    <a 
-                      key={i}
-                      href={link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 text-[10px] font-bold text-white/40 hover:text-white/80 hover:bg-white/10 transition-all"
-                    >
-                      {domain}
-                    </a>
-                  )
-                })}
-              </div>
-            </div>
+          ) : (
+            <p className="text-[11px] text-white/30 italic">Click &ldquo;Run Tech Scan&rdquo; to test page speed and tracking pixels.</p>
           )}
         </div>
-
       </div>
     </div>
   )

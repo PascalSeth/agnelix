@@ -1,6 +1,7 @@
 "use client"
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { useState, useEffect, useRef } from "react"
 import { Mail, Bot, MapPin, Workflow, ArrowRight, CheckCircle2, Zap, Calendar, Clock, Check } from "lucide-react"
 import { CtaLink } from "@/components/landing/cta-link"
 import dynamic from "next/dynamic"
@@ -14,8 +15,26 @@ const CtaRobot3D = dynamic(
 )
 
 export function FinalCTA() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [isInView, setIsInView] = useState(false)
+
+  useEffect(() => {
+    if (!containerRef.current) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: "300px" }
+    )
+    observer.observe(containerRef.current)
+    return () => observer.disconnect()
+  }, [])
+
   return (
-    <section className="relative py-32 lg:py-40 overflow-hidden bg-[#0A0B0E]">
+    <section ref={containerRef} className="relative py-32 lg:py-40 overflow-hidden bg-[#0A0B0E]">
       
       {/* Grand Finale Background Glows */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -109,7 +128,7 @@ export function FinalCTA() {
 
                 {/* 3D Robot Canvas (transparent, no bg, no cards) */}
                 <div className="relative w-full h-full z-10">
-                  <CtaRobot3D />
+                  {isInView && <CtaRobot3D />}
                 </div>
               </div>
             </div>

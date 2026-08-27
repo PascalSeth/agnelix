@@ -92,36 +92,36 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   if (!existing) return NextResponse.json({ error: "Campaign not found" }, { status: 404 })
 
+  if (body.sequenceId !== undefined) {
+    const validSeq = await prisma.sequence.findFirst({
+      where: { id: body.sequenceId, userId: scopeId },
+    })
+    if (!validSeq) {
+      return NextResponse.json({ error: "Sequence not found or invalid" }, { status: 400 })
+    }
+  }
+
   await prisma.campaign.update({
     where: { id },
     data: {
       ...(body.status     !== undefined && { status:     body.status }),
       ...(body.name       !== undefined && { name:       body.name }),
       ...(body.autonomous !== undefined && { autonomous: body.autonomous }),
+      ...(body.sequenceId !== undefined && { sequenceId: body.sequenceId }),
     },
   })
 
-  // Trigger launch pipeline if status changed to ACTIVE or autopilot is enabled while ACTIVE
+  // Trigger launch/autopilot pipeline if status is ACTIVE or autopilot is turned on
   const isNowActive = body.status === "ACTIVE" || (body.status === undefined && existing.status === "ACTIVE")
   const isAutopilotOn = body.autonomous === true || (body.autonomous === undefined && existing.autonomous)
 
-  if (isNowActive) {
+  if (isNowActive || body.autonomous === true) {
     after(async () => {
       try {
         const { runLaunchPipeline } = await import("@/lib/campaign-sender")
         await runLaunchPipeline(id, scopeId)
       } catch (err) {
-        console.error("[Campaign PATCH] Launch pipeline background error:", err)
-      }
-    })
-  } else if (existing.status === "ACTIVE" && body.autonomous === true) {
-    // Autopilot turned on for an already active campaign
-    after(async () => {
-      try {
-        const { runLaunchPipeline } = await import("@/lib/campaign-sender")
-        await runLaunchPipeline(id, scopeId)
-      } catch (err) {
-        console.error("[Campaign PATCH] Autopilot transition background error:", err)
+        console.error("[Campaign PATCH] Launch/Autopilot pipeline background error:", err)
       }
     })
   }

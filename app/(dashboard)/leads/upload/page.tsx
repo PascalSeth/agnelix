@@ -77,7 +77,7 @@ export default function UploadPage() {
       })
       if (!res.ok) throw new Error(await res.text())
       const data = await res.json()
-      toast.success(`${data.count ?? leads.length} leads imported and queued for background enrichment`)
+      toast.success(`${data.count ?? leads.length} leads imported and queued for researching lead data`)
       router.push(`/campaigns/${data.campaignId ?? campaignId}`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Import failed")

@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "imap-daemon": "tsx scripts/imap-daemon.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",
@@ -42,6 +43,7 @@
     "nodemailer": "^7.0.13",
     "openai": "^6.37.0",
     "papaparse": "^5.5.3",
+    "pdf-parse": "^2.4.5",
     "pg": "^8.20.0",
     "posthog-js": "^1.373.4",
     "react": "19.2.4",

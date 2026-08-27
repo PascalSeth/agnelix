@@ -4,6 +4,7 @@
 import { useState, useEffect, use } from "react"
 import { useSearchParams } from "next/navigation"
 import { Loader2, Lock, BarChart3, FileText, FolderOpen, MessageSquare, Send, CheckCircle2 } from "lucide-react"
+import { formatCurrency } from "@/lib/currency"
 
 interface PortalData {
   agency: { agencyName: string | null; agencyLogo: string | null; brandColor: string | null; domain: string | null }
@@ -152,7 +153,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ accessU
                 <div key={p.id} className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
                   <span className="text-[12px] font-semibold text-white/70">{p.title}</span>
                   <div className="flex items-center gap-2">
-                    {p.totalValue != null && <span className="text-[12px] font-bold text-white/60">{p.currency === "GBP" ? "£" : p.currency}{p.totalValue.toLocaleString()}</span>}
+                    {p.totalValue != null && <span className="text-[12px] font-bold text-white/60">{formatCurrency(p.totalValue, p.currency)}</span>}
                     <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full text-white/40 bg-white/[0.04]">{p.status}</span>
                     {p.status === "SIGNED" && <CheckCircle2 className="size-3.5 text-emerald-400" />}
                   </div>

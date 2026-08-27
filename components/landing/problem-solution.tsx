@@ -1,153 +1,137 @@
-/* eslint-disable @next/next/no-img-element */
-import { X, Sparkles, MapPin, Search, Calendar, ArrowRight } from "lucide-react"
+"use client"
+
+import { X, MapPin, Search, Calendar, ArrowRight, ShieldCheck, Mail, Sparkles as SparklesLucide } from "lucide-react"
+import { ChatBubbleIcon } from "@/components/ui/chat-bubble-icon"
 
 export function ProblemSolution() {
   const cards = [
     {
       id: "prospecting",
-      image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=800&auto=format&fit=crop",
+      badge: "Targeting & Discovery",
       uiOverlay: (
-        <div className="absolute inset-0 flex items-center justify-center p-6">
-          <div className="w-full max-w-[200px] rounded-xl border border-white/60 bg-white/75 backdrop-blur-md p-3 shadow-lg">
-            <div className="flex items-center gap-2 border-b border-black/5 pb-2 mb-2">
-              <Search className="h-3 w-3 text-slate-400" />
-              <span className="text-[10px] font-bold text-[#101e35]">Boutique Hotels in Miami</span>
+        <div className="absolute inset-0 flex items-center justify-center p-5">
+          <div className="w-full max-w-[220px] rounded-xl border border-white/20 bg-black/75 backdrop-blur-md p-3 shadow-2xl space-y-2">
+            <div className="flex items-center gap-2 border-b border-white/10 pb-1.5">
+              <Search className="size-3 text-sky-400" />
+              <span className="text-[10px] font-bold text-white">Target: B2B SaaS in Austin, TX</span>
             </div>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between rounded bg-[#728972]/10 px-2 py-1 border border-[#728972]/20">
-                <span className="text-[9px] font-bold text-[#3d4d3d]">Found 28 local businesses</span>
-                <MapPin className="h-3 w-3 text-[#728972]" />
+            <div className="space-y-1">
+              <div className="flex items-center justify-between rounded bg-emerald-500/10 px-2 py-1 border border-emerald-500/20">
+                <span className="text-[9.5px] font-bold text-emerald-400">142 verified decision-makers</span>
+                <MapPin className="size-3 text-emerald-400" />
               </div>
-              <div className="h-1.5 w-full bg-black/5 rounded-full overflow-hidden mt-2">
-                <div className="h-full w-3/4 bg-[#728972] animate-pulse rounded-full" />
-              </div>
+              <span className="text-[8.5px] text-white/40 block">99.2% Deliverability Verified</span>
             </div>
           </div>
         </div>
       ),
-      problem: "Right now you spend hours on Google Maps, buy outdated lists, and guess at email addresses.",
-      solution: "Tell Galien the type of business and the city. It finds real local businesses with verified emails and phone numbers — in seconds."
+      problem: "You spend hours scraping Google Maps, buying outdated stale lists, and bouncing on generic info@ emails.",
+      solution: "Galien identifies decision-makers, scrapes verified work emails, and checks active buying signals in seconds."
     },
     {
       id: "writing",
-      image: "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=800&auto=format&fit=crop",
+      badge: "Direct-Response Copywriting",
       uiOverlay: (
-        <div className="absolute inset-0 flex items-center justify-center p-6">
-          <div className="w-full max-w-[220px] rounded-xl border border-white/60 bg-white/75 backdrop-blur-md p-3 shadow-lg">
-            <div className="flex items-center gap-1.5 mb-2">
-              <div className="h-4 w-4 rounded-full bg-[#c5a880]/15 flex items-center justify-center">
-                <Sparkles className="h-2.5 w-2.5 text-[#c5a880]" />
-              </div>
-              <span className="text-[10px] font-bold text-[#101e35]">AI Website Analysis</span>
+        <div className="absolute inset-0 flex items-center justify-center p-5">
+          <div className="w-full max-w-[220px] rounded-xl border border-white/20 bg-black/75 backdrop-blur-md p-3 shadow-2xl space-y-1.5">
+            <div className="flex items-center gap-1.5 pb-1 border-b border-white/10">
+              <ChatBubbleIcon className="size-3.5" />
+              <span className="text-[10px] font-bold text-white">Direct-Response Hook</span>
             </div>
-            <div className="space-y-2 text-[9px] leading-relaxed text-slate-600 font-medium">
-              <p>Hey John,</p>
-              <p>
-                Loved your recent work on the <span className="text-[#b5966d] font-bold bg-[#c5a880]/10 px-1 py-0.5 rounded border border-[#c5a880]/20">Downtown Plaza project</span>. Noticed you don&apos;t have...
-              </p>
-              <div className="w-16 h-4 rounded bg-[#101e35] flex items-center justify-center mt-2 cursor-pointer hover:brightness-115">
-                <span className="text-[8px] text-white font-bold">Send Email</span>
-              </div>
+            <p className="text-[9px] text-white/80 leading-relaxed">
+              &quot;Hey John, noticed your client onboarding cycle is taking 14+ days. We built a sprint that cuts it to 48h...&quot;
+            </p>
+            <div className="flex justify-between items-center pt-1 text-[8.5px]">
+              <span className="text-emerald-400 font-bold">✓ High Status / No Fluff</span>
+              <span className="text-white/40">Step 1 Hook</span>
             </div>
           </div>
         </div>
       ),
-      problem: "Copy-paste templates get ignored or land in spam. People can spot a generic email instantly.",
-      solution: "Galien reads each prospect's website and writes a personal email that mentions their actual business — not a template."
+      problem: "Generic templates get ignored or filtered to spam. Prospects can spot ChatGPT fluff within 2 seconds.",
+      solution: "Galien reads the prospect's actual site and writes direct-response hooks using the Pain-Proof-Plan framework."
     },
     {
       id: "closing",
-      image: "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      badge: "24/7 Autopilot Rebuttal & Booking",
       uiOverlay: (
-        <div className="absolute inset-0 flex items-center justify-center p-6">
-          <div className="w-full max-w-[220px] rounded-xl border border-white/60 bg-white/75 backdrop-blur-md p-3 shadow-lg">
-            <div className="flex flex-col gap-2">
-              <div className="self-start rounded-lg bg-white/90 border border-white shadow-sm px-2.5 py-1.5 text-[9px] font-bold text-slate-700 max-w-[85%]">
-                Sounds interesting. Do you have time tomorrow?
-              </div>
-              <div className="flex items-center justify-center my-1">
-                <ArrowRight className="h-3 w-3 text-[#c5a880]" />
-              </div>
-              <div className="self-end flex items-center gap-1.5 rounded-lg bg-[#728972]/10 border border-[#728972]/20 px-2.5 py-1.5 text-[9px] font-bold text-[#3d4d3d] max-w-[85%] shadow-sm">
-                <Calendar className="h-3 w-3 text-[#728972]" />
-                Meeting Booked
-              </div>
+        <div className="absolute inset-0 flex items-center justify-center p-5">
+          <div className="w-full max-w-[220px] rounded-xl border border-white/20 bg-black/75 backdrop-blur-md p-3 shadow-2xl space-y-2">
+            <div className="rounded-lg bg-white/10 p-2 text-[9px] text-white/90">
+              &quot;We already have an agency for this.&quot;
+            </div>
+            <div className="flex items-center justify-center">
+              <ArrowRight className="size-3 text-amber-400" />
+            </div>
+            <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2 text-[9px] text-emerald-300 font-medium">
+              <span className="font-bold block text-emerald-400 mb-0.5">Tactical Empathy Reframe:</span>
+              &quot;Makes sense! We actually co-pilot alongside existing teams to handle the heavy sprint...&quot;
             </div>
           </div>
         </div>
       ),
-      problem: "When a lead finally replies, you're busy. By the time you respond, they've gone cold.",
-      solution: "Galien reads the reply, answers questions, handles objections, and books the meeting on your calendar — automatically."
+      problem: "When a lead replies with an objection, slow response times or apologetic replies kill the deal before you can pitch.",
+      solution: "Galien's smart timing matrix counters objections with tactical empathy and books calls on your calendar 24/7."
     }
   ]
 
   return (
-    <section className="relative bg-gradient-to-b from-[#111216] via-[#1a1c24] to-[#111216] py-24 lg:py-32 overflow-hidden">
-      
-      {/* Decorative subtle top glow */}
-      <div className="absolute top-0 inset-x-0 h-75 bg-white/[0.01] blur-3xl pointer-events-none" />
+    <section className="relative bg-gradient-to-b from-[#111216] via-[#161822] to-[#111216] py-24 lg:py-32 overflow-hidden">
+      {/* Ambient background glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-violet-600/[0.03] blur-[150px] rounded-full pointer-events-none" />
 
-      <div className="mx-auto max-w-7xl px-6 relative z-10">
-        <div className="anim-fade-up text-center mb-16 lg:mb-24">
-          <h2 className="text-3xl font-bold tracking-tight text-white md:text-5xl lg:text-5xl font-luxury-sans">
-            Stop chasing leads <span className="text-slate-500 line-through decoration-rose-400/60 font-medium">by hand</span>.
+      <div className="mx-auto max-w-7xl px-6 relative z-10 space-y-16">
+        {/* Section Header */}
+        <div className="text-center max-w-3xl mx-auto space-y-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3.5 py-1.5 text-xs font-semibold text-white/80 backdrop-blur-md shadow-sm">
+            <ChatBubbleIcon className="size-3.5" />
+            <span>The Old Way vs. The Autonomous System</span>
+          </div>
+
+          <h2 className="text-3xl font-extrabold tracking-tight text-white md:text-5xl font-luxury-sans">
+            Stop losing agency pipeline to <span className="text-rose-400 line-through decoration-white/30">manual grunt work</span>
           </h2>
-          <p className="mx-auto mt-5 max-w-2xl text-lg text-slate-400 font-semibold leading-relaxed">
-            No more digging for emails or updating spreadsheets. Galien does the busywork so you can spend your time closing deals.
+
+          <p className="text-base sm:text-lg text-slate-400 font-medium leading-relaxed">
+            Replace fragmented scrapers, generic copy-paste templates, and slow follow-ups with an autonomous direct-response revenue machine.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-          {cards.map((card, i) => (
-            <div 
-              key={card.id} 
-              className="anim-fade-up group relative flex flex-col overflow-hidden rounded-[2rem] border border-white/[0.05] bg-white/[0.01] backdrop-blur-xl shadow-xl transition-all duration-500 hover:shadow-2xl hover:border-white/10 hover:bg-white/[0.03] hover:-translate-y-1" 
-              style={{ animationDelay: `${0.15 + i * 0.1}s` }}
+        {/* 3 Comparison Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {cards.map(card => (
+            <div
+              key={card.id}
+              className="rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-xl overflow-hidden flex flex-col justify-between hover:border-white/20 transition-all duration-300 shadow-xl group"
             >
-              
-              {/* Top Half: Creative Image with UI Overlay */}
-              <div className="relative h-60 w-full overflow-hidden bg-neutral-900/50">
-                {/* Unsplash Background Image */}
-                <img 
-                  src={card.image} 
-                  alt="Abstract tech background" 
-                  className="absolute inset-0 h-full w-full object-cover opacity-20 mix-blend-overlay transition-transform duration-700 group-hover:scale-105"
-                />
-                {/* Fade into the frosted glass at the bottom */}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#16171e] via-[#16171e]/30 to-transparent" />
-                
-                {/* Floating UI Elements */}
+              {/* Top Graphic Banner with UI Overlay */}
+              <div className="relative h-48 w-full bg-gradient-to-b from-white/[0.04] to-black/40 border-b border-white/5 flex items-center justify-center">
                 {card.uiOverlay}
               </div>
 
-              {/* Bottom Half: Content (Problem vs Solution) */}
-              <div className="flex flex-col flex-1 p-6 lg:p-8 bg-[#16171e]/90">
-                
-                {/* Problem (The Old Way) */}
-                <div className="mb-6 border-l-2 border-rose-300/40 pl-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <X className="h-4 w-4 text-rose-400" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500">The old way</span>
+              {/* Problem vs Solution Content */}
+              <div className="p-6 space-y-5 flex-1 flex flex-col justify-between bg-[#14161f]/80">
+                <div className="space-y-4">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-white/5 text-white/50 border border-white/5 inline-block">
+                    {card.badge}
+                  </span>
+
+                  {/* Problem */}
+                  <div className="border-l-2 border-rose-500/40 pl-3 space-y-1">
+                    <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-rose-400 uppercase tracking-wider">
+                      <X className="size-3.5" /> The Broken Way
+                    </div>
+                    <p className="text-[12.5px] text-white/50 leading-relaxed">{card.problem}</p>
                   </div>
-                  <p className="text-sm font-medium leading-relaxed text-slate-400">
-                    {card.problem}
-                  </p>
-                </div>
 
-                {/* Divider */}
-                <div className="my-2 h-px w-full bg-gradient-to-r from-transparent via-white/5 to-transparent" />
-
-                {/* Solution (The Galien Way) */}
-                <div className="mt-6 border-l-2 border-[#728972] pl-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkles className="h-4 w-4 text-[#c5a880]" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-[#728972]">With Galien</span>
+                  {/* Solution */}
+                  <div className="border-l-2 border-emerald-500/60 pl-3 space-y-1 pt-1">
+                    <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-emerald-400 uppercase tracking-wider">
+                      <ChatBubbleIcon className="size-3.5" /> With Galien OS
+                    </div>
+                    <p className="text-[13px] font-bold text-white/95 leading-relaxed">{card.solution}</p>
                   </div>
-                  <p className="text-sm font-bold leading-relaxed text-slate-200">
-                    {card.solution}
-                  </p>
                 </div>
-
               </div>
             </div>
           ))}

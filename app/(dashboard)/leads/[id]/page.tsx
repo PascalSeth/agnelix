@@ -6,7 +6,8 @@ import { LeadEditPanel } from "@/components/lead-edit-panel"
 import { LeadPipelinePanel } from "@/components/lead-pipeline-panel"
 import { LeadTabsPanel } from "@/components/lead-tabs-panel"
 import Link from "next/link"
-import { ArrowLeft, Mail, Globe, Building2, Briefcase, MapPin, Inbox, Sparkles } from "lucide-react"
+import { ArrowLeft, Mail, Globe, Building2, Briefcase, MapPin, Inbox } from "lucide-react"
+import { Sparkles } from "@/components/ui/chat-bubble-icon"
 import { formatDate, initials } from "@/lib/utils"
 
 const APPROACH_LABELS: Record<string, string> = {

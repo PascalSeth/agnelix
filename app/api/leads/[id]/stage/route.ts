@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { generateProposal } from "@/lib/ai"
+import { generateCrossSellInsight } from "@/lib/cross-sell"
 import { getScopeId } from "@/lib/auth-helpers"
 
 const PIPELINE_STAGES = ["NEW", "CONTACTED", "REPLIED", "INTERESTED", "MEETING_BOOKED", "PROPOSAL_SENT", "WON", "LOST", "NOT_INTERESTED", "BOUNCED"]
@@ -83,6 +84,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     // Cancel all remaining queued emails
     ops.push(prisma.email.deleteMany({ where: { leadId: id, status: "QUEUED" } }))
     ops.push(prisma.activity.create({ data: { leadId: id, type: "DEAL_WON", note: "Deal marked as Won" } }))
+    // Surface a cross-sell pitch card on the dashboard (fire-and-forget)
+    generateCrossSellInsight(id).catch(e => console.error("[cross-sell] insight generation failed:", e))
   }
 
   if (stage === "LOST") {

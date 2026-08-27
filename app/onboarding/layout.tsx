@@ -40,7 +40,7 @@ export default async function OnboardingLayout({ children }: { children: React.R
             backdropFilter: "blur(20px)",
           }}
         >
-          <Image src="/logo-hq.png" alt="Galien" width={110} height={28} className="object-contain" />
+          <Image src="/logo-hq.png" alt="Galien" width={110} height={28} style={{ width: "auto", height: "auto" }} className="object-contain" priority />
           <div
             className="flex items-center gap-2 rounded-xl px-3 py-1.5"
             style={{ background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.06)" }}

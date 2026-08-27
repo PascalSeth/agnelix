@@ -1,9 +1,9 @@
 import os
 
 replacements = [
-    ("Agnelix", "Galien"),
-    ("agnelix", "galien"),
-    ("AGNELIX", "GALIEN")
+    ("Galienix", "Galien"),
+    ("Galienix", "galien"),
+    ("GalienIX", "GALIEN")
 ]
 
 target_dirs = [

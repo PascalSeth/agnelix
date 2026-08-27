@@ -11,6 +11,7 @@ import { Sidebar } from "@/components/sidebar"
 import { DashboardBg } from "@/components/dashboard-bg"
 import { AiAdvisorBubble } from "@/components/ai-advisor-bubble"
 import { usePlaybook } from "@/lib/playbook-context"
+import { getWorkspace } from "@/lib/workspaces"
 import { CommandPalette } from "@/components/command-palette"
 
 interface DashboardLayoutProps {
@@ -45,6 +46,26 @@ export function DashboardLayout({ children, session, inboxCount = 0, companyName
     const handle = () => { if (window.innerWidth < 1024) setMobileOpen(false) }
     window.addEventListener("resize", handle)
     return () => window.removeEventListener("resize", handle)
+  }, [])
+
+  useEffect(() => {
+    // Send immediate heartbeat on mount
+    fetch("/api/user/heartbeat", { method: "POST" }).catch(() => {})
+
+    // Send heartbeat every 2 minutes while active
+    const interval = setInterval(() => {
+      fetch("/api/user/heartbeat", { method: "POST" }).catch(() => {})
+    }, 2 * 60 * 1000)
+
+    const onFocus = () => {
+      fetch("/api/user/heartbeat", { method: "POST" }).catch(() => {})
+    }
+    window.addEventListener("focus", onFocus)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener("focus", onFocus)
+    }
   }, [])
 
   return (
@@ -133,7 +154,7 @@ export function DashboardLayout({ children, session, inboxCount = 0, companyName
               <div className="hidden sm:flex items-center gap-2 text-[13px] font-semibold text-white/50">
                 <span className="text-white/80">Galien</span>
                 <span className="text-white/20">/</span>
-                <span className="text-white/80">{activePlaybook?.name || "Dashboard"}</span>
+                <span className="text-white/80">{getWorkspace(activePlaybook?.type).name}</span>
               </div>
             </div>
 
@@ -173,7 +194,7 @@ export function DashboardLayout({ children, session, inboxCount = 0, companyName
                   >
                     <Briefcase className="size-3.5 text-white/40 shrink-0" />
                     <span className="truncate max-w-[80px] min-[380px]:max-w-[110px] min-[450px]:max-w-[160px] sm:max-w-none">
-                      {activePlaybook?.name || "Select"}
+                      {activePlaybook ? getWorkspace(activePlaybook.type).name : "Select"}
                     </span>
                     <ChevronDown className={cn("size-3 text-white/30 transition-transform duration-200 shrink-0", dropdownOpen && "rotate-180")} />
                   </button>
@@ -188,10 +209,11 @@ export function DashboardLayout({ children, session, inboxCount = 0, companyName
                           backdropFilter: "blur(12px)",
                         }}
                       >
-                        <p className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white/30">Playbooks</p>
+                        <p className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white/30">Switch Workspace</p>
                         <div className="space-y-0.5">
                           {playbooks.map((p) => {
                             const active = p.type === activePlaybook?.type
+                            const ws = getWorkspace(p.type)
                             return (
                               <button
                                 key={p.id}
@@ -200,15 +222,21 @@ export function DashboardLayout({ children, session, inboxCount = 0, companyName
                                   setDropdownOpen(false)
                                 }}
                                 className={cn(
-                                  "w-full flex items-center justify-between rounded-lg px-2.5 py-2 text-left text-[13px] font-medium transition-all",
+                                  "w-full flex items-center justify-between rounded-lg px-2.5 py-2 text-left transition-all",
                                   active
                                     ? "bg-white/[0.06] text-white"
                                     : "text-white/60 hover:bg-white/[0.04] hover:text-white"
                                 )}
                               >
-                                <span>{p.name}</span>
+                                <span className="min-w-0">
+                                  <span className="flex items-center gap-2 text-[13px] font-semibold">
+                                    <span className="size-2 rounded-[4px] shrink-0" style={{ background: ws.accent }} />
+                                    {ws.name}
+                                  </span>
+                                  <span className="block text-[10.5px] text-white/30 pl-4 truncate">{ws.job} · {p.name}</span>
+                                </span>
                                 {active && (
-                                  <span className="size-1.5 rounded-full bg-emerald-400" />
+                                  <span className="size-1.5 rounded-full bg-emerald-400 shrink-0" />
                                 )}
                               </button>
                             )

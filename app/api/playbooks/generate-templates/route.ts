@@ -5,7 +5,7 @@ import { generatePlaybookTemplates } from "@/lib/ai"
 import { NextResponse } from "next/server"
 import { getScopeId } from "@/lib/auth-helpers"
 
-export async function POST() {
+export async function POST(req: Request) {
   const session = await auth()
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -13,6 +13,16 @@ export async function POST() {
   const scopeId = getScopeId(session)
 
   try {
+    let strategyFocus: string | undefined = undefined
+    try {
+      const body = await req.json()
+      if (body?.strategyFocus) {
+        strategyFocus = body.strategyFocus
+      }
+    } catch {
+      // Body may be empty if called without json payload
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: scopeId },
       select: {
@@ -26,7 +36,7 @@ export async function POST() {
     const playbookType = user?.playbookType || "sales"
     const companyName = user?.agencyName || "Our Agency"
     const companyDesc = user?.companyDesc || ""
-    const currency = user?.currency || "GBP"
+    const currency = user?.currency || "USD"
 
     if (!companyDesc) {
       return NextResponse.json(
@@ -40,6 +50,7 @@ export async function POST() {
       companyDesc,
       playbookType,
       currency,
+      strategyFocus,
     })
 
     // Upsert the playbook record in the database for this specific playbook type

@@ -91,7 +91,7 @@ function RobotModel({
   // Idle float & rotation applied to the group wrapper
   useFrame((state) => {
     if (group.current) {
-      const time = state.clock.getElapsedTime()
+      const time = state.clock.elapsedTime
       if (enableFloat) {
         group.current.position.y = Math.sin(time * 1.5) * floatAmplitude
       } else {
@@ -166,11 +166,6 @@ function RobotLoader() {
 // ─── Reusable Public Component ─────────────────────────────────────────────────
 /**
  * RobotScene — Drop-in reusable 3D robot canvas.
- *
- * Usage:
- * ```tsx
- * <RobotScene modelPath="/animations/Waving.fbx.glb" scale={0.02} positionY={-1.5} />
- * ```
  */
 export function RobotScene({
   modelPath,
@@ -179,9 +174,8 @@ export function RobotScene({
   floatAmplitude = 0.08,
   rotate = true,
   rotateSpeed = 0.12,
-  environment = "city",
   intensity = 0.45,
-  orbitControls = true,
+  orbitControls = false,
   height = "100%",
   scale = 1,
   positionY = 0,
@@ -189,29 +183,28 @@ export function RobotScene({
   return (
     <div className="w-full relative bg-transparent" style={{ height }}>
       <Canvas
-        gl={{ antialias: true, alpha: true }}
+        gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+        dpr={[1, 1.5]}
         camera={{ position: [0, 0, 8], fov: 45 }}
-        style={{ width: "100%", height: "100%", touchAction: "auto" }}
+        style={{ width: "100%", height: "100%", pointerEvents: orbitControls ? "auto" : "none" }}
       >
         <Suspense fallback={<RobotLoader />}>
+          <ambientLight intensity={1.4} />
+          <directionalLight position={[5, 8, 5]} intensity={2.2} />
+          <directionalLight position={[-5, 2, -3]} intensity={1.0} color="#c5a880" />
+          <pointLight position={[0, 3, 4]} intensity={1.2} color="#ffffff" />
+          
           <group position={[0, positionY, 0]}>
-            <Stage
-              environment={environment}
-              intensity={intensity}
-              adjustCamera={false}
-              shadows={{ type: "contact", opacity: 0.4, blur: 2 }}
-            >
-              <RobotModel
-                modelPath={modelPath}
-                animPath={animPath}
-                float={float}
-                floatAmplitude={floatAmplitude}
-                rotate={rotate}
-                rotateSpeed={rotateSpeed}
-                scale={scale}
-                positionY={positionY}
-              />
-            </Stage>
+            <RobotModel
+              modelPath={modelPath}
+              animPath={animPath}
+              float={float}
+              floatAmplitude={floatAmplitude}
+              rotate={rotate}
+              rotateSpeed={rotateSpeed}
+              scale={scale}
+              positionY={positionY}
+            />
           </group>
 
           {orbitControls && (
@@ -229,6 +222,7 @@ export function RobotScene({
   )
 }
 
-// Preload animation models
-useGLTF.preload("/animations/Waving.fbx.glb", true)
-useGLTF.preload("/animations/Looking Around.fbx.glb", true)
+// Preload lightweight models
+useGLTF.preload("/model/robotmodel.draco.glb", true)
+useGLTF.preload("/animations/low/Waving-low.fbx.glb", true)
+useGLTF.preload("/animations/low/Looking Around-low.fbx.glb", true)

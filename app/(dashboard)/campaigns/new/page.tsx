@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { ArrowLeft, Loader2, Check, Zap } from "lucide-react"
 import { CustomSelect } from "@/components/ui/custom-select"
+import { usePlaybook } from "@/lib/playbook-context"
 import { toast } from "sonner"
 
 type Sequence = { id: string; name: string; isDefault: boolean }
@@ -18,9 +19,12 @@ const fieldStyle = {
 export default function NewCampaignPage() {
   const { status } = useSession()
   const router = useRouter()
+  const { playbooks, activeType } = usePlaybook()
 
   const [name, setName]             = useState("")
   const [sequenceId, setSequenceId] = useState("")
+  const [playbookType, setPlaybookType] = useState(activeType || "sales")
+  const [clientGoal, setClientGoal] = useState("")
   const [autonomous, setAutonomous] = useState(true)
   const [sequences, setSequences]   = useState<Sequence[]>([])
   const [loading, setLoading]       = useState(false)
@@ -47,7 +51,7 @@ export default function NewCampaignPage() {
       const res = await fetch("/api/campaigns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), sequenceId, autonomous }),
+        body: JSON.stringify({ name: name.trim(), sequenceId, autonomous, playbookType, clientGoal: clientGoal || undefined }),
       })
       if (!res.ok) throw new Error(await res.text())
       const campaign = await res.json()
@@ -164,6 +168,48 @@ export default function NewCampaignPage() {
               }))}
             />
           )}
+        </div>
+
+        {/* Playbook — drives AI tone, objection handlers and proposals for THIS campaign,
+            independent of your global playbook (full-service agencies can mix) */}
+        <div className="space-y-2">
+          <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wide">
+            Campaign Playbook
+          </label>
+          <CustomSelect
+            value={playbookType}
+            onChange={setPlaybookType}
+            placeholder="Select a playbook…"
+            options={playbooks.map(p => ({
+              value: p.type,
+              label: p.name,
+              badge: p.type === activeType ? "active" : undefined,
+            }))}
+          />
+          <p className="text-[11px] text-white/25">
+            The AI uses this playbook&apos;s objection handlers, tone and proposals for replies in this campaign — even if your global playbook is different.
+          </p>
+        </div>
+
+        {/* Client goal — what prospects in this campaign want to achieve; steers AI pitch,
+            proposals and report narratives */}
+        <div className="space-y-2">
+          <label className="block text-[11px] font-semibold text-white/35 uppercase tracking-wide">
+            Primary Client Goal <span className="normal-case font-normal text-white/20">(optional)</span>
+          </label>
+          <CustomSelect
+            value={clientGoal}
+            onChange={setClientGoal}
+            placeholder="What do these clients want to achieve?"
+            options={[
+              { value: "grow_audience", label: "Grow their audience" },
+              { value: "go_viral", label: "Go viral / boost reach" },
+              { value: "drive_sales", label: "Drive sales / conversions" },
+              { value: "generate_leads", label: "Generate leads" },
+              { value: "build_community", label: "Build a community" },
+              { value: "brand_awareness", label: "Brand awareness" },
+            ]}
+          />
         </div>
 
         {/* Autopilot toggle */}

@@ -9,14 +9,47 @@ export async function GET() {
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const scopeId = getScopeId(session)
 
+  // Update user's lastActiveAt timestamp to register they are actively online
+  await prisma.user.update({
+    where: { id: scopeId },
+    data: { lastActiveAt: new Date() },
+  }).catch(() => {})
+
   let goal = await prisma.agentGoal.findUnique({
     where: { userId: scopeId },
-    include: { user: { select: { agencyName: true, companyDesc: true, title: true, tone: true, name: true, fromEmail: true } } }
+    include: {
+      user: {
+        select: {
+          agencyName: true,
+          companyDesc: true,
+          title: true,
+          tone: true,
+          name: true,
+          fromEmail: true,
+          playbookType: true,
+          lastActiveAt: true,
+        },
+      },
+    },
   })
+
   if (!goal) {
     goal = await prisma.agentGoal.create({
       data: { userId: scopeId },
-      include: { user: { select: { agencyName: true, companyDesc: true, title: true, tone: true, name: true, fromEmail: true } } }
+      include: {
+        user: {
+          select: {
+            agencyName: true,
+            companyDesc: true,
+            title: true,
+            tone: true,
+            name: true,
+            fromEmail: true,
+            playbookType: true,
+            lastActiveAt: true,
+          },
+        },
+      },
     })
   }
 
@@ -64,6 +97,11 @@ export async function PATCH(req: NextRequest) {
     personaConfig: any
     lowPriorityDelayMins: number
     highPriorityDelayMins: number
+    autoSendOnlyWhenOffline: boolean
+    criticalDelayMins: number
+    questionDelayMins: number
+    objectionDelayMins: number
+    offlineDelayMins: number
   }>
 
   const data = {
@@ -72,12 +110,17 @@ export async function PATCH(req: NextRequest) {
     ...(typeof body.dailyLeadCap === "number" ? { dailyLeadCap: Math.max(5, body.dailyLeadCap) } : {}),
     ...(typeof body.autoSendEnabled === "boolean" ? { autoSendEnabled: body.autoSendEnabled } : {}),
     ...(typeof body.autoProspectingEnabled === "boolean" ? { autoProspectingEnabled: body.autoProspectingEnabled } : {}),
-    ...(typeof body.reviewWindowMins === "number" ? { reviewWindowMins: Math.max(5, body.reviewWindowMins) } : {}),
+    ...(typeof body.reviewWindowMins === "number" ? { reviewWindowMins: Math.max(0, body.reviewWindowMins) } : {}),
     ...(typeof body.maxAutoSendsPerDay === "number" ? { maxAutoSendsPerDay: Math.max(1, body.maxAutoSendsPerDay) } : {}),
     ...(body.minConfidence ? { minConfidence: body.minConfidence } : {}),
     ...(body.personaConfig !== undefined ? { personaConfig: body.personaConfig } : {}),
     ...(typeof body.lowPriorityDelayMins === "number" ? { lowPriorityDelayMins: Math.max(0, body.lowPriorityDelayMins) } : {}),
     ...(typeof body.highPriorityDelayMins === "number" ? { highPriorityDelayMins: Math.max(0, body.highPriorityDelayMins) } : {}),
+    ...(typeof body.autoSendOnlyWhenOffline === "boolean" ? { autoSendOnlyWhenOffline: body.autoSendOnlyWhenOffline } : {}),
+    ...(typeof body.criticalDelayMins === "number" ? { criticalDelayMins: Math.max(0, body.criticalDelayMins) } : {}),
+    ...(typeof body.questionDelayMins === "number" ? { questionDelayMins: Math.max(0, body.questionDelayMins) } : {}),
+    ...(typeof body.objectionDelayMins === "number" ? { objectionDelayMins: Math.max(0, body.objectionDelayMins) } : {}),
+    ...(typeof body.offlineDelayMins === "number" ? { offlineDelayMins: Math.max(0, body.offlineDelayMins) } : {}),
   }
 
   const updated = await prisma.agentGoal.upsert({
@@ -88,4 +131,3 @@ export async function PATCH(req: NextRequest) {
 
   return NextResponse.json(updated)
 }
-

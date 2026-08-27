@@ -4,6 +4,8 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { generateEmail } from "@/lib/ai"
 import { performCompanyResearch } from "@/lib/research"
+import { determineOptimalApproach } from "@/lib/approach-selector"
+import { getValidProspectFirstName } from "@/lib/name-sanitizer"
 import * as cheerio from "cheerio"
 import { getScopeId } from "@/lib/auth-helpers"
 
@@ -67,7 +69,7 @@ export async function POST(
   const scopeId = getScopeId(session)
 
   const { id: campaignId, leadId } = await params
-  const { approach } = await req.json()
+  const { approach } = await req.json().catch(() => ({}))
 
   // 1. Verify campaign ownership and load sequence steps
   const campaign = await prisma.campaign.findFirst({
@@ -89,7 +91,13 @@ export async function POST(
   const steps = campaign.sequence.steps
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
 
-  let finalApproach = approach ?? "competitor"
+  // Resolve optimal approach dynamically if "auto" or empty
+  let finalApproach = approach
+  if (!finalApproach || finalApproach === "auto") {
+    const optimal = determineOptimalApproach(lead)
+    finalApproach = optimal.id
+  }
+
   let rating: number | null = null
   let reviewCount: number | null = null
   let auditData: Record<string, unknown> | null = null
@@ -100,34 +108,29 @@ export async function POST(
     if (place) {
       rating = place.rating ?? null
       reviewCount = place.userRatingCount ?? null
-    } else {
-      // Fallback if place fetch fails
-      finalApproach = "competitor"
     }
-  } else if (finalApproach === "local-rank") {
-    finalApproach = "competitor"
   }
 
-  // 4. Run website audit if website approach is requested
-  if (finalApproach === "website") {
-    if (lead.auditJson) {
-      try {
-        auditData = JSON.parse(lead.auditJson)
-      } catch {
-        auditData = null
-      }
-    }
-    if (!auditData && lead.website) {
-      const audit = await runWebsiteAudit(lead.website)
-      if (audit) {
-        auditData = audit
-      }
-    }
-    if (!auditData) {
-      // Fallback if audit fails / not found
-      finalApproach = "competitor"
+  // 4. Run website audit if auditData is needed
+  if (lead.auditJson) {
+    try {
+      auditData = JSON.parse(lead.auditJson)
+    } catch {
+      auditData = null
     }
   }
+  if (!auditData && lead.website) {
+    const audit = await runWebsiteAudit(lead.website)
+    if (audit) {
+      auditData = audit
+    }
+  }
+
+  // Persist the chosen approach
+  await prisma.lead.update({
+    where: { id: lead.id },
+    data: { recommendedApproach: finalApproach },
+  }).catch(() => {})
 
   // 4.5. Run extensive company research
   const companyResearch = await performCompanyResearch(
@@ -168,7 +171,7 @@ export async function POST(
         senderTitle:       user.title || "Marketing Consultant",
         senderCompany:     user.agencyName || user.companyName || "Your Company",
         senderCompanyDesc: user.companyDesc || "We help businesses grow.",
-        prospectFirstName: lead.firstName || lead.email.split("@")[0],
+        prospectFirstName: getValidProspectFirstName(lead.firstName, lead.email) || "",
         prospectLastName:  lead.lastName || "",
         prospectTitle:     lead.title || "Decision Maker",
         prospectCompany:   lead.company || "their company",

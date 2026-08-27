@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer"
+import { decryptSecret } from "./crypto"
 
 export interface SendEmailParams {
   to: string
@@ -34,7 +35,7 @@ export function resolveSmtp(user: {
   }
   return {
     user: user_,
-    pass: pass_,
+    pass: decryptSecret(pass_),
     host: user.smtpHost ?? undefined,
     port: user.smtpPort ?? undefined,
   }

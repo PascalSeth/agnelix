@@ -100,15 +100,25 @@ model User {
   onboardingDone Boolean @default(false)
   calendarLink   String?
   lastTrialAt    DateTime?
+  trialCount     Int       @default(0)
+
+  // NEW: Flagship offer (SMM playbook step 2) — { name, transformation, deliverable }
+  // Injected into step-1 outreach emails and proposal generation.
+  flagshipOffer Json?
 
   // NEW: Playbook & Identity
   playbookType     String? @default("sales")
   brandColor       String?
   domain           String?
-  timezone         String  @default("Europe/London")
-  currency         String  @default("GBP")
-  imapEnabled      Boolean @default(false)
+  timezone         String   @default("Europe/London")
+  currency         Currency @default(USD)
+  imapEnabled      Boolean  @default(false)
   gmailAppPassword String?
+  lastActiveAt     DateTime? @default(now())
+
+  // IMAP delta-sync state — tracks the highest UID seen so we only fetch new messages each run
+  imapLastUid    Int?      // highest IMAP UID successfully processed; NULL = full scan on next run
+  imapLastSyncAt DateTime? // timestamp of last successful IMAP sync completion
 
   teamOwnerId String?
   teamOwner   User?        @relation("TeamMembers", fields: [teamOwnerId], references: [id])
@@ -130,7 +140,24 @@ model User {
   clientPortals ClientPortal[]
   clientReports ClientReport[]
 
+  // NEW: Phase D relations
+  contentItems     ContentCalendar[]
+  clientFinancials ClientFinancials[]
+  agentInsights    AgentInsight[]
+
+  // Agency-owned AI training rules (taught from the AI Settings page)
+  aiTrainingRules AiTrainingRule[]
+
   @@map("users")
+}
+
+enum Currency {
+  USD
+  EUR
+  GBP
+  CAD
+  GHS
+  NGN
 }
 
 enum Role {
@@ -202,13 +229,16 @@ model Lead {
   buyingSignalsJson String?   @db.Text
   signalsCheckedAt  DateTime?
 
+  // NEW: Social content audit (profiles found, missing platforms, mentions)
+  socialAuditJson String? @db.Text
+
   // NEW: Engagement Counters
   emailsSentCount      Int       @default(0)
   emailsOpenedCount    Int       @default(0)
   repliesReceivedCount Int       @default(0)
   meetingsBookedCount  Int       @default(0)
   lastContactedAt      DateTime?
-  dealCurrency         String    @default("GBP")
+  dealCurrency         Currency  @default(USD)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -223,6 +253,11 @@ model Lead {
   // NEW: Relations
   proposals Proposal[]
   leadNotes Note[]
+
+  // NEW: Phase D relations
+  clientPortals    ClientPortal[]
+  clientFinancials ClientFinancials[]
+  agentInsights    AgentInsight[]
 
   @@index([userId])
   @@index([status])
@@ -268,6 +303,10 @@ model Campaign {
   workflowStage     WorkflowStage @default(ENRICH)
   revenueAttributed Float?
 
+  // NEW: what the client wants to achieve (grow_audience, go_viral, drive_sales,
+  // build_community, generate_leads, brand_awareness) — flows into AI prompts & reports
+  clientGoal String?
+
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   launchedAt DateTime?
@@ -280,6 +319,9 @@ model Campaign {
   clientPortal  ClientPortal?
   clientReports ClientReport[]
   proposals     Proposal[]
+
+  // NEW: multi-campaign portal membership
+  portalCampaigns PortalCampaign[]
 
   @@index([userId])
   @@index([status])
@@ -611,6 +653,7 @@ enum PendingActionType {
   BOOK_MEETING
   SEND_PROPOSAL
   GENERATE_CASE_STUDY
+  LINKEDIN_TASK
 }
 
 enum PendingActionStatus {
@@ -647,6 +690,13 @@ model AgentGoal {
   personaConfig          Json?
   lowPriorityDelayMins   Int               @default(2)
   highPriorityDelayMins  Int               @default(15)
+
+  // Criticality-based response delay matrix & offline auto-pilot
+  autoSendOnlyWhenOffline Boolean           @default(false)
+  criticalDelayMins       Int               @default(1)
+  questionDelayMins       Int               @default(5)
+  objectionDelayMins      Int               @default(15)
+  offlineDelayMins        Int               @default(2)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -730,7 +780,7 @@ model Proposal {
 
   pricingPackages Json
   totalValue      Float?
-  currency        String @default("GBP")
+  currency        Currency @default(USD)
 
   status        ProposalStatus @default(DRAFT)
   sentAt        DateTime?
@@ -738,6 +788,9 @@ model Proposal {
   signedAt      DateTime?
   expiredAt     DateTime?
   signatureData Json?
+
+  // NEW: feedback loop — why the client declined; fed back into future generations
+  declineReason String? @db.Text
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -790,6 +843,12 @@ model ClientPortal {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   campaignId String   @unique
   campaign   Campaign @relation(fields: [campaignId], references: [id])
+
+  // NEW: portal belongs to a won client (lead) and can span multiple campaigns.
+  // campaignId above remains the primary campaign for backward compatibility.
+  leadId          String?
+  lead            Lead?            @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  portalCampaigns PortalCampaign[]
 
   portalTemplate  String?
   enabledSections Json
@@ -880,4 +939,165 @@ model PortalMessage {
 
   @@index([portalId])
   @@map("portal_messages")
+}
+
+// Junction: lets one client portal aggregate multiple campaigns (e.g. SEO + PPC for the same won client)
+model PortalCampaign {
+  portalId   String
+  portal     ClientPortal @relation(fields: [portalId], references: [id], onDelete: Cascade)
+  campaignId String
+  campaign   Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  createdAt  DateTime     @default(now())
+
+  @@unique([portalId, campaignId])
+  @@map("portal_campaigns")
+}
+
+// ── Phase D: Feature Modules ─────────────────────────────────────────────────
+
+model ContentCalendar {
+  id           String        @id @default(cuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaignId   String?
+  platform     String // instagram, tiktok, linkedin, x, facebook, pinterest
+  scheduledFor DateTime
+  contentType  String // post, story, reel, carousel, short
+  caption      String        @db.Text
+  mediaUrls    Json?
+  hashtags     Json?
+  status       ContentStatus @default(DRAFT)
+  approvedAt   DateTime?
+  postedAt     DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([scheduledFor])
+  @@map("content_calendar")
+}
+
+enum ContentStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  SCHEDULED
+  POSTED
+  FAILED
+}
+
+model ClientFinancials {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leadId      String // the won client
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  period      DateTime // month/year of period
+  revenue     Float
+  costs       Float
+  grossMargin Float
+  burnRate    Float?
+  runway      Int? // months of runway
+  currency    Currency @default(USD)
+  notes       String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([leadId, period])
+  @@index([userId])
+  @@index([leadId])
+  @@map("client_financials")
+}
+
+model AgentInsight {
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leadId    String?
+  lead      Lead?       @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type      InsightType
+  title     String
+  body      String      @db.Text
+  cta       String? // action URL or label
+  metadata  Json?
+  dismissed Boolean     @default(false)
+  createdAt DateTime    @default(now())
+
+  @@index([userId])
+  @@index([userId, dismissed])
+  @@map("agent_insights")
+}
+
+enum InsightType {
+  CROSS_SELL_OPPORTUNITY
+  RISK_ALERT
+  PERFORMANCE_ANOMALY
+  MILESTONE_REACHED
+}
+
+// ── AI Training ───────────────────────────────────────────────────────────────
+// Live instruction layer injected into AI generations. Scoped globally or to a
+// workspace/playbook type, and to a generation surface. Platform-wide rules
+// (userId null) are managed at /admin by superadmins; agency-owned rules
+// (userId set) are taught by a company itself from its AI Settings page and
+// only ever apply to that company's own generations.
+
+model AiTrainingRule {
+  id          String    @id @default(cuid())
+  scope       String    @default("global") // "global" or a playbook type (sales, seo, …)
+  surface     AiSurface @default(ALL)
+  title       String
+  instruction String    @db.Text
+  goodExample String?   @db.Text
+  badExample  String?   @db.Text
+  enabled     Boolean   @default(true)
+  priority    Int       @default(0) // higher runs first
+  source      String    @default("manual") // manual | session (taught via correction) | document (distilled from upload)
+  sourceRef   String? // document title or training example id
+  createdBy   String?
+  userId      String? // set = agency-owned lesson (this company only); null = platform-wide rule set by a superadmin
+  user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([scope, enabled])
+  @@index([userId, enabled])
+  @@map("ai_training_rules")
+}
+
+enum AiSurface {
+  ALL
+  EMAIL
+  REPLY
+  PROPOSAL
+  ADVISOR
+}
+
+// A teaching exchange: scenario → AI response → admin correction → distilled lesson
+model TrainingExample {
+  id         String   @id @default(cuid())
+  surface    String
+  scope      String   @default("global")
+  scenario   String   @db.Text
+  aiResponse String   @db.Text
+  correction String?  @db.Text
+  feedback   String?  @db.Text
+  ruleId     String? // the AiTrainingRule distilled from this correction
+  createdAt  DateTime @default(now())
+
+  @@map("training_examples")
+}
+
+// An uploaded document (PDF/textbook/notes) the AI has distilled lessons from
+model TrainingDocument {
+  id           String   @id @default(cuid())
+  title        String
+  content      String   @db.Text
+  scope        String   @default("global")
+  surface      String   @default("ALL")
+  lessonsCount Int      @default(0)
+  createdBy    String?
+  createdAt    DateTime @default(now())
+
+  @@map("training_documents")
 }

@@ -5,9 +5,10 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import {
-  ArrowRight, Check, Loader2, Upload, Sparkles, Send,
+  ArrowRight, Check, Loader2, Upload, Send,
   Pencil, SkipForward, Bot,
 } from "lucide-react"
+import { Sparkles } from "@/components/ui/chat-bubble-icon"
 import { toast } from "sonner"
 import { initials } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -311,8 +312,8 @@ export default function OnboardingPage() {
           flex-direction: column;
           justify-content: flex-start;
           width: 100%;
-          height: 65%;
-          padding: 4.5rem 1.5rem 1.5rem 1.5rem;
+          height: 58%;
+          padding: 3.5rem 1.5rem 1.5rem 1.5rem;
           overflow-y: auto;
           overflow-x: hidden;
           border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -328,7 +329,7 @@ export default function OnboardingPage() {
           position: relative;
           z-index: 10;
           flex: 1;
-          height: 35%;
+          height: 42%;
           background-color: #05060a;
           overflow: hidden;
           transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
@@ -343,15 +344,17 @@ export default function OnboardingPage() {
             flex-direction: row;
           }
           .onboarding-left-pane {
-            width: 45%;
+            width: 46%;
+            max-width: 600px;
             height: 100%;
-            padding: 3rem 5rem;
+            padding: 3rem 4.5rem;
             justify-content: center;
             border-bottom: none;
             border-right: 1px solid rgba(255, 255, 255, 0.05);
           }
           .onboarding-right-pane {
             height: 100%;
+            flex: 1;
           }
         }
         .review-grid {
@@ -838,8 +841,8 @@ export default function OnboardingPage() {
         <div
           className="absolute inset-x-0 bottom-0 pointer-events-none z-20"
           style={{
-            height: "40%",
-            background: "linear-gradient(to top, rgba(5,6,10,1) 10%, rgba(5,6,10,0.6) 40%, transparent 100%)",
+            height: "18%",
+            background: "linear-gradient(to top, rgba(5,6,10,0.85) 0%, rgba(5,6,10,0.3) 50%, transparent 100%)",
           }}
         />
 
@@ -854,11 +857,10 @@ export default function OnboardingPage() {
               ? "looking"
               : "idle"
           } 
-          positionY={isMobile ? -3.4 : -4.6} 
-          scale={isMobile ? 0.05 : 0.07}
         />
       </div>
 
     </div>
   )
 }
+

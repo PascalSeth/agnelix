@@ -4,12 +4,13 @@ import { prisma } from "@/lib/db"
 import OpenAI from "openai"
 import type { BusinessProfile } from "@/app/api/leads/research/route"
 import { getScopeId } from "@/lib/auth-helpers"
+import { getTrainingBlock } from "@/lib/ai-training"
 
 const TONE_GUIDE: Record<string, string> = {
-  "Professional":  "professional and measured — authoritative without being stiff, polished without being corporate",
-  "Friendly":      "warm and conversational — approachable and personable, like someone the reader would enjoy hearing from",
-  "Direct":        "concise and straight to the point — no pleasantries, no filler, just substance; respects their time",
-  "Consultative":  "curious and advisory — frames observations as questions or insights, sounds like a trusted peer not a salesperson",
+  "Professional": "professional and measured — authoritative without being stiff, polished without being corporate",
+  "Friendly": "warm and conversational — approachable and personable, like someone the reader would enjoy hearing from",
+  "Direct": "concise and straight to the point — no pleasantries, no filler, just substance; respects their time",
+  "Consultative": "curious and advisory — frames observations as questions or insights, sounds like a trusted peer not a salesperson",
 }
 
 const openai = new OpenAI({
@@ -52,7 +53,7 @@ function buildPersona(
   sender: { company: string; desc: string } | null,
   tone: string,
 ): string {
-  const toneDesc   = TONE_GUIDE[tone] ?? TONE_GUIDE["Professional"]
+  const toneDesc = TONE_GUIDE[tone] ?? TONE_GUIDE["Professional"]
   const senderLine = sender?.company
     ? `\nThe sender's company is "${sender.company}"${sender.desc ? ` — ${sender.desc}` : ""}. If instructed to include it, weave it in naturally at the end as a brief, unpushy closing line — NOT a pitch.`
     : ""
@@ -77,14 +78,14 @@ Rules:
 function profileCtx(p: BusinessProfile | null | undefined): string {
   if (!p) return ""
   const lines: string[] = []
-  if (p.whatTheyDo)                      lines.push(`What they do: ${p.whatTheyDo}`)
-  if (p.positioning)                     lines.push(`How they position: ${p.positioning}`)
-  if (p.specializations?.length)         lines.push(`Specialisations: ${p.specializations.join(", ")}`)
-  if (p.reviewHighlights?.praise?.length)   lines.push(`Customers praise: ${p.reviewHighlights.praise.join("; ")}`)
+  if (p.whatTheyDo) lines.push(`What they do: ${p.whatTheyDo}`)
+  if (p.positioning) lines.push(`How they position: ${p.positioning}`)
+  if (p.specializations?.length) lines.push(`Specialisations: ${p.specializations.join(", ")}`)
+  if (p.reviewHighlights?.praise?.length) lines.push(`Customers praise: ${p.reviewHighlights.praise.join("; ")}`)
   if (p.reviewHighlights?.complaints?.length) lines.push(`Frustrations/gaps: ${p.reviewHighlights.complaints.join("; ")}`)
-  if (p.reviewHighlights?.notableQuote)  lines.push(`Notable customer quote: "${p.reviewHighlights.notableQuote}"`)
-  if (p.contentGaps?.length)             lines.push(`Content gaps: ${p.contentGaps.join("; ")}`)
-  if (p.outreachAngles?.length)          lines.push(`Research angles: ${p.outreachAngles.join(" | ")}`)
+  if (p.reviewHighlights?.notableQuote) lines.push(`Notable customer quote: "${p.reviewHighlights.notableQuote}"`)
+  if (p.contentGaps?.length) lines.push(`Content gaps: ${p.contentGaps.join("; ")}`)
+  if (p.outreachAngles?.length) lines.push(`Research angles: ${p.outreachAngles.join(" | ")}`)
   return lines.length ? `\nResearch on this business:\n${lines.map(l => `  - ${l}`).join("\n")}` : ""
 }
 
@@ -105,13 +106,13 @@ function buildPrompt(
     businessProfile,
   } = body
 
-  const city    = address.split(",").slice(-2).join(",").trim()
+  const city = address.split(",").slice(-2).join(",").trim()
   const persona = buildPersona(sender, tone)
   const senderLine = sender?.company
     ? `\nIf including sender company: end with a natural, one-sentence mention of ${sender.company}${sender.desc ? ` (${sender.desc})` : ""} — brief, unpushy, connects to why you're reaching out.`
     : ""
-  const nm   = decisionMakerFirstName ? ` Recipient first name (use sparingly if at all): ${decisionMakerFirstName}.` : ""
-  const ctx  = `Company being contacted: ${businessName}, a ${industry} in ${city}.${nm}`
+  const nm = decisionMakerFirstName ? ` Recipient first name (use sparingly if at all): ${decisionMakerFirstName}.` : ""
+  const ctx = `Company being contacted: ${businessName}, a ${industry} in ${city}.${nm}`
   const prof = profileCtx(businessProfile)
 
   // ── Website ─────────────────────────────────────────────────────────────────
@@ -291,30 +292,35 @@ export async function POST(req: NextRequest) {
   // Fetch user profile for tone + optional sender company
   let sender: { company: string; desc: string } | null = null
   let tone = "Professional"
+  let trainingBlock = ""
 
   try {
     const user = await prisma.user.findUnique({
       where: { id: scopeId },
-      select: { agencyName: true, companyName: true, companyDesc: true, tone: true },
+      select: { agencyName: true, companyName: true, companyDesc: true, tone: true, playbookType: true },
     })
-    if (user?.tone)  tone   = user.tone
+    if (user?.tone) tone = user.tone
     if (body.includeSenderCompany) {
       const company = user?.agencyName || user?.companyName || ""
-      const desc    = user?.companyDesc || ""
+      const desc = user?.companyDesc || ""
       if (company) sender = { company, desc }
     }
+    // Trained lessons apply here too — this opener IS the first line of an
+    // outbound email conversation with the lead.
+    trainingBlock = await getTrainingBlock("EMAIL", user?.playbookType, scopeId)
   } catch { /* DB unavailable — use defaults */ }
 
   const approach: Approach = body.approach ?? "website"
-  const prompt = buildPrompt(approach, body, sender, tone)
+  const basePrompt = buildPrompt(approach, body, sender, tone)
+  const prompt = basePrompt ? basePrompt + trainingBlock : basePrompt
 
   if (!prompt) {
     const hints: Record<Approach, string> = {
-      "website":      "Run the site audit first.",
-      "local-rank":   "No Google rating data for this business.",
-      "competitor":   "Generation failed.",
-      "industry":     "Generation failed.",
-      "question":     "Generation failed.",
+      "website": "Run the site audit first.",
+      "local-rank": "No Google rating data for this business.",
+      "competitor": "Generation failed.",
+      "industry": "Generation failed.",
+      "question": "Generation failed.",
       "social-proof": "Generation failed.",
       "local-neighbor": "Generation failed.",
     }

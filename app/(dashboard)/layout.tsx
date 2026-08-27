@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/db"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { PlaybookProvider } from "@/lib/playbook-context"
+import { mergePlaybooksWithDefaults } from "@/lib/playbook-defaults"
 import { getScopeId } from "@/lib/auth-helpers"
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -19,13 +20,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!session.user.teamOwnerId && !user?.onboardingDone) redirect("/onboarding")
 
   let inboxCount = 0
-  let playbooks: any[] = []
+  let dbPlaybooks: any[] = []
   try {
     inboxCount = await prisma.reply.count({ where: { lead: { userId: scopeId } } })
-    playbooks = await prisma.playbook.findMany({
+    dbPlaybooks = await prisma.playbook.findMany({
       orderBy: { name: "asc" }
     })
   } catch { /* DB not configured */ }
+
+  // Merge DB rows over hardcoded defaults server-side so the client bundle
+  // only receives the final playbook list (defaults stay out of the bundle).
+  const playbooks = mergePlaybooksWithDefaults(dbPlaybooks)
 
   return (
     <PlaybookProvider initialType={user?.playbookType || "sales"} playbooks={playbooks}>

@@ -3,12 +3,14 @@
 
 import { useState, useEffect } from "react"
 import {
-  MapPin, Globe2, Shield, Gauge, Sparkles, Zap,
+  MapPin, Globe2, Shield, Gauge, Zap,
   ExternalLink, Loader2, Star,
   Copy, Phone, ChevronLeft, ChevronRight,
   BarChart3, RefreshCw, Monitor, TrendingUp,
   Users, ArrowUpRight, HelpCircle,
+  Building2, Camera, Image as ImageIcon,
 } from "lucide-react"
+import { Sparkles } from "@/components/ui/chat-bubble-icon"
 import type { Approach } from "@/app/api/leads/icebreaker/route"
 import type { BusinessProfile } from "@/app/api/leads/research/route"
 import type { LinkedInDecisionMaker } from "@/app/api/leads/linkedin-search/route"
@@ -71,9 +73,9 @@ type Tab = "overview" | "contact" | "audit" | "ai"
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "overview", label: "Overview" },
-  { id: "contact",  label: "Contact"  },
-  { id: "audit",    label: "Audit"    },
-  { id: "ai",       label: "AI"       },
+  { id: "contact", label: "Contact" },
+  { id: "audit", label: "Audit" },
+  { id: "ai", label: "AI" },
 ]
 
 // ── Shared style helpers ─────────────────────────────────────────────────────
@@ -130,11 +132,11 @@ export function LeadDetailSide({
   onLinkedInStart,
   searchTarget = "b2b",
 }: LeadDetailSideProps) {
-  const [activeTab, setActiveTab]     = useState<Tab>("overview")
+  const [activeTab, setActiveTab] = useState<Tab>("overview")
   const [activePhoto, setActivePhoto] = useState(0)
-  const [generatingIce, setGeneratingIce]         = useState(false)
-  const [approach, setApproach]                   = useState<Approach>("website")
-  const [includeSenderCompany, setIncludeSender]  = useState(false)
+  const [generatingIce, setGeneratingIce] = useState(false)
+  const [approach, setApproach] = useState<Approach>("website")
+  const [includeSenderCompany, setIncludeSender] = useState(false)
 
   // Reset tab + photo + approach when place changes
   useEffect(() => {
@@ -176,7 +178,7 @@ export function LeadDetailSide({
   // Auto-select recommended approach when research completes
   useEffect(() => {
     if (enrichment.research?.recommendedApproach?.id) {
-      const approachId = enrichment.research.recommendedApproach.id
+      const approachId = enrichment.research.recommendedApproach.id as Approach
       setTimeout(() => setApproach(approachId), 0)
     }
   }, [enrichment.research?.recommendedApproach?.id])
@@ -188,11 +190,11 @@ export function LeadDetailSide({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          websiteUrl:   place.websiteUri ?? null,
+          websiteUrl: place.websiteUri ?? null,
           businessName: place.displayName.text,
-          industry:     place.primaryType?.replace(/_/g, " ") ?? null,
-          address:      place.formattedAddress,
-          reviews:      place.reviews ?? [],
+          industry: place.primaryType?.replace(/_/g, " ") ?? null,
+          address: place.formattedAddress,
+          reviews: place.reviews ?? [],
         }),
       })
       if (!res.ok) return
@@ -248,10 +250,10 @@ export function LeadDetailSide({
       // Pass research context for AI inference
       const websiteText = enrichment.research
         ? [
-            enrichment.research.whatTheyDo,
-            ...(enrichment.research.specializations ?? []),
-            enrichment.research.positioning,
-          ].filter(Boolean).join(". ")
+          enrichment.research.whatTheyDo,
+          ...(enrichment.research.specializations ?? []),
+          enrichment.research.positioning,
+        ].filter(Boolean).join(". ")
         : undefined
 
       const res = await fetch("/api/leads/linkedin-search", {
@@ -260,8 +262,8 @@ export function LeadDetailSide({
         body: JSON.stringify({
           companyName: place.displayName.text,
           city,
-          industry:    place.primaryType?.replace(/_/g, " ") ?? null,
-          websiteUrl:  place.websiteUri ?? null,
+          industry: place.primaryType?.replace(/_/g, " ") ?? null,
+          websiteUrl: place.websiteUri ?? null,
           websiteText,
           localNeighbors: searchTarget === "b2c",
           bypassCache,
@@ -284,14 +286,14 @@ export function LeadDetailSide({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           approach,
-          businessName:           place.displayName.text,
-          address:                place.formattedAddress,
-          industry:               place.primaryType?.replace(/_/g, " ") ?? null,
-          rating:                 place.rating ?? null,
-          reviewCount:            place.userRatingCount ?? null,
-          auditData:              enrichment.auditData,
+          businessName: place.displayName.text,
+          address: place.formattedAddress,
+          industry: place.primaryType?.replace(/_/g, " ") ?? null,
+          rating: place.rating ?? null,
+          reviewCount: place.userRatingCount ?? null,
+          auditData: enrichment.auditData,
           decisionMakerFirstName: dm?.firstName ?? null,
-          businessProfile:        enrichment.research ?? null,
+          businessProfile: enrichment.research ?? null,
           includeSenderCompany,
         }),
       })
@@ -309,50 +311,141 @@ export function LeadDetailSide({
   function renderOverviewTab() {
     return (
       <div className="space-y-5">
-        {/* Photo slider */}
-        {place.photos && place.photos.length > 0 && (
-          <div className="relative h-44 rounded-2xl overflow-hidden group/slider select-none"
-            style={{ border: "1px solid rgba(255,255,255,.07)" }}>
-            <div className="flex h-full transition-transform duration-500 ease-out"
-              style={{ transform: `translateX(-${activePhoto * 100}%)` }}>
-              {place.photos.map((photo, i) => (
-                <img key={i} alt=""
-                  src={`https://places.googleapis.com/v1/${photo.name}/media?maxHeightPx=400&maxWidthPx=700&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`}
-                  className="w-full h-full object-cover shrink-0"
-                />
-              ))}
+        {/* Google Photo Showcase Gallery */}
+        {place.photos && place.photos.length > 0 ? (
+          <div className="space-y-2">
+            <div 
+              className="relative h-48 sm:h-54 rounded-2xl overflow-hidden group/slider select-none border border-white/[0.08] shadow-lg bg-black/60"
+            >
+              <div 
+                className="flex h-full transition-transform duration-500 ease-out"
+                style={{ transform: `translateX(-${activePhoto * 100}%)` }}
+              >
+                {place.photos.map((photo, i) => (
+                  <div key={i} className="relative w-full h-full shrink-0">
+                    <img 
+                      alt={`${place.displayName.text} photo ${i + 1}`}
+                      src={`/api/leads/photo?name=${encodeURIComponent(photo.name)}&maxWidth=800&maxHeight=500`}
+                      className="w-full h-full object-cover"
+                      loading={i === 0 ? "eager" : "lazy"}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Gradient Scrims */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/30 pointer-events-none" />
+
+              {/* Floating Badges */}
+              <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md border border-white/10 text-[10px] font-bold text-white/90">
+                <Camera className="size-3 text-indigo-400" />
+                <span>Google Business Photos</span>
+              </div>
+
+              <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md border border-white/10 text-[9px] font-mono font-bold text-white/70">
+                {activePhoto + 1} / {place.photos.length}
+              </div>
+
+              {/* Prev / Next Controls */}
+              {place.photos.length > 1 && (
+                <>
+                  <button
+                    onClick={() => setActivePhoto(p => Math.max(0, p - 1))}
+                    disabled={activePhoto === 0}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 size-8 rounded-full bg-black/60 backdrop-blur border border-white/15 flex items-center justify-center opacity-0 group-hover/slider:opacity-100 transition-opacity hover:bg-black/80 disabled:opacity-0 cursor-pointer shadow-md"
+                  >
+                    <ChevronLeft className="size-4 text-white" />
+                  </button>
+                  <button
+                    onClick={() => setActivePhoto(p => Math.min(place.photos!.length - 1, p + 1))}
+                    disabled={activePhoto === place.photos.length - 1}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 size-8 rounded-full bg-black/60 backdrop-blur border border-white/15 flex items-center justify-center opacity-0 group-hover/slider:opacity-100 transition-opacity hover:bg-black/80 disabled:opacity-0 cursor-pointer shadow-md"
+                  >
+                    <ChevronRight className="size-4 text-white" />
+                  </button>
+                </>
+              )}
             </div>
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+
+            {/* Thumbnail Preview Strip */}
             {place.photos.length > 1 && (
-              <>
-                <button
-                  onClick={() => setActivePhoto(p => Math.max(0, p - 1))}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 size-7 rounded-full bg-black/40 backdrop-blur border border-white/10 flex items-center justify-center opacity-0 group-hover/slider:opacity-100 transition-opacity"
-                >
-                  <ChevronLeft className="size-3.5 text-white" />
-                </button>
-                <button
-                  onClick={() => setActivePhoto(p => Math.min(place.photos!.length - 1, p + 1))}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 size-7 rounded-full bg-black/40 backdrop-blur border border-white/10 flex items-center justify-center opacity-0 group-hover/slider:opacity-100 transition-opacity"
-                >
-                  <ChevronRight className="size-3.5 text-white" />
-                </button>
-                <div className="absolute bottom-2 inset-x-0 flex justify-center gap-1">
-                  {place.photos.map((_, i) => (
-                    <div key={i} className={`h-1 rounded-full transition-all ${i === activePhoto ? "w-4 bg-white" : "w-1 bg-white/30"}`} />
-                  ))}
-                </div>
-              </>
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                {place.photos.map((photo, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setActivePhoto(i)}
+                    className={`relative size-12 rounded-lg overflow-hidden shrink-0 transition-all border cursor-pointer ${
+                      i === activePhoto 
+                        ? "border-indigo-400 ring-2 ring-indigo-500/30 scale-[1.03]" 
+                        : "border-white/10 opacity-50 hover:opacity-100"
+                    }`}
+                  >
+                    <img 
+                      alt=""
+                      src={`/api/leads/photo?name=${encodeURIComponent(photo.name)}&maxWidth=100&maxHeight=100`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
             )}
+          </div>
+        ) : (
+          <div 
+            className="h-36 rounded-2xl flex items-center justify-between p-5 border border-white/[0.08] relative overflow-hidden shadow-lg"
+            style={{
+              background: "linear-gradient(135deg, rgba(25, 28, 42, 0.9) 0%, rgba(13, 14, 22, 0.95) 100%)",
+            }}
+          >
+            {/* Background Glow */}
+            <div className="absolute -top-10 -right-10 size-36 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+            
+            <div className="flex items-center gap-4 relative z-10">
+              {place.websiteUri ? (
+                <div className="size-16 rounded-xl overflow-hidden bg-black/50 border border-white/10 flex items-center justify-center p-2.5 shadow-md">
+                  <img
+                    src={`https://www.google.com/s2/favicons?domain=${place.websiteUri.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0]}&sz=128`}
+                    alt=""
+                    className="size-10 object-contain drop-shadow"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLElement).style.display = "none"
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="size-16 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                  <Building2 className="size-8 text-indigo-300" />
+                </div>
+              )}
+              
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-indigo-500/15 text-indigo-300 border border-indigo-500/25">
+                    Verified Listing
+                  </span>
+                  {place.primaryType && (
+                    <span className="text-[10px] text-white/40 uppercase font-semibold">
+                      {place.primaryType.replace(/_/g, " ")}
+                    </span>
+                  )}
+                </div>
+                <h3 className="text-[15px] font-extrabold text-white leading-tight">
+                  {place.displayName.text}
+                </h3>
+                <p className="text-[11px] text-white/40 truncate max-w-64">
+                  {place.formattedAddress}
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-2">
           {[
-            { label: "Rating",  value: place.rating ? `${place.rating}★` : "—",       color: "text-amber-400"   },
-            { label: "Reviews", value: place.userRatingCount?.toLocaleString() ?? "—", color: "text-sky-400"     },
-            { label: "Status",  value: place.businessStatus === "OPERATIONAL" ? "Open" : (place.businessStatus ?? "—"), color: "text-emerald-400" },
+            { label: "Rating", value: place.rating ? `${place.rating}★` : "—", color: "text-amber-400" },
+            { label: "Reviews", value: place.userRatingCount?.toLocaleString() ?? "—", color: "text-sky-400" },
+            { label: "Status", value: place.businessStatus === "OPERATIONAL" ? "Open" : (place.businessStatus ?? "—"), color: "text-emerald-400" },
           ].map(({ label, value, color }) => (
             <div key={label} className="rounded-xl p-3 text-center" style={cardStyle}>
               <p className={`text-[14px] font-black ${color}`}>{value}</p>
@@ -469,7 +562,7 @@ export function LeadDetailSide({
                 const barColor = c.confidence >= 75 ? "#34d399" : c.confidence >= 50 ? "#fbbf24" : "#f87171"
                 const srcLabel = c.sources.includes("ai-extracted") ? "AI"
                   : c.sources.includes("format-matched") ? "Format"
-                  : c.sources.includes("website-scraped") ? "Site" : c.sources[0] ?? "Gen"
+                    : c.sources.includes("website-scraped") ? "Site" : c.sources[0] ?? "Gen"
                 return (
                   <div
                     key={i}
@@ -485,7 +578,7 @@ export function LeadDetailSide({
                   >
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="min-w-0">
-                        {c.name  && <p className="text-[12px] font-bold text-white/80 truncate">{c.name}</p>}
+                        {c.name && <p className="text-[12px] font-bold text-white/80 truncate">{c.name}</p>}
                         {c.title && <p className="text-[10px] text-white/40 mt-0.5 truncate">{c.title}</p>}
                         {!c.name && !c.title && <p className="text-[10px] text-white/30 italic">Generic inbox</p>}
                       </div>
@@ -672,12 +765,12 @@ export function LeadDetailSide({
     const painPoints: Array<{ n: number; text: React.ReactNode }> = []
     let ppIdx = 1
     if (auditData) {
-      if (!auditData.ssl)           { painPoints.push({ n: ppIdx++, text: <><strong className="text-white">No SSL</strong> — Google downgrades ranking; visitors see &quot;Not Secure&quot;.</> }) }
-      if (auditData.speed > 3000)   { painPoints.push({ n: ppIdx++, text: <><strong className="text-white">Slow site ({(auditData.speed / 1000).toFixed(1)}s)</strong> — 50%+ of mobile users leave before load.</> }) }
-      if (!auditData.pixel)         { painPoints.push({ n: ppIdx++, text: <><strong className="text-white">No Facebook pixel</strong> — ad spend is unattributed; no retargeting possible.</> }) }
+      if (!auditData.ssl) { painPoints.push({ n: ppIdx++, text: <><strong className="text-white">No SSL</strong> — Google downgrades ranking; visitors see &quot;Not Secure&quot;.</> }) }
+      if (auditData.speed > 3000) { painPoints.push({ n: ppIdx++, text: <><strong className="text-white">Slow site ({(auditData.speed / 1000).toFixed(1)}s)</strong> — 50%+ of mobile users leave before load.</> }) }
+      if (!auditData.pixel) { painPoints.push({ n: ppIdx++, text: <><strong className="text-white">No Facebook pixel</strong> — ad spend is unattributed; no retargeting possible.</> }) }
       if (!auditData.googleAnalytics) { painPoints.push({ n: ppIdx++, text: <><strong className="text-white">No Google Analytics</strong> — zero insight into traffic or conversions.</> }) }
-      if (auditData.noH1)           { painPoints.push({ n: ppIdx++, text: <><strong className="text-white">Missing H1</strong> — poor SEO structure hurts organic rankings.</> }) }
-      if (auditData.noMetaDesc)     { painPoints.push({ n: ppIdx++, text: <><strong className="text-white">No meta description</strong> — reduces click-through from search results.</> }) }
+      if (auditData.noH1) { painPoints.push({ n: ppIdx++, text: <><strong className="text-white">Missing H1</strong> — poor SEO structure hurts organic rankings.</> }) }
+      if (auditData.noMetaDesc) { painPoints.push({ n: ppIdx++, text: <><strong className="text-white">No meta description</strong> — reduces click-through from search results.</> }) }
     }
 
     return (
@@ -697,15 +790,15 @@ export function LeadDetailSide({
           <>
             {/* Signal rows */}
             <div className="rounded-xl px-4" style={cardStyle}>
-              <SignalRow icon={Shield} label="SSL Certificate"    ok={auditData.ssl}            detail={auditData.ssl ? "Secure" : "Missing"} />
-              <SignalRow icon={Gauge}  label="Page Speed"         ok={auditData.speed < 2000}   detail={`${(auditData.speed / 1000).toFixed(1)}s`} />
-              <SignalRow icon={Zap}    label="Mobile Ready"       ok={!!auditData.mobile}       detail={auditData.mobile ? "Yes" : "No"} />
-              <SignalRow icon={Sparkles} label="Facebook Pixel"   ok={auditData.pixel}          detail={auditData.pixel ? "Active" : "Missing"} />
+              <SignalRow icon={Shield} label="SSL Certificate" ok={auditData.ssl} detail={auditData.ssl ? "Secure" : "Missing"} />
+              <SignalRow icon={Gauge} label="Page Speed" ok={auditData.speed < 2000} detail={`${(auditData.speed / 1000).toFixed(1)}s`} />
+              <SignalRow icon={Zap} label="Mobile Ready" ok={!!auditData.mobile} detail={auditData.mobile ? "Yes" : "No"} />
+              <SignalRow icon={Sparkles} label="Facebook Pixel" ok={auditData.pixel} detail={auditData.pixel ? "Active" : "Missing"} />
               <SignalRow icon={BarChart3} label="Google Analytics" ok={auditData.googleAnalytics} detail={auditData.googleAnalytics ? "Active" : "Missing"} />
               <SignalRow icon={BarChart3} label="Google Tag Manager" ok={auditData.googleTagManager} detail={auditData.googleTagManager ? "Active" : "Missing"} />
-              <SignalRow icon={Globe2} label="WordPress"          ok={!auditData.wordpress}     detail={auditData.wordpress ? "Yes" : "No"} />
-              <SignalRow icon={Globe2} label="Shopify"            ok={!auditData.shopify}       detail={auditData.shopify ? "Yes" : "No"} />
-              <SignalRow icon={Zap}    label="Chat Widget"        ok={auditData.hasChat}        detail={auditData.hasChat ? "Present" : "None"} />
+              <SignalRow icon={Globe2} label="WordPress" ok={!auditData.wordpress} detail={auditData.wordpress ? "Yes" : "No"} />
+              <SignalRow icon={Globe2} label="Shopify" ok={!auditData.shopify} detail={auditData.shopify ? "Yes" : "No"} />
+              <SignalRow icon={Zap} label="Chat Widget" ok={auditData.hasChat} detail={auditData.hasChat ? "Present" : "None"} />
             </div>
 
             {/* Pain points */}
@@ -754,51 +847,51 @@ export function LeadDetailSide({
       available: boolean
       hint?: string
     }[] = [
-      {
-        id: "website",
-        icon: Monitor,
-        label: "Website",
-        desc: "A specific issue spotted on their site",
-        available: !!enrichment.auditData,
-        hint: "Audit first",
-      },
-      {
-        id: "local-rank",
-        icon: TrendingUp,
-        label: "Local Rank",
-        desc: "Their Google rating, reviews, Maps position",
-        available: !!(place.rating || place.userRatingCount),
-        hint: "No rating data",
-      },
-      {
-        id: "competitor",
-        icon: Users,
-        label: "Competitor",
-        desc: "What others in their market are doing",
-        available: true,
-      },
-      {
-        id: "industry",
-        icon: ArrowUpRight,
-        label: "Industry Shift",
-        desc: "A change happening in their sector",
-        available: true,
-      },
-      {
-        id: "question",
-        icon: HelpCircle,
-        label: "Question",
-        desc: "Open with a sharp, disarming question",
-        available: true,
-      },
-      {
-        id: "social-proof",
-        icon: Sparkles,
-        label: "Social Proof",
-        desc: "A result from a similar business",
-        available: true,
-      },
-    ]
+        {
+          id: "website",
+          icon: Monitor,
+          label: "Website",
+          desc: "A specific issue spotted on their site",
+          available: !!enrichment.auditData,
+          hint: "Audit first",
+        },
+        {
+          id: "local-rank",
+          icon: TrendingUp,
+          label: "Local Rank",
+          desc: "Their Google rating, reviews, Maps position",
+          available: !!(place.rating || place.userRatingCount),
+          hint: "No rating data",
+        },
+        {
+          id: "competitor",
+          icon: Users,
+          label: "Competitor",
+          desc: "What others in their market are doing",
+          available: true,
+        },
+        {
+          id: "industry",
+          icon: ArrowUpRight,
+          label: "Industry Shift",
+          desc: "A change happening in their sector",
+          available: true,
+        },
+        {
+          id: "question",
+          icon: HelpCircle,
+          label: "Question",
+          desc: "Open with a sharp, disarming question",
+          available: true,
+        },
+        {
+          id: "social-proof",
+          icon: Sparkles,
+          label: "Social Proof",
+          desc: "A result from a similar business",
+          available: true,
+        },
+      ]
 
     const selected = approaches.find(a => a.id === approach)
 
@@ -902,8 +995,8 @@ export function LeadDetailSide({
           <div className="grid grid-cols-2 gap-1.5">
             {approaches.map(a => {
               const Icon = a.icon
-              const active      = approach === a.id
-              const locked      = !a.available
+              const active = approach === a.id
+              const locked = !a.available
               const recommended = research?.recommendedApproach?.id === a.id
               return (
                 <button
@@ -922,8 +1015,8 @@ export function LeadDetailSide({
                     border: active
                       ? "1px solid rgba(52,211,153,.28)"
                       : recommended
-                      ? "1px solid rgba(52,211,153,.15)"
-                      : "1px solid rgba(255,255,255,.06)",
+                        ? "1px solid rgba(52,211,153,.15)"
+                        : "1px solid rgba(255,255,255,.06)",
                     opacity: locked ? 0.38 : 1,
                   }}
                 >
@@ -1104,9 +1197,9 @@ export function LeadDetailSide({
       {/* Tab content — scrollable */}
       <div className="flex-1 overflow-y-auto px-5 py-5">
         {activeTab === "overview" && renderOverviewTab()}
-        {activeTab === "contact"  && renderContactTab()}
-        {activeTab === "audit"    && renderAuditTab()}
-        {activeTab === "ai"       && renderAITab()}
+        {activeTab === "contact" && renderContactTab()}
+        {activeTab === "audit" && renderAuditTab()}
+        {activeTab === "ai" && renderAITab()}
       </div>
     </div>
   )

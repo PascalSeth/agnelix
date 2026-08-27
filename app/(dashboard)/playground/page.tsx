@@ -6,8 +6,9 @@ import {
   MapPin, Shield, Gauge, Zap, XCircle,
   Mail, Eye, MessageSquare, ChevronRight,
   ChevronLeft, Star, Globe2, Phone, AlertTriangle,
-  Play, RotateCcw, TrendingUp, Sparkles, Users,
+  Play, RotateCcw, TrendingUp, Users,
 } from "lucide-react"
+import { Sparkles } from "@/components/ui/chat-bubble-icon"
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
@@ -851,7 +852,7 @@ export default function PlaygroundPage() {
               <div>
                 <h3 className="text-[14px] font-black text-white/90">Need help optimizing your campaign strategy?</h3>
                 <p className="text-[12px] text-white/45 mt-0.5">
-                  Agnel is ready to audit your leads and brainstorm outreach hooks. Ask Agnel now.
+                  Galien is ready to audit your leads and brainstorm outreach hooks. Ask Galien now.
                 </p>
               </div>
             </div>
@@ -864,7 +865,7 @@ export default function PlaygroundPage() {
                 boxShadow: "0 4px 20px rgba(236, 72, 153, 0.25)"
               }}
             >
-              <Sparkles className="size-3.5" /> Ask Agnel Now
+              <Sparkles className="size-3.5" /> Ask Galien Now
             </button>
           </div>
         </div>

@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   const scopeId = getScopeId(session)
 
   const body = await req.json()
-  const { name, sequenceId, leadIds, autonomous } = body
+  const { name, sequenceId, leadIds, autonomous, playbookType, clientGoal } = body
 
   if (!name || !sequenceId) {
     return NextResponse.json({ error: "name and sequenceId are required" }, { status: 400 })
@@ -35,6 +35,8 @@ export async function POST(req: NextRequest) {
       name,
       sequenceId,
       autonomous: !!autonomous,
+      playbookType: typeof playbookType === "string" && playbookType ? playbookType : undefined,
+      clientGoal: typeof clientGoal === "string" && clientGoal ? clientGoal : undefined,
       totalLeads: leadIds?.length || 0,
       campaignLeads: leadIds?.length
         ? { createMany: { data: (leadIds as string[]).map(leadId => ({ leadId })), skipDuplicates: true } }

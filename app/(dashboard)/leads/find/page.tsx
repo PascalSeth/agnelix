@@ -1,38 +1,117 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
   ArrowLeft, Search, MapPin, Globe, Phone,
   Check, Loader2, Download,
-  Filter, Star, Globe2, MessageSquare,
-  Shield, Gauge, ChevronDown, Sparkles, Layers, Target,
+  Filter, Star, MessageSquare,
+  Shield, Gauge, ChevronDown, ChevronUp, Layers, Target,
+  Building2, Camera, Image as ImageIcon,
+  Zap, FileSpreadsheet, Sparkles as SparklesIcon,
+  RefreshCw, ArrowRight, CheckCircle2, ChevronRight,
+  SlidersHorizontal, X, Compass, ExternalLink, UserCheck,
+  TrendingUp, Activity, Briefcase, Award, Flame,
+  CheckSquare, Square, Trash2, Send, Cpu, Lightbulb, Users,
+  Mail, AlertTriangle, Sparkles, Eye, Copy, Lock, AlertCircle,
+  Laptop, CheckCircle, Monitor, BarChart3, Globe2, Newspaper,
+  Share2, ArrowUpRight, MessageCircle, Quote
 } from "lucide-react"
 import { toast } from "sonner"
 import { CustomSelect } from "@/components/ui/custom-select"
-import { LeadAnalysisPanel, type Place } from "@/components/lead-analysis-panel"
-import { LeadDetailSide, type AuditData, type PlaceEnrichment } from "@/components/lead-detail-side"
+import type { Place } from "@/components/lead-analysis-panel"
 import type { ContactResult } from "@/lib/contact-finder"
 import type { LinkedInDecisionMaker } from "@/app/api/leads/linkedin-search/route"
+import type { BusinessProfile } from "@/app/api/leads/research/route"
 import { emailFromPlace } from "@/lib/utils"
-import { usePlaybook } from "@/lib/playbook-context"
 
 type Campaign = { id: string; name: string; status: string }
-type Sequence  = { id: string; name: string }
+type Sequence = { id: string; name: string }
+type AgencyProfile = {
+  agencyName?: string
+  companyDesc?: string
+  flagshipOffer?: string
+  playbookType?: string
+  title?: string
+  tone?: string
+}
 
+type StructuredNiche = {
+  title: string
+  tag: string
+  desc: string
+  icon?: string
+  color?: string
+}
+
+export interface AuditData {
+  ssl: boolean
+  speed: number
+  pixel: boolean
+  googleAds: boolean
+  googleAnalytics: boolean
+  googleTagManager: boolean
+  wordpress: boolean
+  shopify: boolean
+  hasChat: boolean
+  noH1: boolean
+  noMetaDesc: boolean
+  mobile?: boolean
+  title: string
+}
+
+export interface PlaceEnrichment {
+  auditData: AuditData | null
+  auditLoading: boolean
+  contacts: ContactResult[]
+  contactsLoading: boolean
+  contactsDone: boolean
+  icebreaker: string
+  research: BusinessProfile | null
+  researchLoading: boolean
+  linkedInProfiles: LinkedInDecisionMaker[]
+  linkedInLoading: boolean
+  linkedInDone: boolean
+  linkedInLogs?: string[]
+}
+
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  Flame,
+  Award,
+  Sparkles: SparklesIcon,
+  Zap,
+  Briefcase,
+  TrendingUp,
+  Building2,
+  Shield,
+  Target,
+}
+
+/* ─── Helpers ─────────────────────────────────────────────────────────────── */
+
+function cn(...classes: (string | false | null | undefined)[]) {
+  return classes.filter(Boolean).join(" ")
+}
 
 function Stars({ rating }: { rating: number }) {
   return (
-    <span className="text-[11px]">
+    <span className="inline-flex items-center gap-0.5">
       {Array.from({ length: 5 }, (_, i) => (
-        <span key={i} className={i < Math.round(rating) ? "text-amber-400" : "text-white/15"}>★</span>
+        <Star
+          key={i}
+          className={cn(
+            "size-2.5",
+            i < Math.round(rating)
+              ? "fill-amber-400 text-amber-400"
+              : "fill-white/10 text-white/10"
+          )}
+        />
       ))}
     </span>
   )
 }
 
-// ── Default enrichment factory ───────────────────────────────────────────────
 function defaultEnrichment(): PlaceEnrichment {
   return {
     auditData: null,
@@ -50,222 +129,101 @@ function defaultEnrichment(): PlaceEnrichment {
   }
 }
 
-// ── PlaceRow ─────────────────────────────────────────────────────────────────
-interface PlaceRowProps {
-  place: Place
-  isSelected: boolean
-  isInspecting: boolean
-  enrichment: PlaceEnrichment | undefined
-  onToggle: (id: string) => void
-  onInspect: (place: Place) => void
+function getCleanHostname(websiteUri?: string): string | null {
+  if (!websiteUri) return null
+  try {
+    const u = new URL(websiteUri.startsWith("http") ? websiteUri : `https://${websiteUri}`)
+    return u.hostname.replace(/^www\./, "")
+  } catch {
+    return websiteUri.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] || null
+  }
 }
 
-function PlaceRow({ place, isSelected, isInspecting, enrichment, onToggle, onInspect }: PlaceRowProps) {
-  const audit = enrichment?.auditData
-  const auditLoading = enrichment?.auditLoading
+/* ─── Skeletons ───────────────────────────────────────────────────────────── */
 
-  const speedColor = !audit ? "text-white/20"
-    : audit.speed < 2000 ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
-    : audit.speed < 4000 ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
-    : "text-rose-400 bg-rose-500/10 border-rose-500/20"
-
-  const highlighted = isSelected || isInspecting
-
+function NicheSkeletonCard() {
   return (
-    <div
-      onClick={() => onInspect(place)}
-      className="group relative cursor-pointer flex items-start gap-3.5 mx-2 my-1.5 px-4 py-3.5 rounded-xl transition-all duration-300 border border-white/[0.03] hover:border-white/[0.08]"
-      style={{
-        background: isInspecting
-          ? "rgba(255, 255, 255, 0.05)"
-          : isSelected
-          ? "rgba(255, 255, 255, 0.03)"
-          : "rgba(255, 255, 255, 0.015)",
-        boxShadow: highlighted ? "0 4px 12px rgba(0,0,0,0.15)" : "none",
-        borderLeft: highlighted 
-          ? `2px solid ${isSelected ? "#10b981" : "#818cf8"}` 
-          : "1px solid rgba(255,255,255,0.03)",
-      }}
-    >
-      {/* Checkbox */}
-      <div
-        className="mt-0.5 flex size-4.5 shrink-0 items-center justify-center rounded transition-all duration-200"
-        onClick={(e) => { e.stopPropagation(); onToggle(place.id) }}
-        style={{
-          width: "18px",
-          height: "18px",
-          background: isSelected ? "rgba(16, 185, 129, 0.95)" : "transparent",
-          border: isSelected ? "none" : "1.5px solid rgba(255,255,255,.22)",
-          borderRadius: "5px",
-          cursor: "pointer",
-          flexShrink: 0,
-          marginTop: "2px",
-          boxShadow: isSelected ? "0 0 8px rgba(16,185,129,0.4)" : "none"
-        }}
-      >
-        {isSelected && <Check className="size-2.5 text-white" strokeWidth={3} />}
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4.5 animate-pulse">
+      <div className="flex items-center justify-between mb-3">
+        <div className="size-8 rounded-xl bg-white/[0.06]" />
+        <div className="h-3.5 w-14 rounded bg-white/[0.04]" />
       </div>
-
-      <div className="min-w-0 flex-1 space-y-1.5">
-        {/* Name + type badge */}
-        <div className="flex items-center gap-2">
-          <p className="text-[13px] font-extrabold text-white/90 truncate leading-snug flex-1 group-hover:text-white transition-colors">
-            {place.displayName.text}
-          </p>
-          {place.primaryType && (
-            <span
-              className="shrink-0 rounded-full px-2 py-0.5 text-[8px] font-extrabold uppercase tracking-wider truncate max-w-22.5"
-              style={{ background: "rgba(255,255,255,.05)", color: "rgba(255,255,255,0.4)" }}
-            >
-              {place.primaryType.replace(/_/g, " ")}
-            </span>
-          )}
-        </div>
-
-        {/* Rating + reviews */}
-        {place.rating !== undefined && (
-          <div className="flex items-center gap-2">
-            <Stars rating={place.rating} />
-            <span className="text-[10px] text-white/30 font-semibold">
-              {place.rating} · {place.userRatingCount?.toLocaleString()} reviews
-            </span>
-          </div>
-        )}
-
-        {/* Location & Contact Details */}
-        <div className="space-y-0.5 text-[10px] text-white/35">
-          <p className="truncate flex items-center gap-1.5">
-            <MapPin className="size-3 shrink-0 opacity-40" />
-            {place.formattedAddress}
-          </p>
-
-          {place.websiteUri && (
-            <p className="text-sky-400/50 truncate flex items-center gap-1.5 font-medium hover:text-sky-300 transition-colors">
-              <Globe className="size-3 shrink-0 opacity-40" />
-              {new URL(place.websiteUri).hostname.replace(/^www\./, "")}
-            </p>
-          )}
-
-          {place.nationalPhoneNumber && (
-            <p className="truncate flex items-center gap-1.5">
-              <Phone className="size-3 shrink-0 opacity-40" />
-              {place.nationalPhoneNumber}
-            </p>
-          )}
-        </div>
-
-        {/* Signal dots */}
-        {(audit || auditLoading) && (
-          <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-white/[0.03]">
-            {auditLoading ? (
-              <span className="text-[9px] text-white/20 animate-pulse flex items-center gap-1">
-                <Loader2 className="size-2.5 animate-spin" /> auditing site…
-              </span>
-            ) : audit ? (
-              <>
-                <span className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[8.5px] font-bold border ${audit.ssl ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" : "text-rose-400 bg-rose-500/10 border-rose-500/20"}`}>
-                  <Shield className="size-2.5" />
-                  {audit.ssl ? "SSL" : "No SSL"}
-                </span>
-                <span className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[8.5px] font-bold border ${speedColor}`}>
-                  <Gauge className="size-2.5" />
-                  {(audit.speed / 1000).toFixed(1)}s
-                </span>
-                {!audit.pixel && (
-                  <span className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[8.5px] font-bold bg-rose-500/5 border border-rose-500/15 text-rose-400/70">
-                    No Pixel
-                  </span>
-                )}
-                {!audit.googleAnalytics && (
-                  <span className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[8.5px] font-bold bg-amber-500/5 border border-amber-500/15 text-amber-400/70">
-                    No GA
-                  </span>
-                )}
-              </>
-            ) : null}
-          </div>
-        )}
-      </div>
+      <div className="h-4 w-3/4 rounded bg-white/[0.06] mb-2" />
+      <div className="h-3 w-full rounded bg-white/[0.03]" />
     </div>
   )
 }
 
-// ── Page ─────────────────────────────────────────────────────────────────────
+function LeadSkeletonRow() {
+  return (
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3.5 animate-pulse flex items-center gap-3">
+      <div className="size-4 rounded bg-white/[0.06] shrink-0" />
+      <div className="size-10 rounded-lg bg-white/[0.06] shrink-0" />
+      <div className="flex-1 space-y-2">
+        <div className="h-4 w-1/2 rounded bg-white/[0.07]" />
+        <div className="h-3 w-1/3 rounded bg-white/[0.03]" />
+      </div>
+      <div className="h-5 w-20 rounded bg-white/[0.04] shrink-0" />
+    </div>
+  )
+}
+
+/* ─── Main Page Component (2-Column Studio) ───────────────────────────────── */
+
 export default function FindLeadsPage() {
   const router = useRouter()
 
-  // Campaign state
-  const [campaigns, setCampaigns]       = useState<Campaign[]>([])
-  const [sequences, setSequences]       = useState<Sequence[]>([])
+  /* State */
+  const [agencyProfile, setAgencyProfile] = useState<AgencyProfile | null>(null)
+  const [agencyNiches, setAgencyNiches] = useState<StructuredNiche[]>([])
+  const [loadingNiches, setLoadingNiches] = useState(true)
+
+  const [campaigns, setCampaigns] = useState<Campaign[]>([])
+  const [sequences, setSequences] = useState<Sequence[]>([])
   const [campaignMode, setCampaignMode] = useState<"existing" | "new">("existing")
-  const [campaignId, setCampaignId]     = useState("")
-  const [newCampName, setNewCampName]   = useState("")
-  const [newSeqId, setNewSeqId]         = useState("")
-  const [loadingMeta, setLoadingMeta]   = useState(true)
+  const [campaignId, setCampaignId] = useState("")
+  const [newCampName, setNewCampName] = useState("")
+  const [newSeqId, setNewSeqId] = useState("")
+  const [loadingMeta, setLoadingMeta] = useState(true)
 
-  // Search state
-  const [query, setQuery]               = useState("")
-  const [location, setLocation]         = useState("")
+  const [query, setQuery] = useState("")
+  const [location, setLocation] = useState("")
   const [locationLoading, setLocationLoading] = useState(true)
-  const [searching, setSearching]       = useState(false)
-  const [places, setPlaces]             = useState<Place[]>([])
-  const [selected, setSelected]         = useState<Set<string>>(new Set())
-  const [importPhase, setImportPhase]   = useState<null | "fetching" | "saving">(null)
-  const [importProgress, setImportProgress] = useState("")
-  const [searched, setSearched]         = useState(false)
-  const [limit, setLimit]               = useState(20)
-  const [searchTarget, setSearchTarget] = useState<"b2b" | "b2c">("b2b")
-  const [platformFocus, setPlatformFocus] = useState<string | null>(null)
-  const { activePlaybook } = usePlaybook()
+  const [searching, setSearching] = useState(false)
+  const [hasSearched, setHasSearched] = useState(false)
+  const [places, setPlaces] = useState<Place[]>([])
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [activePlaceId, setActivePlaceId] = useState<string | null>(null)
+  const [limit, setLimit] = useState(20)
 
-  // Filter state
-  const [showFilters, setShowFilters]     = useState(false)
-  const [minRating, setMinRating]         = useState<number>(0)
-  const [minReviews, setMinReviews]       = useState<number>(0)
+  const [quickFilter, setQuickFilter] = useState<"all" | "email" | "dm" | "audit" | "phone">("all")
+  const [minRating, setMinRating] = useState<number>(0)
   const [websiteFilter, setWebsiteFilter] = useState<"any" | "yes" | "no">("any")
 
-  // Enrichment cache (keyed by place.id)
   const [enrichmentCache, setEnrichmentCache] = useState<Record<string, PlaceEnrichment>>({})
+  const [batchEnriching, setBatchEnriching] = useState(false)
+  const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 })
+  const [importPhase, setImportPhase] = useState<null | "saving">(null)
+  const [importProgress, setImportProgress] = useState("")
 
-  // Desktop inspect state
-  const [inspecting, setInspecting] = useState<Place | null>(null)
-
-  // Search mode state: 'manual' or 'copilot'
-  const [searchMode, setSearchMode] = useState<"manual" | "copilot">("manual")
-
-  function applySuggestion(term: string) {
-    setQuery(term)
-    setSearchMode("manual")
-    toast.success(`Niche query set to "${term}"`)
-  }
-
-  // Mobile bottom sheet state (reuses LeadAnalysisPanel)
-  const [mobileInspecting, setMobileInspecting] = useState<Place | null>(null)
-
-  // AI prompt widget state
-  const [aiPrompt, setAiPrompt] = useState("")
-  const [aiReply, setAiReply] = useState("")
-  const [aiSuggestions, setAiSuggestions] = useState<string[]>([])
-  const [aiLoading, setAiLoading] = useState(false)
-  const [aiDone, setAiDone] = useState(false)
-
-  // ── Meta load ─────────────────────────────────────────────────────────────
+  /* Effects */
   useEffect(() => {
     Promise.all([
+      fetch("/api/settings").then(r => r.ok ? r.json() : null),
       fetch("/api/campaigns").then(r => r.json()),
       fetch("/api/sequences").then(r => r.json()),
-    ]).then(([c, s]) => {
+    ]).then(([profile, c, s]) => {
+      if (profile) setAgencyProfile(profile)
       setCampaigns(Array.isArray(c) ? c : [])
       setSequences(Array.isArray(s) ? s : [])
       if (Array.isArray(c) && c.length === 0) setCampaignMode("new")
     }).finally(() => setLoadingMeta(false))
   }, [])
 
-  // ── Location detection ────────────────────────────────────────────────────
   useEffect(() => {
     if (!navigator.geolocation) {
-      setTimeout(() => setLocationLoading(false), 0);
-      return;
+      setTimeout(() => setLocationLoading(false), 0)
+      return
     }
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
@@ -288,38 +246,31 @@ export default function FindLeadsPage() {
     )
   }, [])
 
-  // ── Pre-fill AI prompt from user profile ─────────────────────────────────
   useEffect(() => {
-    fetch("/api/leads/suggest-businesses")
+    const desc = [
+      agencyProfile?.agencyName,
+      agencyProfile?.flagshipOffer,
+      agencyProfile?.companyDesc,
+      agencyProfile?.title,
+    ].filter(Boolean).join(" — ") || "B2B client acquisition and lead generation"
+
+    setLoadingNiches(true)
+    fetch("/api/leads/suggest-businesses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ description: desc, location }),
+    })
       .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data?.prefill) setAiPrompt(data.prefill) })
-      .catch(() => {})
-  }, [])
-
-  // ── AI prompt submit ──────────────────────────────────────────────────────
-  async function handleAiSuggest() {
-    if (!aiPrompt.trim() || aiLoading) return
-    setAiLoading(true)
-    setAiDone(false)
-    setAiSuggestions([])
-    setAiReply("")
-    try {
-      const res = await fetch("/api/leads/suggest-businesses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ description: aiPrompt, location: location.trim() }),
+      .then(data => {
+        if (data?.niches && Array.isArray(data.niches) && data.niches.length > 0) {
+          setAgencyNiches(data.niches)
+        }
       })
-      const data = await res.json()
-      if (data.suggestions?.length) {
-        setAiSuggestions(data.suggestions)
-        setAiReply(data.reply ?? "")
-        setAiDone(true)
-      }
-    } catch { /* silent */ }
-    finally { setAiLoading(false) }
-  }
+      .catch(() => {})
+      .finally(() => setLoadingNiches(false))
+  }, [agencyProfile?.agencyName, agencyProfile?.flagshipOffer, agencyProfile?.companyDesc, location])
 
-  // ── Enrichment helpers ────────────────────────────────────────────────────
+  /* Helpers */
   function updateEnrichment(placeId: string, patch: Partial<PlaceEnrichment>) {
     setEnrichmentCache(prev => ({
       ...prev,
@@ -327,8 +278,8 @@ export default function FindLeadsPage() {
     }))
   }
 
-  async function autoAudit(places: Place[]) {
-    const toAudit = places.filter(p => p.websiteUri)
+  async function autoAudit(items: Place[]) {
+    const toAudit = items.filter(p => p.websiteUri)
     for (let i = 0; i < toAudit.length; i += 5) {
       const batch = toAudit.slice(i, i + 5)
       await Promise.all(batch.map(async (place) => {
@@ -341,43 +292,151 @@ export default function FindLeadsPage() {
           })
           const data = await res.json()
           if (!data.error) updateEnrichment(place.id, { auditData: data as AuditData, auditLoading: false })
-          else             updateEnrichment(place.id, { auditLoading: false })
+          else updateEnrichment(place.id, { auditLoading: false })
         } catch {
           updateEnrichment(place.id, { auditLoading: false })
         }
       }))
-      if (i + 5 < toAudit.length) await new Promise(r => setTimeout(r, 500))
+      if (i + 5 < toAudit.length) await new Promise(r => setTimeout(r, 400))
     }
   }
 
-  // ── Search ────────────────────────────────────────────────────────────────
-  async function handleSearch(e?: React.FormEvent) {
-    e?.preventDefault()
-    let activeQuery = query.trim()
-    if (searchTarget === "b2c" && !activeQuery) {
-      activeQuery = "offices"
-      setQuery("offices")
+  // Trigger Deep AI Intelligence Research (Company summary, News, Signals, Angles)
+  async function handleTriggerDeepResearch(place: Place) {
+    updateEnrichment(place.id, { researchLoading: true })
+    try {
+      const res = await fetch("/api/leads/research", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          websiteUrl: place.websiteUri,
+          businessName: place.displayName.text,
+          industry: place.primaryType,
+          address: place.formattedAddress,
+          rating: place.rating,
+          userRatingCount: place.userRatingCount,
+          reviews: place.reviews,
+        }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        const profile = (data.profile || data) as BusinessProfile
+        updateEnrichment(place.id, { research: profile, researchLoading: false })
+      } else {
+        updateEnrichment(place.id, { researchLoading: false })
+      }
+    } catch {
+      updateEnrichment(place.id, { researchLoading: false })
     }
-    if (!activeQuery) { toast.error("Enter a business type to search"); return }
+  }
+
+  // Trigger LinkedIn & Executive Search
+  async function handleFindLinkedInExecutives(place: Place) {
+    updateEnrichment(place.id, { linkedInLoading: true, linkedInDone: false })
+    try {
+      const res = await fetch("/api/leads/linkedin-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyName: place.displayName.text,
+          websiteUrl: place.websiteUri,
+          address: place.formattedAddress,
+          industry: place.primaryType,
+        }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        updateEnrichment(place.id, {
+          linkedInProfiles: data.profiles || [],
+          linkedInLoading: false,
+          linkedInDone: true,
+          linkedInLogs: data.logs || [],
+        })
+        toast.success(`Found ${data.profiles?.length || 0} executive profiles!`)
+      } else {
+        updateEnrichment(place.id, { linkedInLoading: false })
+      }
+    } catch {
+      updateEnrichment(place.id, { linkedInLoading: false })
+    }
+  }
+
+  // Trigger Contact Email Finder
+  async function handleFindContactsForPlace(place: Place) {
+    if (!place.websiteUri) {
+      toast.error("No website available for this business")
+      return
+    }
+    updateEnrichment(place.id, { contactsLoading: true, contactsDone: false })
+    try {
+      const cRes = await fetch("/api/leads/contact-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          websiteUrl: place.websiteUri,
+          companyName: place.displayName.text,
+        }),
+      })
+      if (cRes.ok) {
+        const cData = await cRes.json()
+        updateEnrichment(place.id, { contacts: cData.contacts ?? [], contactsDone: true, contactsLoading: false })
+        toast.success(`Found ${cData.contacts?.length ?? 0} verified emails!`)
+      } else {
+        updateEnrichment(place.id, { contactsLoading: false })
+      }
+    } catch {
+      updateEnrichment(place.id, { contactsLoading: false })
+    }
+  }
+
+  // Active lead being inspected on the right side studio
+  const activePlace = useMemo(() => {
+    if (!places.length) return null
+    return places.find(p => p.id === activePlaceId) || places[0]
+  }, [places, activePlaceId])
+
+  // Automatically trigger AI research for active lead if not fetched yet
+  const autoFetchedRef = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    if (!activePlace) return
+    const cached = enrichmentCache[activePlace.id]
+    if (!cached?.research && !cached?.researchLoading && !autoFetchedRef.current.has(activePlace.id)) {
+      autoFetchedRef.current.add(activePlace.id)
+      handleTriggerDeepResearch(activePlace)
+    }
+  }, [activePlace?.id, enrichmentCache])
+
+  /* Handlers */
+  async function handleSearch(targetQuery?: string, targetLoc?: string) {
+    const q = (targetQuery ?? query).trim()
+    const l = (targetLoc ?? location).trim()
+
+    if (!q) {
+      toast.error("Please enter a business category or keyword")
+      return
+    }
+
     setSearching(true)
-    setSearched(false)
+    setHasSearched(true)
     setSelected(new Set())
-    setInspecting(null)
-    setMobileInspecting(null)
+    setActivePlaceId(null)
     setEnrichmentCache({})
+    autoFetchedRef.current.clear()
+
     try {
       const res = await fetch("/api/leads/find", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: activeQuery, location: location.trim(), limit }),
+        body: JSON.stringify({ query: q, location: l, limit }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setPlaces(data)
-      setSearched(true)
+
       if (data.length === 0) {
-        toast("No results found — try a different search")
+        toast("No businesses found. Try a broader term or different location.")
       } else {
+        setActivePlaceId(data[0]?.id ?? null)
         const initialCache: Record<string, PlaceEnrichment> = {}
         data.forEach((p: { id: string; cachedContacts?: ContactResult[]; cachedProfiles?: LinkedInDecisionMaker[] }) => {
           if (p.cachedContacts || p.cachedProfiles) {
@@ -390,9 +449,7 @@ export default function FindLeadsPage() {
             }
           }
         })
-        if (Object.keys(initialCache).length > 0) {
-          setEnrichmentCache(initialCache)
-        }
+        if (Object.keys(initialCache).length > 0) setEnrichmentCache(initialCache)
         autoAudit(data)
       }
     } catch (err) {
@@ -402,46 +459,179 @@ export default function FindLeadsPage() {
     }
   }
 
+  async function handleAutoMatchAgencyICP() {
+    const desc = [
+      agencyProfile?.agencyName,
+      agencyProfile?.flagshipOffer,
+      agencyProfile?.companyDesc,
+    ].filter(Boolean).join(" — ")
+
+    if (!desc) {
+      handleSearch("Roofing Contractors", location)
+      return
+    }
+
+    setSearching(true)
+    toast.info("Analyzing agency offer to discover highest-converting niches…")
+    try {
+      const res = await fetch("/api/leads/suggest-businesses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: desc, location }),
+      })
+      const data = await res.json()
+      if (data?.suggestions?.[0]) {
+        setQuery(data.suggestions[0])
+        handleSearch(data.suggestions[0], location)
+        toast.success(`Matched ICP Niche: "${data.suggestions[0]}"`)
+      } else {
+        handleSearch("Dental Clinics", location)
+      }
+    } catch {
+      handleSearch("Dental Clinics", location)
+    }
+  }
+
+  async function handleBatchDeepEnrich() {
+    const toEnrich = places.filter(p => selected.size === 0 || selected.has(p.id))
+    if (toEnrich.length === 0) {
+      toast.error("No leads to enrich")
+      return
+    }
+    setBatchEnriching(true)
+    setBatchProgress({ current: 0, total: toEnrich.length })
+
+    for (let i = 0; i < toEnrich.length; i++) {
+      const p = toEnrich[i]
+      setBatchProgress({ current: i + 1, total: toEnrich.length })
+      updateEnrichment(p.id, { contactsLoading: true, auditLoading: true })
+
+      try {
+        if (p.websiteUri) {
+          const cRes = await fetch("/api/leads/contact-search", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              websiteUrl: p.websiteUri,
+              companyName: p.displayName.text,
+            }),
+          })
+          if (cRes.ok) {
+            const cData = await cRes.json()
+            updateEnrichment(p.id, { contacts: cData.contacts ?? [], contactsDone: true, contactsLoading: false })
+          } else {
+            updateEnrichment(p.id, { contactsLoading: false })
+          }
+
+          const aRes = await fetch("/api/leads/audit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: p.websiteUri }),
+          })
+          if (aRes.ok) {
+            const aData = await aRes.json()
+            if (!aData.error) updateEnrichment(p.id, { auditData: aData as AuditData, auditLoading: false })
+            else updateEnrichment(p.id, { auditLoading: false })
+          } else {
+            updateEnrichment(p.id, { auditLoading: false })
+          }
+        } else {
+          updateEnrichment(p.id, { contactsLoading: false, auditLoading: false })
+        }
+      } catch {
+        updateEnrichment(p.id, { contactsLoading: false, auditLoading: false })
+      }
+    }
+    setBatchEnriching(false)
+    toast.success(`Enriched ${toEnrich.length} leads with verified contact details!`)
+  }
+
+  function handleExportCSV() {
+    const toExport = places.filter(p => selected.size === 0 || selected.has(p.id))
+    if (toExport.length === 0) {
+      toast.error("No leads to export")
+      return
+    }
+
+    const headers = [
+      "Business Name", "Primary Type", "Website", "Phone", "Address", "Rating", "Reviews",
+      "Contact Name", "Contact Email", "Decision Maker Title", "SSL Status", "Page Speed (s)"
+    ]
+    const rows = toExport.map(p => {
+      const cached = enrichmentCache[p.id] || {}
+      const contacts = cached.contacts || []
+      const bestContact = contacts.find(c => c.isDecisionMaker) ?? contacts[0]
+      const audit = cached.auditData
+
+      return [
+        `"${p.displayName.text.replace(/"/g, '""')}"`,
+        `"${(p.primaryType || "").replace(/_/g, " ")}"`,
+        `"${p.websiteUri || ""}"`,
+        `"${p.nationalPhoneNumber || ""}"`,
+        `"${p.formattedAddress.replace(/"/g, '""')}"`,
+        p.rating ?? "",
+        p.userRatingCount ?? "",
+        `"${bestContact?.name?.replace(/"/g, '""') || ""}"`,
+        `"${bestContact?.email || emailFromPlace(p) || ""}"`,
+        `"${bestContact?.title?.replace(/"/g, '""') || ""}"`,
+        audit ? (audit.ssl ? "Secure (SSL)" : "Insecure (No SSL)") : "",
+        audit ? (audit.speed / 1000).toFixed(1) : "",
+      ].join(",")
+    })
+
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows].join("\n")
+    const encodedUri = encodeURI(csvContent)
+    const link = document.createElement("a")
+    link.setAttribute("href", encodedUri)
+    link.setAttribute("download", `leads-${(query || "prospects").toLowerCase().replace(/\s+/g, "-")}-${new Date().toISOString().slice(0, 10)}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    toast.success(`Exported ${toExport.length} leads to CSV`)
+  }
+
   function toggle(id: string) {
     setSelected(prev => {
       const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.add(id)
-      }
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
   }
 
   const filteredPlaces = places.filter(p => {
-    const ratingOk  = (p.rating ?? 0) >= minRating
-    const reviewsOk = (p.userRatingCount ?? 0) >= minReviews
+    const ratingOk = (p.rating ?? 0) >= minRating
     const websiteOk =
       websiteFilter === "any" ||
       (websiteFilter === "yes" && !!p.websiteUri) ||
       (websiteFilter === "no" && !p.websiteUri)
-    return ratingOk && reviewsOk && websiteOk
+    if (!ratingOk || !websiteOk) return false
+
+    const cached = enrichmentCache[p.id]
+    if (quickFilter === "email") return (cached?.contacts?.length ?? 0) > 0
+    if (quickFilter === "dm") return (cached?.contacts?.some(c => c.isDecisionMaker) || (cached?.linkedInProfiles?.length ?? 0) > 0)
+    if (quickFilter === "audit") return (cached?.auditData && (!cached.auditData.ssl || cached.auditData.speed > 2500 || !cached.auditData.pixel))
+    if (quickFilter === "phone") return !!p.nationalPhoneNumber
+    return true
   })
 
   function toggleAll() {
     setSelected(selected.size === filteredPlaces.length ? new Set() : new Set(filteredPlaces.map(p => p.id)))
   }
 
-
-  function canImport(): boolean {
+  const canImport = useMemo(() => {
     if (selected.size === 0) return false
     if (campaignMode === "existing") return !!campaignId
     return !!newCampName.trim() && !!newSeqId
-  }
+  }, [selected.size, campaignMode, campaignId, newCampName, newSeqId])
 
-  // ── Import (enriched) ─────────────────────────────────────────────────────
   async function handleImport() {
     const toImport = places.filter(p => selected.has(p.id))
-    if (!toImport.length) { toast.error("Select at least one business"); return }
+    if (!toImport.length) { toast.error("Select at least one lead"); return }
     if (campaignMode === "existing" && !campaignId) { toast.error("Choose a campaign first"); return }
     if (campaignMode === "new" && (!newCampName.trim() || !newSeqId)) {
-      toast.error("Enter a campaign name and choose a sequence"); return
+      toast.error("Enter a campaign name and select a sequence"); return
     }
 
     setImportPhase("saving")
@@ -455,10 +645,10 @@ export default function FindLeadsPage() {
 
         const painPoints: string[] = []
         if (audit) {
-          if (!audit.ssl)            painPoints.push("No SSL certificate")
-          if (audit.speed > 3000)    painPoints.push(`Slow website (${(audit.speed / 1000).toFixed(1)}s)`)
-          if (!audit.pixel)          painPoints.push("No Facebook pixel")
-          if (!audit.mobile)         painPoints.push("Not mobile optimised")
+          if (!audit.ssl) painPoints.push("No SSL certificate")
+          if (audit.speed > 3000) painPoints.push(`Slow website (${(audit.speed / 1000).toFixed(1)}s)`)
+          if (!audit.pixel) painPoints.push("No Facebook pixel")
+          if (!audit.mobile) painPoints.push("Not mobile optimised")
           if (!audit.googleAnalytics) painPoints.push("No Google Analytics")
         }
 
@@ -466,51 +656,43 @@ export default function FindLeadsPage() {
           || cached.linkedInProfiles?.[0]?.linkedinUrl
           || null
 
-        const recentNews = cached.research?.outreachAngles?.join(". ") 
+        const recentNews = cached.research?.outreachAngles?.join(". ")
           || (cached.research?.positioning ? `Positioning: ${cached.research.positioning}` : null)
           || null
 
-        const companyDesc = cached.research?.whatTheyDo 
-          || p.editorialSummary?.text 
+        const companyDesc = cached.research?.whatTheyDo
+          || p.editorialSummary?.text
           || p.formattedAddress
 
-        const recommendedApproachText = cached.research?.recommendedApproach
-          ? `Recommended AI Approach: ${cached.research.recommendedApproach.label} (${cached.research.recommendedApproach.reason})`
-          : null
-
         return {
-          email:        bestContact?.email ?? emailFromPlace(p),
-          firstName:    bestContact?.firstName ?? null,
-          lastName:     bestContact?.lastName  ?? null,
-          title:        bestContact?.title     ?? null,
-          company:      p.displayName.text,
-          website:      p.websiteUri ?? null,
-          industry:     p.primaryType?.replace(/_/g, " ") ?? null,
-          companyDesc:  companyDesc,
-          linkedinUrl:  linkedInUrl,
-          recentNews:   recentNews,
+          email: bestContact?.email ?? emailFromPlace(p),
+          firstName: bestContact?.firstName ?? null,
+          lastName: bestContact?.lastName ?? null,
+          title: bestContact?.title ?? null,
+          company: p.displayName.text,
+          website: p.websiteUri ?? null,
+          industry: p.primaryType?.replace(/_/g, " ") ?? null,
+          companyDesc: companyDesc,
+          linkedinUrl: linkedInUrl,
+          recentNews: recentNews,
           googlePlaceId: p.id,
-          painPoint:    painPoints.slice(0, 3).join(". ") || null,
+          painPoint: painPoints.slice(0, 3).join(". ") || null,
           notes: [
             p.formattedAddress,
             p.nationalPhoneNumber ?? null,
             p.rating ? `Rating: ${p.rating}/5 (${p.userRatingCount} reviews)` : null,
             bestContact?.name ? `Contact: ${bestContact.name}${bestContact.title ? ` (${bestContact.title})` : ""}` : null,
-            recommendedApproachText,
           ].filter(Boolean).join("\n"),
-          auditJson:    audit ? JSON.stringify(audit) : null,
+          auditJson: audit ? JSON.stringify(audit) : null,
           contactsJson: contacts.length > 0 ? JSON.stringify(contacts) : null,
           linkedinProfilesJson: cached.linkedInProfiles ? JSON.stringify(cached.linkedInProfiles) : null,
-          recommendedApproach: cached.research?.recommendedApproach?.id || null,
           sourceQuery: query.trim() || null,
-          platformFocus: platformFocus || null,
         }
       })
 
-      const payload =
-        campaignMode === "existing"
-          ? { leads, campaignId, enrichInBackground: true, localNeighbors: searchTarget === "b2c" }
-          : { leads, newCampaign: { name: newCampName.trim(), sequenceId: newSeqId }, enrichInBackground: true, localNeighbors: searchTarget === "b2c" }
+      const payload = campaignMode === "existing"
+        ? { leads, campaignId, enrichInBackground: true }
+        : { leads, newCampaign: { name: newCampName.trim(), sequenceId: newSeqId }, enrichInBackground: true }
 
       const res = await fetch("/api/leads", {
         method: "POST",
@@ -519,7 +701,7 @@ export default function FindLeadsPage() {
       })
       if (!res.ok) throw new Error(await res.text())
       const { count, campaignId: finalCampaignId } = await res.json()
-      toast.success(`${count} leads added to campaign`)
+      toast.success(`${count} leads enrolled in campaign!`)
       router.push(`/campaigns/${finalCampaignId ?? campaignId}`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Import failed")
@@ -529,649 +711,839 @@ export default function FindLeadsPage() {
     }
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
-  const hasResults = !searching && filteredPlaces.length > 0
+  const estPipelineValue = selected.size * 1800
+
+  const activeEnrichment = activePlace ? (enrichmentCache[activePlace.id] || defaultEnrichment()) : null
+  const activeAudit = activeEnrichment?.auditData
+  const activeResearch = activeEnrichment?.research
+  const activeContacts = activeEnrichment?.contacts || []
+  const activeLinkedIn = activeEnrichment?.linkedInProfiles || []
+  const activeDecisionMaker = activeContacts.find(c => c.isDecisionMaker) || (activeLinkedIn[0] ? {
+    name: activeLinkedIn[0].name,
+    title: activeLinkedIn[0].title,
+    email: null,
+    isDecisionMaker: true,
+  } : null)
+
+  const copyText = (text: string, label: string) => {
+    navigator.clipboard.writeText(text)
+    toast.success(`Copied ${label} to clipboard!`)
+  }
+
+  /* ─── Render ────────────────────────────────────────────────────────────── */
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="space-y-5 pb-24 bg-transparent text-white">
+      {/* ── Top Header ── */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between pt-1">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="size-1.5 rounded-full bg-indigo-400" style={{ boxShadow: "0 0 6px rgba(129,140,248,.9)" }} />
+            <span className="text-[10px] font-bold uppercase tracking-[.18em] text-white/30">
+              Pipeline · Prospecting & Intelligence Studio
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl sm:text-[26px] font-black tracking-tight leading-none text-white/90">
+              Find Leads via Maps
+            </h1>
+            {agencyProfile?.agencyName && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+                <Sparkles className="size-3 text-indigo-400" />
+                <span>ICP: {agencyProfile.agencyName}</span>
+              </span>
+            )}
+          </div>
+        </div>
 
-      {/* ── Top bar: Header + Search Console ── */}
+        <div className="flex items-center gap-2 self-start">
+          <button
+            type="button"
+            onClick={handleAutoMatchAgencyICP}
+            disabled={searching}
+            className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-[12px] font-bold text-indigo-300 transition-all hover:bg-indigo-500/15 border border-indigo-500/25 bg-indigo-500/10 cursor-pointer"
+          >
+            <Sparkles className="size-3.5 text-indigo-400" />
+            <span>Auto-Match Agency ICP</span>
+          </button>
+          <Link
+            href="/leads"
+            className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-[12px] font-bold text-white/60 hover:text-white transition-all border border-white/[0.08] bg-white/[0.03] cursor-pointer"
+          >
+            <ArrowLeft className="size-3.5" />
+            <span>Back to Leads</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* ── Search Command Bar ── */}
       <div
-        className="shrink-0 px-6 pt-5 pb-5 space-y-5"
-        style={{ 
-          borderBottom: "1px solid rgba(255,255,255,.05)",
-          background: "linear-gradient(180deg, rgba(15,16,22,0.3) 0%, rgba(15,16,22,0) 100%)"
+        className="p-3 rounded-2xl border border-white/[0.08] shadow-xl space-y-2.5"
+        style={{
+          background: "linear-gradient(145deg, rgba(20, 22, 34, 0.65) 0%, rgba(12, 13, 20, 0.8) 100%)",
+          backdropFilter: "blur(16px)",
         }}
       >
-        {/* ── Slim header ── */}
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/leads"
-              className="flex size-8 shrink-0 items-center justify-center rounded-xl text-white/40 transition-all hover:text-white/70 hover:scale-105 active:scale-95"
-              style={{ background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.07)" }}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            handleSearch()
+          }}
+          className="flex flex-col lg:flex-row items-stretch gap-2"
+        >
+          {/* Keyword Input */}
+          <div className="relative flex-1 min-w-[240px]">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-indigo-400/60 pointer-events-none" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Target business niche (e.g. Med Spas, Roofing Contractors, Cosmetic Dentists...)"
+              className="w-full rounded-xl pl-10 pr-4 py-2.5 text-[12.5px] text-white outline-none placeholder:text-white/25 bg-white/[0.02] border border-white/[0.05] focus:border-indigo-500/50 transition-all font-medium"
+            />
+          </div>
+
+          {/* Location Input */}
+          <div className="relative lg:w-72">
+            {locationLoading ? (
+              <Loader2 className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-white/30 animate-spin" />
+            ) : (
+              <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-emerald-400/70 pointer-events-none" />
+            )}
+            <input
+              type="text"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder={locationLoading ? "Detecting location…" : "City or Area (e.g. Miami, FL)"}
+              className="w-full rounded-xl pl-10 pr-4 py-2.5 text-[12.5px] text-white outline-none placeholder:text-white/25 bg-white/[0.02] border border-white/[0.05] focus:border-emerald-500/50 transition-all font-medium"
+            />
+          </div>
+
+          {/* Quota */}
+          <div className="lg:w-32">
+            <select
+              value={limit}
+              onChange={(e) => setLimit(parseInt(e.target.value))}
+              className="w-full h-full rounded-xl px-3 py-2.5 text-[11.5px] font-bold text-white/80 outline-none border border-white/[0.05] bg-[#12141f] focus:border-indigo-500/40 cursor-pointer"
             >
-              <ArrowLeft className="size-4" />
-            </Link>
-            <div>
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <MapPin className={`size-3 transition-colors ${searchTarget === "b2c" ? "text-emerald-400" : "text-sky-400"}`} style={{ filter: `drop-shadow(0 0 4px ${searchTarget === "b2c" ? "rgba(52,211,153,.8)" : "rgba(56,189,248,.8)"})` }} />
-                <span className="text-[10px] font-black uppercase tracking-[.2em] text-white/20">Google Maps Scraping</span>
+              <option value={20} className="bg-[#12141f]">20 Leads</option>
+              <option value={40} className="bg-[#12141f]">40 Leads</option>
+              <option value={60} className="bg-[#12141f]">60 Leads</option>
+            </select>
+          </div>
+
+          {/* Search CTA */}
+          <button
+            type="submit"
+            disabled={searching || !query.trim()}
+            className="flex items-center justify-center gap-2 rounded-xl px-6 py-2.5 text-[12.5px] font-bold text-white transition-all shadow-md hover:brightness-110 active:scale-[0.98] disabled:opacity-40 cursor-pointer shrink-0"
+            style={{
+              background: "linear-gradient(135deg, #6366f1 0%, #a855f7 100%)",
+              boxShadow: "0 4px 16px rgba(99, 102, 241, 0.35)",
+            }}
+          >
+            {searching ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+            <span>{searching ? "Scraping…" : "Search Leads →"}</span>
+          </button>
+        </form>
+
+        {/* ── Filter Strip ── */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-white/[0.04]">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {[
+              { id: "all", label: "All Discovered" },
+              { id: "email", label: "⚡ Has Email" },
+              { id: "dm", label: "⭐ Decision Maker" },
+              { id: "audit", label: "🛡️ Growth Gaps" },
+              { id: "phone", label: "📞 Has Phone" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setQuickFilter(tab.id as typeof quickFilter)}
+                className="px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer"
+                style={{
+                  background: quickFilter === tab.id ? "rgba(99, 102, 241, 0.2)" : "rgba(255, 255, 255, 0.03)",
+                  color: quickFilter === tab.id ? "#c7d2fe" : "rgba(255, 255, 255, 0.4)",
+                  border: quickFilter === tab.id ? "1px solid rgba(99, 102, 241, 0.35)" : "1px solid rgba(255, 255, 255, 0.05)",
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {hasSearched && filteredPlaces.length > 0 && (
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  const emailIds = filteredPlaces.filter(p => (enrichmentCache[p.id]?.contacts?.length ?? 0) > 0).map(p => p.id)
+                  setSelected(new Set(emailIds.length > 0 ? emailIds : filteredPlaces.map(p => p.id)))
+                  toast.success(`Selected verified contacts`)
+                }}
+                className="text-[10.5px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer"
+              >
+                ⚡ Select Verified Emails
+              </button>
+              <button
+                type="button"
+                onClick={toggleAll}
+                className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
+              >
+                {selected.size === filteredPlaces.length ? "Deselect All" : `Select All (${filteredPlaces.length})`}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── 2-Column Split Studio Content ── */}
+      {!hasSearched ? (
+        /* Initial 1-Click Launchpad */
+        <div className="py-4 space-y-6">
+          <div className="text-center space-y-2 max-w-xl mx-auto">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[10.5px] font-bold">
+              <Sparkles className="size-3" />
+              <span>RECOMMENDED AGENCY ICP NICHES</span>
+            </div>
+            <h2 className="text-xl md:text-2xl font-black text-white/90 tracking-tight">
+              High-Yield Niches Suitable for {agencyProfile?.agencyName || "Your Agency"}
+            </h2>
+            <p className="text-[12px] text-white/40 leading-relaxed">
+              {agencyProfile?.flagshipOffer
+                ? `AI analyzed your flagship offer ("${agencyProfile.flagshipOffer}") to surface target niches:`
+                : "Click any verified niche below to immediately scrape businesses, extract contacts, and stage them for outreach."}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {loadingNiches ? (
+              Array.from({ length: 6 }).map((_, i) => <NicheSkeletonCard key={i} />)
+            ) : (
+              agencyNiches.map((card) => {
+                const IconComponent = (card.icon && ICON_MAP[card.icon]) ? ICON_MAP[card.icon] : Target
+                return (
+                  <button
+                    key={card.title}
+                    type="button"
+                    onClick={() => {
+                      setQuery(card.title)
+                      handleSearch(card.title, location)
+                    }}
+                    className="flex flex-col text-left p-4.5 rounded-2xl border border-white/[0.06] hover:border-indigo-500/35 bg-white/[0.02] hover:bg-indigo-500/[0.04] transition-all group shadow-sm hover:-translate-y-0.5 cursor-pointer backdrop-blur-sm"
+                  >
+                    <div className="flex items-center justify-between mb-2.5">
+                      <div className="p-2 rounded-xl bg-white/[0.04] border border-white/[0.06] group-hover:border-indigo-500/30 transition-colors">
+                        <IconComponent className={cn("size-4", card.color || "text-indigo-400")} />
+                      </div>
+                      <span className="text-[9.5px] font-bold uppercase tracking-wider text-white/30 group-hover:text-indigo-300 transition-colors">
+                        {card.tag}
+                      </span>
+                    </div>
+                    <h4 className="text-[13px] font-bold text-white/90 group-hover:text-white mb-1">
+                      {card.title}
+                    </h4>
+                    <p className="text-[11px] text-white/40 line-clamp-2 leading-relaxed">
+                      {card.desc}
+                    </p>
+                  </button>
+                )
+              })
+            )}
+          </div>
+        </div>
+      ) : searching ? (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <div className="lg:col-span-6 space-y-2.5">
+            {Array.from({ length: 6 }).map((_, i) => <LeadSkeletonRow key={i} />)}
+          </div>
+          <div className="lg:col-span-6 h-96 rounded-2xl border border-white/[0.06] bg-white/[0.02] animate-pulse" />
+        </div>
+      ) : filteredPlaces.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 gap-3 text-center rounded-2xl border border-white/[0.06] bg-white/[0.01]">
+          <div className="size-12 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
+            <Search className="size-5 text-white/30" />
+          </div>
+          <div>
+            <p className="text-[13.5px] font-bold text-white/80 mb-0.5">No matching prospects found</p>
+            <p className="text-[11px] text-white/40 max-w-sm">Try broadening your search term or switching to a nearby city.</p>
+          </div>
+        </div>
+      ) : (
+        /* ── 2-Column Split View: List on Left (50%), Dossier on Right (50%) ── */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start w-full">
+          {/* LEFT COLUMN: Prospect List with Multi-Select */}
+          <div className="lg:col-span-6 min-w-0 w-full space-y-2">
+            {/* List Header Toolbar */}
+            <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-white/[0.02] border border-white/[0.04] text-xs">
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={toggleAll}
+                  className="flex items-center gap-1.5 font-bold text-white/80 hover:text-white transition-colors cursor-pointer"
+                >
+                  <div className={cn(
+                    "flex size-4 items-center justify-center rounded border transition-all",
+                    selected.size === filteredPlaces.length
+                      ? "bg-emerald-500 border-emerald-500 text-white"
+                      : selected.size > 0
+                      ? "bg-indigo-500 border-indigo-500 text-white"
+                      : "border-white/30 bg-transparent"
+                  )}>
+                    {selected.size > 0 && <Check className="size-3 stroke-[3]" />}
+                  </div>
+                  <span>{selected.size > 0 ? `${selected.size} Selected` : "Select All"}</span>
+                </button>
               </div>
-              <h1 className="text-[20px] font-black tracking-tight leading-none text-white/95">
-                {searchTarget === "b2c" ? "Find Office Neighbors" : "Prospect Discovery"}
-              </h1>
+
+              <span className="text-[11px] text-white/40 font-medium">
+                {filteredPlaces.length} Prospects Available
+              </span>
+            </div>
+
+            {/* Leads List */}
+            <div className="space-y-2">
+              {filteredPlaces.map((place) => {
+                const isSelected = selected.has(place.id)
+                const isActive = activePlace?.id === place.id
+                const domain = getCleanHostname(place.websiteUri)
+                const cached = enrichmentCache[place.id]
+                const audit = cached?.auditData
+                const contacts = cached?.contacts || []
+                const dm = contacts.find(c => c.isDecisionMaker)
+
+                return (
+                  <div
+                    key={place.id}
+                    onClick={() => setActivePlaceId(place.id)}
+                    className={cn(
+                      "group relative flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer backdrop-blur-sm select-none min-w-0 w-full",
+                      isActive
+                        ? "border-indigo-500/50 bg-indigo-500/[0.09] shadow-md shadow-indigo-500/10 ring-1 ring-indigo-500/30"
+                        : isSelected
+                        ? "border-emerald-500/40 bg-emerald-500/[0.04]"
+                        : "border-white/[0.06] bg-white/[0.02] hover:border-white/[0.14] hover:bg-white/[0.035]"
+                    )}
+                  >
+                    {/* Active Left Indicator Pill */}
+                    {isActive && (
+                      <div className="absolute left-0 top-3 bottom-3 w-1 rounded-r bg-indigo-500" />
+                    )}
+
+                    {/* Checkbox */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        toggle(place.id)
+                      }}
+                      className={cn(
+                        "mt-1 flex size-4.5 shrink-0 items-center justify-center rounded transition-all duration-150 border cursor-pointer",
+                        isSelected
+                          ? "bg-emerald-500 border-emerald-500 text-white shadow-sm"
+                          : "border-white/25 group-hover:border-white/50 bg-white/[0.02]"
+                      )}
+                    >
+                      {isSelected && <Check className="size-3 stroke-[3]" />}
+                    </button>
+
+                    {/* Thumbnail / Favicon */}
+                    <div className="relative size-10 rounded-lg overflow-hidden shrink-0 border border-white/[0.08] bg-black/40 flex items-center justify-center">
+                      {domain ? (
+                        <img
+                          src={`https://www.google.com/s2/favicons?domain=${domain}&sz=64`}
+                          alt={place.displayName.text}
+                          className="size-5 object-contain"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <Building2 className="size-4 text-white/30" />
+                      )}
+                    </div>
+
+                    {/* Meta */}
+                    <div className="min-w-0 flex-1 space-y-1 overflow-hidden">
+                      <div className="flex items-start justify-between gap-1.5 min-w-0">
+                        <h3 className="text-[13px] font-bold text-white/90 truncate leading-snug group-hover:text-white">
+                          {place.displayName.text}
+                        </h3>
+                        {place.rating !== undefined && (
+                          <span className="text-[10px] font-semibold text-amber-400 shrink-0 flex items-center gap-0.5">
+                            ★ {place.rating}
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-[10.5px] text-white/40 truncate flex items-center gap-1">
+                        <MapPin className="size-2.5 shrink-0 text-white/20" />
+                        {place.formattedAddress}
+                      </p>
+
+                      {/* Signals & Badges */}
+                      <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                        {audit && !audit.ssl ? (
+                          <span className="text-[8px] font-bold px-1.5 py-0.2 rounded bg-rose-500/15 border border-rose-500/25 text-rose-300">
+                            🚨 No SSL
+                          </span>
+                        ) : audit?.ssl ? (
+                          <span className="text-[8px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400">
+                            SSL Valid
+                          </span>
+                        ) : null}
+
+                        {audit && audit.speed > 3000 && (
+                          <span className="text-[8px] font-bold px-1.5 py-0.2 rounded bg-amber-500/15 border border-amber-500/25 text-amber-300">
+                            🐢 {(audit.speed / 1000).toFixed(1)}s Slow
+                          </span>
+                        )}
+
+                        {dm ? (
+                          <span className="text-[8px] font-bold px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 flex items-center gap-0.5">
+                            <UserCheck className="size-2" /> {dm.name || "Owner"}
+                          </span>
+                        ) : contacts.length > 0 ? (
+                          <span className="text-[8px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-400">
+                            {contacts.length} Emails
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <ChevronRight className={cn(
+                      "size-4 shrink-0 transition-transform",
+                      isActive ? "text-indigo-400 translate-x-0.5" : "text-white/20 group-hover:text-white/40"
+                    )} />
+                  </div>
+                )
+              })}
             </div>
           </div>
 
-          {/* B2B vs B2C Local Neighbors Toggle */}
-          <div className="flex items-center gap-0.5 p-0.5 rounded-xl shrink-0" style={{ background: "rgba(255,255,255,.02)", border: "1px solid rgba(255,255,255,.05)" }}>
-            <button
-              type="button"
-              onClick={() => {
-                setSearchTarget("b2b")
-                setQuery("")
-              }}
-              className="rounded-lg px-3.5 py-1.5 text-[10.5px] font-black uppercase tracking-wider transition-all cursor-pointer"
-              style={searchTarget === "b2b"
-                ? { background: "rgba(56,189,248,.12)", border: "1px solid rgba(56,189,248,.25)", color: "#38bdf8" }
-                : { color: "rgba(255,255,255,.25)" }}
-            >
-              B2B Industries
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setSearchTarget("b2c")
-                setQuery("offices")
-              }}
-              className="rounded-lg px-3.5 py-1.5 text-[10.5px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer"
-              style={searchTarget === "b2c"
-                ? { background: "rgba(16,185,129,.12)", border: "1px solid rgba(16,185,129,.25)", color: "#34d399" }
-                : { color: "rgba(255,255,255,.25)" }}
-            >
-              <Sparkles className="size-3" />
-              Office Neighbors
-            </button>
-          </div>
-        </div>
-
-        {/* ── Console Mode Selector Tabs ── */}
-        <div className="flex items-center gap-4 border-b border-white/[0.04] pb-1">
-          <button
-            type="button"
-            onClick={() => setSearchMode("manual")}
-            className="relative pb-2.5 text-[12px] font-bold transition-all cursor-pointer"
-            style={{ color: searchMode === "manual" ? "white" : "rgba(255,255,255,0.35)" }}
-          >
-            🔍 Search & Filter Tools
-            {searchMode === "manual" && (
-              <span className="absolute bottom-0 inset-x-0 h-0.5 bg-gradient-to-r from-sky-400 to-indigo-400 rounded-full" />
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={() => setSearchMode("copilot")}
-            className="relative pb-2.5 text-[12px] font-bold transition-all flex items-center gap-1 cursor-pointer"
-            style={{ color: searchMode === "copilot" ? "white" : "rgba(255,255,255,0.35)" }}
-          >
-            <Sparkles className="size-3.5 text-violet-400" />
-            AI Targeting Copilot
-            {searchMode === "copilot" && (
-              <span className="absolute bottom-0 inset-x-0 h-0.5 bg-gradient-to-r from-violet-400 to-fuchsia-400 rounded-full" />
-            )}
-          </button>
-        </div>
-
-        {/* ── Tab Contents ── */}
-        {searchMode === "manual" ? (
-          <form onSubmit={handleSearch} className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5 text-white/20 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder={searchTarget === "b2c" ? "Neighbor type — e.g. offices, coworking (default: offices)" : "Business type — e.g. Dental practices"}
-                  value={query}
-                  onChange={e => setQuery(e.target.value)}
-                  className="w-full rounded-xl pl-10 pr-4 py-2.5 text-[12.5px] text-white/80 outline-none placeholder:text-white/20 transition-all duration-300"
-                  style={{
-                    background: "rgba(255,255,255,.03)",
-                    border: "1px solid rgba(255,255,255,.07)",
-                  }}
-                />
-              </div>
-
-              <div className="relative sm:w-64">
-                {locationLoading ? (
-                  <Loader2 className="absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5 text-white/25 pointer-events-none animate-spin" />
-                ) : (
-                  <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5 text-white/20 pointer-events-none" />
-                )}
-                <input
-                  type="text"
-                  placeholder={locationLoading ? "Detecting location…" : "City or Area"}
-                  value={location}
-                  onChange={e => setLocation(e.target.value)}
-                  className="w-full rounded-xl pl-10 pr-4 py-2.5 text-[12.5px] text-white/80 outline-none placeholder:text-white/20 transition-all duration-300"
-                  style={{
-                    background: "rgba(255,255,255,.03)",
-                    border: "1px solid rgba(255,255,255,.07)",
-                  }}
-                />
-              </div>
-
-              <div className="relative sm:w-32">
-                <select
-                  value={limit}
-                  onChange={e => setLimit(parseInt(e.target.value))}
-                  className="w-full rounded-xl pl-3 pr-8 py-2.5 text-[12.5px] text-white/80 outline-none appearance-none cursor-pointer"
-                  style={{
-                    background: "rgba(255,255,255,.03)",
-                    border: "1px solid rgba(255,255,255,.07)",
-                  }}
-                >
-                  <option value="10" className="bg-[#13151c]">10 leads</option>
-                  <option value="20" className="bg-[#13151c]">20 leads</option>
-                  <option value="30" className="bg-[#13151c]">30 leads</option>
-                  <option value="40" className="bg-[#13151c]">40 leads</option>
-                  <option value="50" className="bg-[#13151c]">50 leads</option>
-                  <option value="60" className="bg-[#13151c]">60 leads</option>
-                </select>
-                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 size-3.5 text-white/20 pointer-events-none" />
-              </div>
-
-              <button
-                type="submit"
-                disabled={searching}
-                className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-[12.5px] font-extrabold transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+          {/* RIGHT COLUMN: 100% Dedicated Clean AI Intelligence Dossier */}
+          <div className="lg:col-span-6 min-w-0 w-full sticky top-4 max-h-[calc(100vh-80px)] overflow-y-auto pr-1">
+            {activePlace && (
+              <div
+                className="p-5 rounded-2xl border border-white/[0.08] shadow-xl space-y-4 overflow-hidden break-words w-full"
                 style={{
-                  background: "linear-gradient(135deg,#e2e5ed,#c8cdd8)",
-                  color: "black",
-                  boxShadow: "0 2px 12px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.5)"
+                  background: "linear-gradient(145deg, rgba(20, 22, 34, 0.6) 0%, rgba(12, 13, 20, 0.85) 100%)",
+                  backdropFilter: "blur(16px)",
                 }}
               >
-                {searching ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
-                {searching ? "Searching…" : "Search"}
+                {/* 1. Header & Stage Action */}
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="size-2 rounded-full bg-indigo-400" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300/80">
+                        AI Prospect Dossier
+                      </span>
+                    </div>
+                    <h2 className="text-lg font-black text-white/95 leading-tight">
+                      {activePlace.displayName.text}
+                    </h2>
+                    <p className="text-[11px] text-white/40 mt-0.5 flex items-center gap-1">
+                      <MapPin className="size-2.5 text-white/20 shrink-0" />
+                      {activePlace.formattedAddress}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => toggle(activePlace.id)}
+                    className={cn(
+                      "px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer shrink-0 shadow-sm",
+                      selected.has(activePlace.id)
+                        ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/35"
+                        : "bg-white/[0.05] text-white/70 border-white/[0.1] hover:text-white hover:bg-white/[0.1]"
+                    )}
+                  >
+                    {selected.has(activePlace.id) ? "✓ Staged for Campaign" : "+ Stage Prospect"}
+                  </button>
+                </div>
+
+                {/* Direct Contacts & Web Strip */}
+                <div className="flex flex-wrap gap-2 text-[11px]">
+                  {activePlace.websiteUri && (
+                    <a
+                      href={activePlace.websiteUri.startsWith("http") ? activePlace.websiteUri : `https://${activePlace.websiteUri}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 border border-sky-500/20 font-medium transition-colors truncate max-w-[180px] shrink"
+                    >
+                      <Globe className="size-3 shrink-0" />
+                      {getCleanHostname(activePlace.websiteUri)}
+                      <ExternalLink className="size-2.5 opacity-60" />
+                    </a>
+                  )}
+
+                  {activePlace.nationalPhoneNumber && (
+                    <a
+                      href={`tel:${activePlace.nationalPhoneNumber}`}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-white/70 border border-white/[0.08] font-medium transition-colors"
+                    >
+                      <Phone className="size-3 text-white/40" />
+                      {activePlace.nationalPhoneNumber}
+                    </a>
+                  )}
+
+                  {activePlace.rating !== undefined && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/20 font-bold">
+                      <Star className="size-3 fill-amber-400 text-amber-400" />
+                      {activePlace.rating} ({activePlace.userRatingCount || 0} reviews)
+                    </span>
+                  )}
+                </div>
+
+                {/* ── PILLAR 1: COMPANY SNAPSHOT & POSITIONING ── */}
+                <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.05] space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9.5px] font-bold uppercase tracking-wider text-white/30 flex items-center gap-1">
+                      <Building2 className="size-3 text-indigo-400" /> Company Positioning
+                    </span>
+                    {activeEnrichment?.researchLoading ? (
+                      <span className="text-[9.5px] text-indigo-300 animate-pulse flex items-center gap-1">
+                        <Loader2 className="size-2.5 animate-spin" /> AI Analyzing Website…
+                      </span>
+                    ) : activeResearch?.pricingTier ? (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.06] text-white/60">
+                        {activeResearch.pricingTier}
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="text-xs text-white/80 leading-relaxed font-medium">
+                    {activeResearch?.whatTheyDo || (activeEnrichment?.researchLoading
+                      ? "Deep-crawling website and analyzing core service offerings…"
+                      : activePlace.editorialSummary?.text || `${activePlace.displayName.text} is an established local service provider.`)}
+                  </p>
+                  {activeResearch?.targetCustomers && (
+                    <div className="text-[10.5px] text-white/40 pt-1 border-t border-white/[0.04]">
+                      <span className="font-semibold text-white/60">Target Market: </span>
+                      {activeResearch.targetCustomers}
+                    </div>
+                  )}
+                </div>
+
+                {/* ── PILLAR 2: REAL-TIME SIGNALS, RECENT NEWS & WHY NOW? TRIGGER ── */}
+                <div className="space-y-2">
+                  <span className="text-[9.5px] font-bold uppercase tracking-wider text-white/30 flex items-center gap-1">
+                    <Newspaper className="size-3 text-amber-400" /> Real-Time News & Signals
+                  </span>
+
+                  {/* Why Now Trigger */}
+                  <div className="p-3.5 rounded-xl bg-amber-500/[0.07] border border-amber-500/20 space-y-1">
+                    <span className="text-[9px] font-bold uppercase text-amber-300/80 tracking-wide block">
+                      ⚡ Timely Outreach Trigger ("Why Reach Out Now?")
+                    </span>
+                    <p className="text-[11.5px] text-white/90 leading-relaxed font-medium">
+                      {activeResearch?.whyNowTrigger || (activeAudit && !activeAudit.ssl
+                        ? "Currently losing paid and organic visitor trust due to missing SSL certificate warnings on search results."
+                        : activeAudit && activeAudit.speed > 3000
+                        ? `Website takes ${(activeAudit.speed / 1000).toFixed(1)}s to load, causing significant bounce rates on mobile.`
+                        : "Active local reputation momentum with high customer reviews.")}
+                    </p>
+                  </div>
+
+                  {/* Public Announcements / Roadmap */}
+                  {activeResearch?.publicRoadmap?.announcements && activeResearch.publicRoadmap.announcements.length > 0 && (
+                    <div className="space-y-1.5">
+                      {activeResearch.publicRoadmap.announcements.slice(0, 2).map((ann, i) => (
+                        <div key={i} className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.04] text-[11px] space-y-0.5">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-white/90">{ann.headline}</span>
+                            <span className="text-[9px] font-semibold text-indigo-300 uppercase px-1 rounded bg-indigo-500/15">
+                              {ann.type}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-white/40">{ann.detail}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Social Media Channels */}
+                  {activeResearch?.technicalProfile?.socials && Object.keys(activeResearch.technicalProfile.socials).length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      <span className="text-[9.5px] text-white/40 mr-1 font-semibold">Socials:</span>
+                      {Object.entries(activeResearch.technicalProfile.socials).map(([net, url]) => (
+                        <a
+                          key={net}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-white/[0.03] hover:bg-white/[0.08] text-white/60 hover:text-white border border-white/[0.06] transition-all capitalize"
+                        >
+                          {net} ↗
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* ── PILLAR 3: VERIFIED DECISION MAKERS & SOCIALS ── */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9.5px] font-bold uppercase tracking-wider text-white/30 flex items-center gap-1">
+                      <Users className="size-3 text-indigo-400" /> Verified Decision Makers
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleFindLinkedInExecutives(activePlace)}
+                        disabled={activeEnrichment?.linkedInLoading}
+                        className="text-[10px] font-bold text-sky-400 hover:text-sky-300 flex items-center gap-1 cursor-pointer"
+                      >
+                        {activeEnrichment?.linkedInLoading ? <Loader2 className="size-2.5 animate-spin" /> : <Globe className="size-2.5" />}
+                        <span>LinkedIn</span>
+                      </button>
+                      <span className="text-white/20">·</span>
+                      <button
+                        type="button"
+                        onClick={() => handleFindContactsForPlace(activePlace)}
+                        disabled={activeEnrichment?.contactsLoading}
+                        className="text-[10px] font-bold text-indigo-300 hover:text-indigo-200 flex items-center gap-1 cursor-pointer"
+                      >
+                        {activeEnrichment?.contactsLoading ? <Loader2 className="size-2.5 animate-spin" /> : <Mail className="size-2.5 text-indigo-400" />}
+                        <span>Emails</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Decision Maker Card */}
+                  {activeDecisionMaker ? (
+                    <div className="p-3 rounded-xl bg-indigo-500/[0.08] border border-indigo-500/20 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="size-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-white text-xs">
+                            {activeDecisionMaker.name ? activeDecisionMaker.name[0] : "E"}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold text-white">{activeDecisionMaker.name || "Executive"}</span>
+                              <span className="text-[8.5px] font-bold px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300">
+                                {activeDecisionMaker.title || "Owner / Partner"}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-emerald-400 font-medium block">
+                              ✓ Verified Authority
+                            </span>
+                          </div>
+                        </div>
+
+                        {activeLinkedIn[0]?.linkedinUrl && (
+                          <a
+                            href={activeLinkedIn[0].linkedinUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2 py-1 rounded-md text-[10px] font-bold bg-[#0077b5]/20 hover:bg-[#0077b5]/30 text-sky-300 border border-[#0077b5]/30 transition-all flex items-center gap-1"
+                          >
+                            LinkedIn ↗
+                          </a>
+                        )}
+                      </div>
+
+                      {activeDecisionMaker.email && (
+                        <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-black/40 border border-white/[0.06] text-xs">
+                          <span className="text-emerald-400 font-mono text-[11px] truncate">{activeDecisionMaker.email}</span>
+                          <button
+                            type="button"
+                            onClick={() => copyText(activeDecisionMaker.email!, "Email")}
+                            className="text-[10px] font-semibold text-white/50 hover:text-white flex items-center gap-1 cursor-pointer"
+                          >
+                            <Copy className="size-2.5" /> Copy
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] flex items-center justify-between text-xs text-white/40">
+                      <span>Click to scan leadership & LinkedIn profiles</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleFindLinkedInExecutives(activePlace)
+                          handleFindContactsForPlace(activePlace)
+                        }}
+                        className="px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 transition-all cursor-pointer"
+                      >
+                        Extract Leadership
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* ── PILLAR 4: TAILORED COLD OUTREACH ANGLES ── */}
+                <div className="space-y-2">
+                  <span className="text-[9.5px] font-bold uppercase tracking-wider text-white/30 flex items-center gap-1">
+                    <Target className="size-3 text-emerald-400" /> Cold Pitch Angles
+                  </span>
+
+                  {activeResearch?.outreachAngles && activeResearch.outreachAngles.length > 0 ? (
+                    <div className="space-y-1.5">
+                      {activeResearch.outreachAngles.map((angle, idx) => (
+                        <div
+                          key={idx}
+                          className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.05] space-y-1"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-white/90">Angle {idx + 1}</span>
+                            <button
+                              type="button"
+                              onClick={() => copyText(angle, `Angle ${idx + 1}`)}
+                              className="text-[9.5px] font-semibold text-white/40 hover:text-white flex items-center gap-1 cursor-pointer"
+                            >
+                              <Copy className="size-2.5" /> Copy Angle
+                            </button>
+                          </div>
+                          <p className="text-[10.5px] text-white/50 leading-relaxed">{angle}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04] text-[10.5px] text-white/40">
+                      {activeAudit ? "✅ Technical diagnostics ready. Synthesizing AI angles…" : "Scanning company diagnostics…"}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Sleek Floating Action Dock for Campaign Enrollment (Only when leads selected) ── */}
+      {selected.size > 0 && (
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 w-[94%] max-w-4xl animate-in slide-in-from-bottom-6 duration-200">
+          <div
+            className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3 rounded-2xl border border-indigo-500/35 shadow-2xl"
+            style={{
+              background: "linear-gradient(135deg, rgba(16, 18, 30, 0.96) 0%, rgba(10, 11, 18, 0.98) 100%)",
+              boxShadow: "0 12px 40px rgba(0,0,0,0.75), 0 0 25px rgba(99, 102, 241, 0.25), inset 0 1px 0 rgba(255,255,255,0.1)",
+              backdropFilter: "blur(20px)",
+            }}
+          >
+            {/* Left: Selected Count & Pipeline Value */}
+            <div className="flex items-center gap-3 shrink-0">
+              <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
+                <Check className="size-4.5 stroke-[3]" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-black text-white">
+                    {selected.size} Leads Staged
+                  </span>
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                    ${estPipelineValue.toLocaleString()} Pipeline
+                  </span>
+                </div>
+                <p className="text-[10px] text-white/40">Ready to enroll into outreach campaign</p>
+              </div>
+            </div>
+
+            {/* Center: Campaign Setup Controls */}
+            <div className="flex flex-1 items-center gap-2 min-w-0">
+              <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-white/[0.04] border border-white/[0.06] shrink-0">
+                {(["existing", "new"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setCampaignMode(mode)}
+                    className={cn(
+                      "rounded px-2 py-1 text-[9.5px] font-bold uppercase tracking-wide transition-all cursor-pointer",
+                      campaignMode === mode
+                        ? "bg-indigo-600 text-white shadow-sm"
+                        : "text-white/40 hover:text-white"
+                    )}
+                  >
+                    {mode === "existing" ? "Existing" : "+ New"}
+                  </button>
+                ))}
+              </div>
+
+              {loadingMeta ? (
+                <div className="h-8 flex items-center text-[10.5px] text-white/30">
+                  <Loader2 className="size-3 animate-spin mr-1.5" /> Loading…
+                </div>
+              ) : campaignMode === "existing" ? (
+                <div className="flex-1 min-w-[160px]">
+                  <CustomSelect
+                    value={campaignId}
+                    onChange={setCampaignId}
+                    placeholder="Choose target campaign…"
+                    options={campaigns.map((c) => ({ value: c.id, label: c.name }))}
+                    className="w-full h-8 text-xs"
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-1 items-center gap-1.5 min-w-0">
+                  <input
+                    type="text"
+                    placeholder="Campaign name..."
+                    value={newCampName}
+                    onChange={(e) => setNewCampName(e.target.value)}
+                    className="w-1/2 rounded-lg px-2.5 py-1 text-xs text-white/90 outline-none placeholder:text-white/25 bg-white/[0.04] border border-white/[0.08] focus:border-indigo-500/50"
+                  />
+                  <div className="w-1/2">
+                    <CustomSelect
+                      value={newSeqId}
+                      onChange={setNewSeqId}
+                      placeholder="Sequence…"
+                      options={sequences.map((s) => ({ value: s.id, label: s.name }))}
+                      className="w-full h-8 text-xs"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Right: Actions */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={handleBatchDeepEnrich}
+                disabled={batchEnriching}
+                className="flex items-center gap-1 rounded-xl px-3 py-2 text-[11px] font-bold bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 transition-all disabled:opacity-50 cursor-pointer"
+                title="Extract verified emails & decision maker contacts"
+              >
+                {batchEnriching ? <Loader2 className="size-3 animate-spin" /> : <Zap className="size-3 text-indigo-400" />}
+                <span className="hidden sm:inline">{batchEnriching ? `${batchProgress.current}/${batchProgress.total}` : "Deep Enrich"}</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => setShowFilters(f => !f)}
-                className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-[12.5px] font-bold transition-all border cursor-pointer"
-                style={{
-                  background: showFilters ? "rgba(255,255,255,.08)" : "rgba(255,255,255,.03)",
-                  border: showFilters ? "1px solid rgba(255,255,255,.15)" : "1px solid rgba(255,255,255,.07)",
-                  color: showFilters ? "white" : "rgba(255,255,255,.5)",
-                }}
+                onClick={handleExportCSV}
+                className="flex items-center gap-1 rounded-xl px-2.5 py-2 text-[11px] font-bold bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white/60 hover:text-white transition-all cursor-pointer"
+                title="Download CSV export"
               >
-                <Filter className="size-3.5" />
-                Filters
-                {(minRating > 0 || minReviews > 0 || websiteFilter !== "any") && (
-                  <span className="flex size-4 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-black text-black">!</span>
-                )}
+                <FileSpreadsheet className="size-3 text-emerald-400" />
+                <span className="hidden sm:inline">CSV</span>
               </button>
-            </div>
 
-            {/* Expandable Manual Filters panel */}
-            {showFilters && (
-              <div
-                className="grid gap-5 sm:grid-cols-3 rounded-2xl p-4 bg-white/[0.01] border border-white/[0.04]"
-              >
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-black text-white/30 uppercase tracking-wider flex items-center gap-1.5">
-                      <Star className="size-3 text-amber-400" /> Min Rating
-                    </label>
-                    <span className="text-[11px] font-bold text-amber-400">{minRating === 0 ? "Any" : `${minRating}+`}</span>
-                  </div>
-                  <input type="range" min="0" max="5" step="0.5" value={minRating}
-                    onChange={e => setMinRating(parseFloat(e.target.value))}
-                    className="w-full accent-amber-400 h-1 bg-white/5 rounded-lg appearance-none cursor-pointer" />
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-black text-white/30 uppercase tracking-wider flex items-center gap-1.5">
-                      <MessageSquare className="size-3 text-sky-400" /> Min Reviews
-                    </label>
-                    <span className="text-[11px] font-bold text-sky-400">{minReviews === 0 ? "Any" : minReviews}</span>
-                  </div>
-                  <input type="range" min="0" max="500" step="10" value={minReviews}
-                    onChange={e => setMinReviews(parseInt(e.target.value))}
-                    className="w-full accent-sky-400 h-1 bg-white/5 rounded-lg appearance-none cursor-pointer" />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-white/30 uppercase tracking-wider flex items-center gap-1.5 mb-1">
-                    <Globe2 className="size-3 text-emerald-400" /> Website
-                  </label>
-                  <div className="flex gap-1 p-1 rounded-xl bg-white/[0.02] border border-white/[0.05]">
-                    {(["any", "yes", "no"] as const).map(v => (
-                      <button key={v} type="button" onClick={() => setWebsiteFilter(v)}
-                        className="flex-1 rounded-lg py-1 text-[10px] font-bold transition-all uppercase tracking-wider cursor-pointer"
-                        style={websiteFilter === v
-                          ? { background: "rgba(255,255,255,.08)", color: "white" }
-                          : { color: "rgba(255,255,255,.3)" }}>
-                        {v === "no" ? "No Site" : v === "yes" ? "Has Site" : "Any"}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Playbook niche presets below manual search */}
-            {activePlaybook && (activePlaybook.targetVerticals.length > 0 || (activePlaybook.platformOptions?.length ?? 0) > 0) && (
-              <div className="flex flex-col gap-2 pt-1">
-                {activePlaybook.targetVerticals.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="flex items-center gap-1 text-[9px] font-black text-white/20 uppercase tracking-wider mr-1">
-                      <Target className="size-3" /> Niche Presets:
-                    </span>
-                    {activePlaybook.targetVerticals.map(v => (
-                      <button
-                        key={v}
-                        type="button"
-                        onClick={() => setQuery(v)}
-                        className="rounded-full px-2.5 py-1 text-[10px] font-bold transition-all hover:bg-white/[0.06] cursor-pointer"
-                        style={query === v
-                          ? { background: "rgba(56,189,248,.12)", border: "1px solid rgba(56,189,248,.25)", color: "#38bdf8" }
-                          : { background: "rgba(255,255,255,.02)", border: "1px solid rgba(255,255,255,.05)", color: "rgba(255,255,255,.45)" }}
-                      >
-                        {v}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {(activePlaybook.platformOptions?.length ?? 0) > 0 && (
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="flex items-center gap-1 text-[9px] font-black text-white/20 uppercase tracking-wider mr-1">
-                      <Layers className="size-3" /> Mediums:
-                    </span>
-                    {activePlaybook.platformOptions!.map(p => (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => setPlatformFocus(prev => prev === p ? null : p)}
-                        className="rounded-full px-2.5 py-1 text-[10px] font-bold transition-all hover:bg-white/[0.06] cursor-pointer"
-                        style={platformFocus === p
-                          ? { background: "rgba(139,92,246,.12)", border: "1px solid rgba(139,92,246,.25)", color: "rgba(196,181,253,.9)" }
-                          : { background: "rgba(255,255,255,.02)", border: "1px solid rgba(255,255,255,.05)", color: "rgba(255,255,255,.45)" }}
-                      >
-                        {p}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </form>
-        ) : (
-          <div className="space-y-4">
-            {/* AI Prompt suggest form */}
-            <div
-              className="rounded-2xl overflow-hidden border border-violet-500/15 bg-white/[0.01]"
-              style={{ background: "rgba(139,92,246,.03)" }}
-            >
-              <div className="flex items-center gap-3 px-4 py-3">
-                <Sparkles className="size-4 shrink-0 text-violet-400" />
-                <input
-                  type="text"
-                  placeholder="Describe your business — e.g. We build websites for local salons…"
-                  value={aiPrompt}
-                  onChange={e => { setAiPrompt(e.target.value); setAiDone(false) }}
-                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAiSuggest() } }}
-                  className="flex-1 min-w-0 bg-transparent text-[12.5px] text-white/80 placeholder:text-white/20 outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={handleAiSuggest}
-                  disabled={!aiPrompt.trim() || aiLoading}
-                  className="shrink-0 flex items-center gap-1.5 rounded-xl px-4 py-2 text-[11px] font-extrabold transition-all disabled:opacity-40 hover:scale-[1.02] cursor-pointer"
-                  style={{ background: "rgba(139,92,246,.25)", color: "rgba(196,181,253,.9)" }}
-                >
-                  {aiLoading ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : (
-                    <Sparkles className="size-3.5 animate-pulse" />
-                  )}
-                  {aiLoading ? "Thinking…" : "Suggest Targets"}
-                </button>
-              </div>
-
-              {aiDone && aiSuggestions.length > 0 && (
-                <div className="px-4 pb-4 pt-2 space-y-2.5" style={{ borderTop: "1px solid rgba(139,92,246,.08)" }}>
-                  {aiReply && (
-                    <p className="text-[11.5px] text-violet-300/60 font-medium leading-relaxed">{aiReply}</p>
-                  )}
-                  <div className="flex flex-wrap gap-1.5">
-                    {aiSuggestions.map(s => (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => applySuggestion(s)}
-                        className="rounded-full px-3 py-1.5 text-[10px] font-bold transition-all hover:bg-violet-500/20 hover:scale-105 active:scale-95 cursor-pointer"
-                        style={{
-                          background: "rgba(139,92,246,.08)",
-                          border: "1px solid rgba(139,92,246,.2)",
-                          color: "rgba(196,181,253,.8)",
-                        }}
-                      >
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Local Neighbor Info Banner */}
-            {searchTarget === "b2c" && (
-              <div
-                className="rounded-2xl px-4 py-3 flex items-start gap-3 border border-emerald-500/15 bg-white/[0.01]"
-                style={{ background: "rgba(16,185,129,.03)" }}
-              >
-                <Sparkles className="size-4.5 text-emerald-400 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-[12px] font-black text-emerald-400">Local Office Neighbor Search Active</p>
-                  <p className="text-[10px] text-white/45 mt-0.5 leading-relaxed">
-                    Enter your business address under search, then use this Copilot to find nearby offices and corporate headquarters. This compiles localized B2C dining/setup targets.
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* ── Content area ── */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-
-        {/* ── Searching spinner ── */}
-        {searching && (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3">
-            <div className="relative">
-              <MapPin className="size-8 text-emerald-400/40" />
-              <Loader2 className="size-4 animate-spin text-white/30 absolute -bottom-1 -right-1" />
-            </div>
-            <p className="text-[13px] text-white/30 font-medium">Searching Google Maps…</p>
-          </div>
-        )}
-
-        {/* ── Empty state after search ── */}
-        {!searching && searched && filteredPlaces.length === 0 && (
-          <div className="flex flex-1 flex-col items-center justify-center text-center px-8 gap-3">
-            <MapPin className="size-8 text-white/15" />
-            <p className="text-[13px] font-bold text-white/30">No results found</p>
-            <p className="text-[11px] text-white/20">Try adjusting your filters or search terms</p>
-            {(minRating > 0 || minReviews > 0 || websiteFilter !== "any") && (
               <button
-                onClick={() => { setMinRating(0); setMinReviews(0); setWebsiteFilter("any") }}
-                className="text-[11px] font-bold text-emerald-400/60 hover:text-emerald-400 underline underline-offset-4 mt-2"
+                type="button"
+                onClick={handleImport}
+                disabled={!canImport || !!importPhase}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white transition-all active:scale-[0.98] disabled:opacity-40 cursor-pointer shadow-md",
+                  canImport
+                    ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/25 hover:brightness-110"
+                    : "bg-white/[0.04] border border-white/[0.08]"
+                )}
               >
-                Reset filters
+                {importPhase ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
+                <span>{importPhase ? importProgress || "Enrolling…" : `Launch ${selected.size} Leads →`}</span>
               </button>
-            )}
-          </div>
-        )}
 
-        {/* ── Pre-search placeholder ── */}
-        {!searching && !searched && (
-          <div className="flex flex-1 flex-col items-center justify-center text-center px-8 gap-3">
-            <Search className="size-8 text-white/10" />
-            <p className="text-[13px] text-white/25">Search Google Maps to find leads</p>
-          </div>
-        )}
-
-        {/* ── Results: desktop split view (lg+) ── */}
-        {hasResults && (
-          <>
-            {/* LEFT: list panel */}
-            <div
-              className="hidden lg:flex flex-col w-100 xl:w-110 shrink-0 overflow-y-auto"
-              style={{ borderRight: "1px solid rgba(255,255,255,.05)" }}
-            >
-              {/* List header */}
-              <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-2.5"
-                style={{ background: "rgba(12,13,18,.95)", borderBottom: "1px solid rgba(255,255,255,.04)", backdropFilter: "blur(12px)" }}>
-                <p className="text-[11px] text-white/40">
-                  <span className="font-bold text-white/60">{filteredPlaces.length}</span> businesses
-                  {selected.size > 0 && <span className="ml-2 text-emerald-400/70">· {selected.size} selected</span>}
-                </p>
-                <button
-                  onClick={toggleAll}
-                  className="text-[10px] font-semibold text-white/35 hover:text-white/65 transition-colors"
-                >
-                  {selected.size === filteredPlaces.length ? "Clear all" : "Select all"}
-                </button>
-              </div>
-
-              {/* Place rows */}
-              {filteredPlaces.map(place => (
-                <PlaceRow
-                  key={place.id}
-                  place={place}
-                  isSelected={selected.has(place.id)}
-                  isInspecting={inspecting?.id === place.id}
-                  enrichment={enrichmentCache[place.id]}
-                  onToggle={toggle}
-                  onInspect={p => setInspecting(p)}
-                />
-              ))}
-            </div>
-
-            {/* RIGHT: detail panel */}
-            <div className="hidden lg:flex flex-1 overflow-y-auto">
-              {inspecting ? (
-                <div className="w-full">
-                  <LeadDetailSide
-                    place={inspecting}
-                    enrichment={enrichmentCache[inspecting.id] ?? defaultEnrichment()}
-                    searchTarget={searchTarget}
-                    onAuditDone={data => updateEnrichment(inspecting.id, { auditData: data, auditLoading: false })}
-                    onAuditStart={() => updateEnrichment(inspecting.id, { auditLoading: true })}
-                    onContactsDone={contacts => updateEnrichment(inspecting.id, { contacts, contactsLoading: false, contactsDone: true })}
-                    onContactsStart={() => updateEnrichment(inspecting.id, { contactsLoading: true, contactsDone: false })}
-                    onIcebreakerDone={text => updateEnrichment(inspecting.id, { icebreaker: text })}
-                    onResearchDone={data => updateEnrichment(inspecting.id, { research: data, researchLoading: false })}
-                    onResearchStart={() => updateEnrichment(inspecting.id, { researchLoading: true })}
-                    onLinkedInDone={(profiles, logs) => updateEnrichment(inspecting.id, {
-                      linkedInProfiles: profiles,
-                      linkedInLoading: false,
-                      linkedInDone: true,
-                      linkedInLogs: logs ?? [],
-                    })}
-                    onLinkedInStart={() => updateEnrichment(inspecting.id, { linkedInLoading: true, linkedInDone: false })}
-                  />
-                </div>
-              ) : (
-                <div className="flex flex-1 flex-col items-center justify-center text-center px-8 gap-3 text-white/20">
-                  <MapPin className="size-8 opacity-30" />
-                  <p className="text-[13px]">Click a business to inspect it</p>
-                </div>
-              )}
-            </div>
-
-            {/* ── Mobile: grid cards (below lg) ── */}
-            <div className="lg:hidden flex-1 overflow-y-auto p-4">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-[13px] font-bold text-white/70">
-                  {filteredPlaces.length} businesses
-                </p>
-                <button onClick={toggleAll} className="text-[11px] font-semibold text-white/35 hover:text-white/65 transition-colors">
-                  {selected.size === filteredPlaces.length ? "Clear all" : "Select all"}
-                </button>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                {filteredPlaces.map(place => {
-                  const isSelected = selected.has(place.id)
-                  return (
-                    <div
-                      key={place.id}
-                      onClick={() => setMobileInspecting(place)}
-                      className="group relative cursor-pointer overflow-hidden rounded-2xl p-4 transition-all duration-200 hover:-translate-y-0.5"
-                      style={{
-                        background: isSelected
-                          ? "linear-gradient(145deg,rgba(255,255,255,.07),rgba(255,255,255,.04))"
-                          : "linear-gradient(145deg,rgba(255,255,255,.04),rgba(255,255,255,.02))",
-                        border: isSelected ? "1px solid rgba(255,255,255,.18)" : "1px solid rgba(255,255,255,.07)",
-                      }}
-                    >
-                      <div
-                        className="absolute top-3 right-3 flex size-5 items-center justify-center rounded-full transition-all z-10"
-                        onClick={e => { e.stopPropagation(); toggle(place.id) }}
-                        style={{
-                          background: isSelected ? "rgba(255,255,255,.85)" : "transparent",
-                          border: isSelected ? "none" : "1.5px solid rgba(255,255,255,.18)",
-                        }}
-                      >
-                        {isSelected && <Check className="size-3 text-black" strokeWidth={3} />}
-                      </div>
-
-                      <h3 className="font-bold text-[13px] text-white/80 pr-8 mb-1.5 leading-snug">
-                        {place.displayName.text}
-                      </h3>
-
-                      {place.rating !== undefined && (
-                        <div className="flex items-center gap-1.5 mb-2">
-                          <Stars rating={place.rating} />
-                          <span className="text-[10px] text-white/30">
-                            {place.rating} · {place.userRatingCount?.toLocaleString()} reviews
-                          </span>
-                        </div>
-                      )}
-
-                      <p className="text-[11px] text-white/35 truncate mb-1 flex items-center gap-1">
-                        <MapPin className="size-2.5 shrink-0 opacity-50" />
-                        {place.formattedAddress}
-                      </p>
-
-                      {place.websiteUri && (
-                        <p className="text-[10px] text-sky-400/60 truncate flex items-center gap-1">
-                          <Globe className="size-2.5 shrink-0 opacity-50" />
-                          {new URL(place.websiteUri).hostname.replace(/^www\./, "")}
-                        </p>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-
-
-
-
-
-      {/* ── Mobile bottom sheet ── */}
-      <LeadAnalysisPanel
-        place={mobileInspecting}
-        onClose={() => setMobileInspecting(null)}
-        isSelected={mobileInspecting ? selected.has(mobileInspecting.id) : false}
-        onToggle={toggle}
-        emailFromPlace={emailFromPlace}
-        searchTarget={searchTarget}
-      />
-
-      {/* ── Sliding Glassmorphic Floating Import Dock ── */}
-      {selected.size > 0 && (
-        <div 
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col md:flex-row items-center gap-4 px-6 py-4 rounded-2xl border border-white/[0.08] shadow-2xl backdrop-blur-xl animate-slideUp"
-          style={{
-            background: "linear-gradient(135deg, rgba(20, 22, 33, 0.9) 0%, rgba(10, 11, 16, 0.95) 100%)",
-            boxShadow: "0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)",
-            width: "calc(100% - 48px)",
-            maxWidth: "800px"
-          }}
-        >
-          {/* Left info */}
-          <div className="flex items-center gap-3 shrink-0 self-start md:self-center">
-            <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-              <Check className="size-5" />
-            </div>
-            <div>
-              <p className="text-[13px] font-black text-white/90">
-                {selected.size} Lead{selected.size !== 1 ? "s" : ""} Selected
-              </p>
-              <p className="text-[10px] text-white/40 mt-0.5">Choose campaign to import leads</p>
+              <button
+                type="button"
+                onClick={() => setSelected(new Set())}
+                className="p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/[0.05] transition-all cursor-pointer"
+                title="Deselect all"
+              >
+                <X className="size-4" />
+              </button>
             </div>
           </div>
-
-          {/* Middle selectors */}
-          <div className="flex flex-1 flex-wrap items-center gap-2.5 w-full md:w-auto">
-            <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-white/[0.04] border border-white/[0.05]">
-              {(["existing", "new"] as const).map(mode => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => setCampaignMode(mode)}
-                  className="rounded px-2.5 py-1.5 text-[10.5px] font-extrabold uppercase tracking-wide transition-all cursor-pointer"
-                  style={campaignMode === mode
-                    ? { background: "rgba(255,255,255,0.1)", color: "white" }
-                    : { color: "rgba(255,255,255,0.3)" }}
-                >
-                  {mode === "existing" ? "Existing" : "New"}
-                </button>
-              ))}
-            </div>
-
-            {loadingMeta ? (
-              <span className="text-[11px] text-white/20">Loading campaigns…</span>
-            ) : campaignMode === "existing" ? (
-              campaigns.length === 0 ? (
-                <span className="text-[11px] text-white/35">No campaigns available</span>
-              ) : (
-                <CustomSelect
-                  value={campaignId}
-                  onChange={setCampaignId}
-                  placeholder="Select campaign…"
-                  options={campaigns.map(c => ({ value: c.id, label: c.name }))}
-                  className="w-48 h-8 text-[11px] min-h-0"
-                />
-              )
-            ) : (
-              <div className="flex items-center gap-2 flex-1 md:flex-initial">
-                <input
-                  type="text"
-                  placeholder="Campaign name…"
-                  value={newCampName}
-                  onChange={e => setNewCampName(e.target.value)}
-                  className="rounded-lg px-2.5 py-1 text-[11.5px] text-white/85 outline-none placeholder:text-white/20 w-32 bg-white/[0.04] border border-white/[0.08]"
-                />
-                <CustomSelect
-                  value={newSeqId}
-                  onChange={setNewSeqId}
-                  placeholder="Sequence…"
-                  options={sequences.map(s => ({ value: s.id, label: s.name }))}
-                  className="w-32 h-8 text-[11px] min-h-0"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Right import button */}
-          <button
-            type="button"
-            onClick={handleImport}
-            disabled={!!importPhase || !canImport()}
-            className="w-full md:w-auto inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2 text-[12.5px] font-extrabold transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-40 cursor-pointer"
-            style={{
-              background: canImport()
-                ? "linear-gradient(135deg, #10b981, #059669)"
-                : "rgba(255,255,255,0.03)",
-              color: canImport() ? "#fff" : "rgba(255,255,255,0.25)",
-              border: canImport() ? "none" : "1px solid rgba(255,255,255,0.06)",
-              boxShadow: canImport() ? "0 4px 15px rgba(16,185,129,0.3)" : "none",
-            }}
-          >
-            {importPhase ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
-            {importPhase ? importProgress || "Importing…" : "Import Leads"}
-          </button>
         </div>
       )}
     </div>

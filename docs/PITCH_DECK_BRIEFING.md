@@ -51,7 +51,7 @@ Most tools on the market only solve *one* piece of this puzzle — you'd normall
 - **Real personalization, not mail-merge.** Galien actually looks at each prospect's website and writes about *them* — not "Hi {{firstName}}" templates.
 - **Closes the loop.** Most tools stop at "email sent." Galien continues through reply handling, objection responses, and meeting booking.
 - **Human stays in control.** Before Galien sends anything automatically, there's a review window — so the business owner can step in if something looks wrong. It's "autopilot with a safety brake," not a black box.
-- **Built-in sales coach.** An AI advisor inside the app ("Agnel") gives strategy advice — like having a sales mentor on call.
+- **Built-in sales coach.** An AI advisor inside the app ("Galien") gives strategy advice — like having a sales mentor on call.
 
 ---
 
@@ -94,7 +94,7 @@ Beyond the core "find → write → send → reply → book" loop, Galien includ
 - Dashboard with key metrics: active campaigns, leads, emails sent, reply rate, meetings booked, revenue closed.
 - Email open/click tracking on every message sent.
 
-### AI Advisor ("Agnel")
+### AI Advisor ("Galien")
 - A built-in chat assistant, available on every screen, that acts as an on-call B2B sales coach — answering questions like "how should I follow up with this lead?" or "what's a good angle for dental practices?" using the user's own business context.
 
 ---

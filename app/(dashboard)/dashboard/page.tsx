@@ -2,16 +2,21 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { CampaignCard } from "@/components/campaign-card"
-import { GettingStartedModal } from "@/components/getting-started-modal"
+import { GettingStartedModal, AiQuickstartBanner, type Step } from "@/components/getting-started-modal"
 import { 
   Megaphone, Mail, MessageSquare, Calendar, Plus, Users, 
   ArrowUpRight, DollarSign, Check, GitBranch, Search, Bot,
-  ShieldCheck, ShieldAlert, Sparkles, Terminal, Sliders, Workflow, 
+  ShieldCheck, ShieldAlert, Terminal, Sliders, Workflow, 
   TrendingUp, AlertTriangle, HelpCircle, Activity
 } from "lucide-react"
+import { Sparkles } from "@/components/ui/chat-bubble-icon"
 import Link from "next/link"
 import { pct, formatRelative } from "@/lib/utils"
 import { DashboardCharts } from "@/components/dashboard-charts"
+import { AgentInsightsPanel } from "@/components/agent-insights-panel"
+import { WorkspaceMission } from "@/components/workspace-mission"
+import { getWorkspace } from "@/lib/workspaces"
+import { getPrimaryKpiValue } from "@/lib/mission"
 import { DashboardFunnelChart } from "@/components/dashboard-funnel-chart"
 import { CampaignsComparisonChart } from "@/components/campaigns-comparison-chart"
 
@@ -140,6 +145,7 @@ export default async function DashboardPage() {
   let agentGoal: { lowPriorityDelayMins: number; highPriorityDelayMins: number } | null = null
   let userRecord: { playbookType: string | null; fromEmail: string | null; smtpPass: string | null } | null = null
   let trendData: Array<{ date: string, sent: number, replies: number, opens: number }> = []
+  let primaryKpi: { label: string; value: string; sub: string } | null = null
 
   try {
     campaigns = (await prisma.campaign.findMany({
@@ -227,9 +233,13 @@ export default async function DashboardPage() {
         select: { name: true, type: true, targetVerticals: true, discoveryMethod: true }
       }) as any
     }
+
+    primaryKpi = await getPrimaryKpiValue(userId, userRecord?.playbookType)
   } catch (err) {
     console.error("Dashboard fetch error:", err)
   }
+
+  const workspace = getWorkspace(userRecord?.playbookType)
 
   const activeCampaigns = campaigns.filter(c => c.status === "ACTIVE")
   const totalSent    = campaigns.reduce((s, c) => s + c.emailsSent, 0)
@@ -266,33 +276,54 @@ export default async function DashboardPage() {
     ? JSON.parse(playbook.targetVerticals) 
     : playbook?.targetVerticals || []
 
-  const gettingStartedSteps = [
+  const gettingStartedSteps: Step[] = [
     {
-      key: "sequence",
-      label: "Plan your outreach sequence",
-      desc: "Set the timing and messages your AI sends — tailored to how your agency talks to prospects.",
-      href: "/sequences",
-      cta: "Build a sequence",
-      icon: "GitBranch",
-      done: sequencesCount > 0,
+      key: "smtp",
+      label: "Connect sending email (Gmail / Custom Email)",
+      desc: "Connect your sending email so Galien AI can launch personalized campaigns and respond to interested prospects in real time.",
+      href: "/settings/agency",
+      cta: "Connect Email",
+      icon: "Mail",
+      done: isSmtpConfigured,
+      priority: "HIGH",
+      tag: "Priority 1 · Core AI Engine",
+      timeEst: "1 min",
     },
     {
-      key: "leads",
-      label: "Find your first leads",
-      desc: "Search for businesses that match your ideal client and import them into your pipeline.",
-      href: "/leads/find",
-      cta: "Find leads",
-      icon: "Search",
-      done: totalLeads > 0,
+      key: "autopilot",
+      label: "Set autopilot rules & response delay",
+      desc: "Define your AI agent's response style, proposal pricing ranges, review delay windows, and meeting calendar booking.",
+      href: "/settings/autopilot",
+      cta: "Configure Autopilot",
+      icon: "Sliders",
+      done: isSmtpConfigured && !!(agentGoal?.lowPriorityDelayMins !== undefined || userRecord?.playbookType),
+      priority: "HIGH",
+      tag: "Priority 2 · Autopilot Persona",
+      timeEst: "2 min",
+    },
+    {
+      key: "sequence",
+      label: "Review outreach sequence copy",
+      desc: "Inspect your multi-step sequence templates generated for your playbook with dynamic AI personalization variables.",
+      href: "/sequences",
+      cta: "Customize Sequences",
+      icon: "GitBranch",
+      done: sequencesCount > 0,
+      priority: "MEDIUM",
+      tag: "Step 3 · Playbook Templates",
+      timeEst: "2 min",
     },
     {
       key: "campaign",
-      label: "Launch a campaign",
-      desc: "Combine your leads and sequence so Galien can start reaching out automatically.",
-      href: "/campaigns/new",
-      cta: "Create campaign",
+      label: "Find leads & launch active campaign",
+      desc: "Search for target prospects or import a CSV, review AI intelligence battlecards, and activate your first autonomous outreach campaign.",
+      href: campaigns.length > 0 ? "/campaigns" : totalLeads > 0 ? "/campaigns/new" : "/leads/find",
+      cta: campaigns.length > 0 ? "View Campaigns" : totalLeads > 0 ? "Launch Campaign" : "Find Leads",
       icon: "Megaphone",
-      done: campaigns.length > 0,
+      done: campaigns.length > 0 && totalLeads > 0,
+      priority: "MEDIUM",
+      tag: "Step 4 · Active Campaign",
+      timeEst: "2 min",
     },
   ]
   const gettingStartedDone = gettingStartedSteps.filter(s => s.done).length
@@ -305,7 +336,7 @@ export default async function DashboardPage() {
       icon: ShieldAlert,
       color: "text-red-400 bg-red-500/10 border-red-500/20",
       title: "Deliverability Risk Detected",
-      text: "SMTP Gmail is not connected. Galien cannot execute outbound sequences. Configure credentials now.",
+      text: "Sending email is not connected. Galien cannot execute outbound sequences. Configure your credentials in Settings.",
       href: "/settings/agency"
     })
   } else {
@@ -313,8 +344,8 @@ export default async function DashboardPage() {
       type: "CHECK",
       icon: ShieldCheck,
       color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
-      title: "SMTP Connection Healthy",
-      text: "Outbound sending channel authenticated successfully. DNS records are checked and optimized.",
+      title: "Galien AI Active",
+      text: "Email account authenticated. Autonomous outreach and real-time reply handling are enabled.",
       href: "/settings/agency"
     })
   }
@@ -353,7 +384,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
 
       {/* ── Welcome Hero Panel ────────────────────────────────────────── */}
       <div 
@@ -371,7 +402,7 @@ export default async function DashboardPage() {
         <div className="space-y-3.5 relative z-10">
           <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider bg-white/[0.04] border border-white/[0.06] text-white/50">
             <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" style={{ boxShadow: "0 0 6px rgba(52,211,153,.9)" }} />
-            Agnel Autopilot: {activeCampaigns.length > 0 ? "Active Scanning" : "Idle Operations"}
+            Galien Autopilot: {activeCampaigns.length > 0 ? "Active Scanning" : "Idle Operations"}
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white leading-tight">
@@ -380,7 +411,7 @@ export default async function DashboardPage() {
 
           {playbook && (
             <p className="text-[12px] text-white/40 font-medium leading-relaxed max-w-xl">
-              Configured as a <span className="text-white/70 font-semibold">{playbook.name}</span>. Targeting niches like <span className="text-white/70 capitalize">{parsedVerticals.slice(0, 3).join(", ") || "n/a"}</span> via <span className="text-white/70 capitalize">{playbook.discoveryMethod}</span> scraping channels.
+              Configured as a <span className="text-white/70 font-semibold">{playbook.name}</span>. Targeting niches like <span className="text-white/70 capitalize">{parsedVerticals.slice(0, 3).join(", ") || "n/a"}</span> via <span className="text-white/70 capitalize">{playbook.discoveryMethod}</span> market discovery.
             </p>
           )}
         </div>
@@ -417,6 +448,51 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Persistent AI Quickstart & System Setup Guide Banner ───── */}
+      <AiQuickstartBanner steps={gettingStartedSteps} />
+
+      {/* ── Workspace strip: the mode's job, its specialist, and its ONE number ── */}
+      <div
+        className="relative overflow-hidden rounded-3xl px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+        style={{
+          background: "linear-gradient(135deg, rgba(30, 32, 45, 0.7) 0%, rgba(15, 16, 22, 0.4) 100%)",
+          border: `1px solid ${workspace.accent}33`,
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,.05), 0 20px 40px rgba(0,0,0,0.3)",
+          backdropFilter: "blur(16px)",
+        }}
+      >
+        <div className="absolute -right-20 -top-20 size-48 rounded-full blur-[90px]" style={{ background: `${workspace.accent}22` }} />
+        <div className="relative z-10 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="size-2 rounded-[4px]" style={{ background: workspace.accent }} />
+            <span className="text-[10px] font-bold uppercase tracking-[.18em] text-white/30">{workspace.name}</span>
+            <span
+              className="text-[9.5px] font-black uppercase tracking-[.1em] px-2 py-0.5 rounded-md"
+              style={{ background: `${workspace.accent}1a`, border: `1px solid ${workspace.accent}40`, color: workspace.accent }}
+            >
+              AI {workspace.persona.role}
+            </span>
+          </div>
+          <p className="text-[17px] font-black tracking-tight text-white/90 mt-1.5">{workspace.job}</p>
+          <p className="text-[11.5px] text-white/30 mt-0.5">Everything in this workspace serves that one job.</p>
+        </div>
+        {primaryKpi && (
+          <div className="relative z-10 text-left sm:text-right shrink-0">
+            <p className="text-[10px] font-bold uppercase tracking-[.16em] text-white/30">{primaryKpi.label}</p>
+            <p className="text-[34px] font-black tracking-tight leading-none mt-1" style={{ color: workspace.accent }}>
+              {primaryKpi.value}
+            </p>
+            <p className="text-[11px] text-white/30 mt-1">{primaryKpi.sub}</p>
+          </div>
+        )}
+      </div>
+
+      {/* ── Today's Mission: the work queue, not a report ─────────────── */}
+      <WorkspaceMission />
+
+      {/* ── Galien Recommends (agent insights / cross-sell cards) ────── */}
+      <AgentInsightsPanel />
 
       {/* ── Score Improver Banner ───────────────────────────────────── */}
       {(systemHealth < 100 || deliverabilityScore < 90) && (

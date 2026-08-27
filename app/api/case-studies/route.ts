@@ -23,24 +23,50 @@ export async function POST(req: NextRequest) {
   const scopeId = getScopeId(session)
 
   const body = await req.json()
-  const { clientName, industry, nicheTags, challenge, solution, results, testimonialQuote, metrics } = body
+  const {
+    clientName,
+    industry,
+    nicheTags,
+    challenge,
+    solution,
+    results,
+    testimonialQuote,
+    metrics,
+    aiSummary: customSummary,
+  } = body
 
-  if (!clientName || !industry || !challenge || !solution || !results) {
-    return NextResponse.json({ error: "clientName, industry, challenge, solution and results are required" }, { status: 400 })
+  if (!clientName?.trim() || !results?.trim()) {
+    return NextResponse.json(
+      { error: "Please provide at least a Client Name and the Results/Outcome." },
+      { status: 400 }
+    )
   }
 
-  const aiSummary = await generateCaseStudySummary({ clientName, industry, challenge, solution, results })
+  const finalIndustry = industry?.trim() || "B2B Business"
+  const finalChallenge = challenge?.trim() || `Needed consistent customer acquisition and improved conversion rates in the ${finalIndustry} space.`
+  const finalSolution = solution?.trim() || `Implemented targeted growth strategy and conversion funnel optimization.`
+  const finalResults = results.trim()
+
+  const aiSummary = customSummary?.trim()
+    ? customSummary.trim()
+    : await generateCaseStudySummary({
+        clientName: clientName.trim(),
+        industry: finalIndustry,
+        challenge: finalChallenge,
+        solution: finalSolution,
+        results: finalResults,
+      })
 
   const caseStudy = await prisma.caseStudy.create({
     data: {
       userId: scopeId,
-      clientName,
-      industry,
+      clientName: clientName.trim(),
+      industry: finalIndustry,
       nicheTags: Array.isArray(nicheTags) ? nicheTags : [],
-      challenge,
-      solution,
-      results,
-      testimonialQuote: testimonialQuote || null,
+      challenge: finalChallenge,
+      solution: finalSolution,
+      results: finalResults,
+      testimonialQuote: testimonialQuote?.trim() || null,
       metrics: metrics || null,
       aiSummary,
     },

@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextRequest } from "next/server"
 import { auth } from "@/auth"
-import { runAutoSearchForUser } from "@/lib/auto-search"
+import { runAutoSearchForUser, type AutoSearchEvent } from "@/lib/auto-search"
+
+export const maxDuration = 120
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -12,19 +14,22 @@ export async function POST(req: NextRequest) {
   const encoder = new TextEncoder()
   const stream = new ReadableStream({
     async start(controller) {
-      function log(msg: string) {
-        controller.enqueue(encoder.encode(`data: ${msg}\n\n`))
+      function send(eventOrMsg: AutoSearchEvent | string) {
+        const payload = typeof eventOrMsg === "string"
+          ? JSON.stringify({ type: "log", message: eventOrMsg })
+          : JSON.stringify(eventOrMsg)
+        controller.enqueue(encoder.encode(`data: ${payload}\n\n`))
       }
 
-      log("Initializing Autonomous Engine for your agency...")
-      log("Validating configurations...")
-      
+      send({ type: "log", message: "Initializing Autonomous Engine for your agency..." })
+      send({ type: "log", message: "Validating ICP guardrails and quality filters..." })
+
       try {
-        await runAutoSearchForUser(session.user!.id, (msg) => {
-          log(msg)
+        await runAutoSearchForUser(session.user!.id, (event) => {
+          send(event)
         })
       } catch (err) {
-        log(`Error: ${err instanceof Error ? err.message : String(err)}`)
+        send({ type: "log", message: `Error: ${err instanceof Error ? err.message : String(err)}` })
       }
 
       controller.close()
@@ -35,7 +40,7 @@ export async function POST(req: NextRequest) {
     headers: {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
-      "Connection": "keep-alive"
+      "Connection": "keep-alive",
     }
   })
 }

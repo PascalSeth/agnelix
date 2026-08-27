@@ -17,24 +17,39 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   })
   if (!lead) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  // Fetch all sent emails
-  const emails = await prisma.email.findMany({
-    where: { leadId: id },
-    orderBy: { createdAt: "asc" },
+  // Fetch only genuinely sent emails with non-empty bodies (exclude DRAFT, FAILED, and empty ghosts)
+  const sentEmails = await prisma.email.findMany({
+    where: {
+      leadId: id,
+      status: { in: ["SENT", "DELIVERED", "OPENED", "CLICKED", "REPLIED"] },
+      body: { not: "" },
+    },
+    orderBy: { sentAt: "asc" },
   })
 
   // Fetch all received replies
-  const replies = await prisma.reply.findMany({
+  const rawReplies = await prisma.reply.findMany({
     where: { leadId: id },
     orderBy: { receivedAt: "asc" },
   })
 
+  // Deduplicate replies by body + fromEmail
+  const seenReplies = new Set<string>()
+  const uniqueReplies = []
+  for (const r of rawReplies) {
+    const key = `${r.fromEmail}:${r.body.trim()}`
+    if (!seenReplies.has(key)) {
+      seenReplies.add(key)
+      uniqueReplies.push(r)
+    }
+  }
+
   // Set of email IDs that have corresponding replies
-  const repliedEmailIds = new Set(replies.map((r) => r.emailId).filter(Boolean))
+  const repliedEmailIds = new Set(uniqueReplies.map((r) => r.emailId).filter(Boolean))
 
   // Merge them chronologically
   const thread = [
-    ...emails.map((e) => ({
+    ...sentEmails.map((e) => ({
       id: e.id,
       type: "sent" as const,
       subject: e.subject,
@@ -43,8 +58,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       status: e.status,
       stepNumber: e.stepNumber,
       wasRepliedTo: repliedEmailIds.has(e.id),
+      openCount: e.openCount,
+      openedAt: e.openedAt,
     })),
-    ...replies.map((r) => ({
+    ...uniqueReplies.map((r) => ({
       id: r.id,
       type: "received" as const,
       subject: r.subject,

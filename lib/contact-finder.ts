@@ -190,10 +190,9 @@ function extractTaggedEmails(html: string, $: cheerio.CheerioAPI): TaggedEmail[]
     try { keep(decodeURIComponent(raw), "mailto-link") } catch { keep(raw, "mailto-link") }
   })
 
-  // 2. <address> tags — semantic HTML contact info
-  $("address").each((_, el) => {
+  // 2. <address> tags & footer elements — semantic HTML contact info
+  $("address, footer, .footer, #footer, .contact, #contact").each((_, el) => {
     for (const e of $(el).text().match(EMAIL_RE) ?? []) keep(e, "address-tag")
-    // Also check mailto: inside address
     $(el).find('a[href^="mailto:"]').each((_, a) => {
       const raw = $(a).attr("href")?.replace("mailto:", "").split("?")[0] ?? ""
       if (!raw) return
@@ -201,13 +200,30 @@ function extractTaggedEmails(html: string, $: cheerio.CheerioAPI): TaggedEmail[]
     })
   })
 
-  // 3. data-email attributes
-  $("[data-email]").each((_, el) => {
-    const val = $(el).attr("data-email") ?? ""
+  // 3. data-email and data-contact attributes
+  $("[data-email], [data-contact], [data-mailto]").each((_, el) => {
+    const val = $(el).attr("data-email") || $(el).attr("data-contact") || $(el).attr("data-mailto") || ""
     if (val.includes("@")) keep(val, "data-attr")
   })
 
-  // 4. Obfuscated: name [at] domain [dot] com
+  // 4. JSON-LD structured data (<script type="application/ld+json">)
+  $('script[type="application/ld+json"]').each((_, el) => {
+    try {
+      const content = $(el).html() || ""
+      const parsed = JSON.parse(content)
+      const scanObj = (obj: any) => {
+        if (!obj || typeof obj !== "object") return
+        if (typeof obj.email === "string" && obj.email.includes("@")) {
+          keep(obj.email, "address-tag")
+        }
+        if (Array.isArray(obj)) obj.forEach(scanObj)
+        else Object.values(obj).forEach(scanObj)
+      }
+      scanObj(parsed)
+    } catch { /* skip invalid JSON-LD */ }
+  })
+
+  // 5. Obfuscated: name [at] domain [dot] com
   const re = new RegExp(OBFUSCATED_RE.source, "gi")
   let m: RegExpExecArray | null
   while ((m = re.exec(html)) !== null) {
@@ -218,7 +234,7 @@ function extractTaggedEmails(html: string, $: cheerio.CheerioAPI): TaggedEmail[]
     keep(normalised, "obfuscated")
   }
 
-  // 5. Raw regex — lowest priority for discovered emails
+  // 6. Raw regex match across HTML body
   for (const e of html.match(EMAIL_RE) ?? []) keep(e, "text-scraped")
 
   return Array.from(best.entries()).map(([email, source]) => ({ email, source }))
@@ -232,7 +248,7 @@ function extractLinkedInUrls($: cheerio.CheerioAPI): string[] {
     const href = $(el).attr("href") ?? ""
     if (href) urls.push(href)
   })
-  return urls.slice(0, 3)
+  return urls.slice(0, 4)
 }
 
 // ─── Page scraping ───────────────────────────────────────────────────────────
@@ -248,20 +264,26 @@ async function scrapePage(url: string): Promise<ScrapedPage> {
   try {
     const res = await fetch(url, {
       headers: { "User-Agent": UA, "Accept": "text/html", "Accept-Language": "en-GB,en;q=0.9" },
-      signal: AbortSignal.timeout(7000),
+      signal: AbortSignal.timeout(6000),
       redirect: "follow",
     })
     if (!res.ok) return { url, text: "", taggedEmails: [], linkedInUrls: [] }
 
     const html = await res.text()
     const $ = cheerio.load(html)
-    $("script, style, nav, footer, noscript, svg, iframe").remove()
+
+    // Extract structured emails and social links BEFORE stripping scripts/styles
+    const taggedEmails = extractTaggedEmails(html, $)
+    const linkedInUrls = extractLinkedInUrls($)
+
+    // Remove heavy non-text elements but preserve semantic footer/main text
+    $("script, style, noscript, svg, iframe").remove()
 
     return {
       url,
-      text: $("body").text().replace(/\s+/g, " ").slice(0, 8000),
-      taggedEmails: extractTaggedEmails(html, $),
-      linkedInUrls: extractLinkedInUrls($),
+      text: $("body").text().replace(/\s+/g, " ").slice(0, 10000),
+      taggedEmails,
+      linkedInUrls,
     }
   } catch {
     return { url, text: "", taggedEmails: [], linkedInUrls: [] }

@@ -60,6 +60,7 @@ export async function POST(req: NextRequest) {
     industry,
     metrics,
     periodLabel,
+    clientGoal: campaign.clientGoal,
   })
 
   const portal = await prisma.clientPortal.findUnique({ where: { campaignId } })

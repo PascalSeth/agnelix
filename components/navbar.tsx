@@ -155,6 +155,8 @@ export function Navbar() {
               alt="Galien"
               width={120}
               height={80}
+              priority
+              style={{ width: "auto", height: "auto" }}
               className="rounded-lg object-contain filter brightness-110 contrast-125"
             />
           </Link>
